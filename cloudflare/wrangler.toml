@@ -1,0 +1,37 @@
+name = "elmana-jl"
+main = "src/worker.js"
+compatibility_date = "2026-10-01"
+
+# El frontend (public/index.html) y la API (/api/*) salen del mismo origen: no hay CORS abierto.
+[assets]
+directory = "./public"
+binding = "ASSETS"
+run_worker_first = ["/api/*"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "elmana-jl"
+database_id = "c0c12a03-9891-4377-884e-8cb565746914"
+migrations_dir = "migrations"
+
+# Tasa BCV: consulta automática cada hora (el BCV publica la tasa del día siguiente por la tarde/noche; así se recoge sola apenas aparece).
+[triggers]
+crons = ["0 * * * *"]
+
+[observability]
+enabled = true
+
+# Límite de peticiones por IP (enlace nativo de Cloudflare)
+[[ratelimits]]
+name = "RL_WRITE"
+namespace_id = "1001"
+  [ratelimits.simple]
+  limit = 120
+  period = 60
+
+[[ratelimits]]
+name = "RL_READ"
+namespace_id = "1002"
+  [ratelimits.simple]
+  limit = 300
+  period = 60

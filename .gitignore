@@ -1,0 +1,30 @@
+# Datos y archivos del dueño (pesados o privados)
+datos del drive/
+clientes-posibles-repetidos.xlsx
+*.xlsx
+!cloudflare/ejemplos/*.xlsx
+uploads/
+# Repo aparte (publica el informe en otra cuenta)
+publicar-github/
+# Herramientas locales
+.wrangler/
+node_modules/
+.playwright-mcp/
+.claude/
+# Bases locales
+*.sqlite
+*.sqlite3
+*.db
+# Claves
+.env
+.env.*
+.dev.vars
+*.pem
+*.key
+# Temporales
+*.log
+*.tmp
+*.bak
+~$*
+.DS_Store
+Thumbs.db

@@ -1,0 +1,15 @@
+{
+  "name": "El Maná JL — Seguimiento productivo",
+  "short_name": "El Maná JL",
+  "description": "Seguimiento productivo: producción, compras, inventario y cobranza.",
+  "lang": "es",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "theme_color": "#C92121",
+  "background_color": "#FFFFFF",
+  "icons": [
+    {"src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable"},
+    {"src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"}
+  ]
+}

@@ -1,0 +1,22 @@
+/
+  Cache-Control: no-cache
+/index.html
+  Cache-Control: no-cache
+/*.png
+  Cache-Control: public, max-age=86400
+/favicon.ico
+  Cache-Control: public, max-age=86400
+/site.webmanifest
+  Cache-Control: public, max-age=86400
+  Content-Type: application/manifest+json
+
+/cliente
+  Cache-Control: no-store
+  Referrer-Policy: no-referrer
+  X-Robots-Tag: noindex, nofollow
+/cliente.html
+  Cache-Control: no-store
+  Referrer-Policy: no-referrer
+  X-Robots-Tag: noindex, nofollow
+/img/*
+  Cache-Control: public, max-age=86400

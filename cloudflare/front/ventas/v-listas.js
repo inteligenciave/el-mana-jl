@@ -1,0 +1,118 @@
+/* Listas y salidas: pagos recibidos (día/semana), quién debe y desde cuándo, comisiones, asientos, inventario y auditoría. Todo con CSV para Excel. */
+const vVendSel = (clave, valor, accion) => `<label class="fld">Vendedor<select data-act-change="${accion}" data-vf="${clave}"><option value="">Todos</option>${V.vendedores.map(v => `<option value="${v.id}" ${String(valor) === String(v.id) ? 'selected' : ''}>${vtxt(v.nombre)}</option>`).join('')}</select></label>`;
+
+/* ---------- Pagos recibidos ---------- */
+async function vPagosCargar() {
+  const f = V.pagos.f; if (!f.desde && !f.hasta && !V.pagos.init) { f.desde = vLunes(vHoy()); f.hasta = vHoy(); }
+  V.pagos.init = true;
+  try { V.pagos.filas = await vApi('GET', '/pagos' + vQS({desde: f.desde, hasta: f.hasta, vendedor: f.vendedor, estado: f.estado === 'TODOS' ? '' : f.estado})); } catch (e) { vErr(e); V.pagos.filas = []; }
+  render();
+}
+/* Qué se puede buscar en un pago (solo datos de pagos): se usa igual para filtrar la tabla y para las sugerencias */
+const V_DEF_PAGO = [
+  {tipo: 'Cliente', valores: x => x.cliente, detalle: x => x.cliente_rif || 'sin RIF'}, {tipo: 'RIF', valores: x => x.cliente_rif, detalle: x => x.cliente},
+  {tipo: 'Recibo', valores: x => x.recibo, detalle: x => x.cliente + ' · ' + vusd(x.usd)},
+  {tipo: 'Nota o factura', valores: x => (x.docs || '').split(/[|\s]+/).filter(Boolean), detalle: x => x.cliente},
+  {tipo: 'Banco', valores: x => x.banco, detalle: x => 'pagos recibidos'}, {tipo: 'Referencia', valores: x => x.referencia, detalle: x => (x.banco || '—') + ' · ' + x.cliente}
+];
+const vPagosVisibles = () => Busca.filtrar(V.pagos.filas || [], V.pagos.f.q, Busca.textosDe(V_DEF_PAGO));
+function scrPagos() {
+  return vPantalla(() => {
+    if (!V.pagos.init) vPagosCargar();
+    const f = V.pagos.f, filas = V.pagos.filas == null ? null : vPagosVisibles(), act = (filas || []).filter(x => x.estado === 'ACTIVO');
+    const totBs = act.reduce((t, x) => t + x.monto_bs, 0), totUsd = act.reduce((t, x) => t + x.usd, 0), puedeAnular = lvl('v-pagos') >= 3;
+    const rapidos = [['hoy', 'Hoy'], ['semana', 'Esta semana'], ['mes', 'Este mes'], ['todo', 'Todo']].map(([k, t]) => `<button type="button" class="btn sm" data-act="vPagosRango" data-v="${k}">${t}</button>`).join('');
+    const tabla = filas == null ? '<p class="hint">Cargando pagos…</p>' : table([
+      {h: 'Fecha', f: x => vfecha(x.fecha_pago)}, {h: 'Recibo', f: x => `<button type="button" class="btn sm ghost" data-act="vVerPago" data-id="${x.id_pago}">${vtxt(x.recibo)}</button>`},
+      {h: 'Cliente', f: x => vtxt(x.cliente)}, {h: 'Vendedor', f: x => vtxt(x.vendedor || '—')}, {h: 'Notas', f: x => vtxt(x.notas || 'sin aplicar')},
+      {h: 'Banco · referencia', f: x => `${vtxt(x.banco || '—')} · <span class="mono">${vtxt(x.referencia || 'sin ref.')}</span>`},
+      {h: 'Monto Bs', r: 1, f: x => vbs(x.monto_bs)}, {h: 'Tasa', r: 1, f: x => N2.format(x.tasa)}, {h: 'US$', r: 1, f: x => `<b>${vusd(x.usd)}</b>`},
+      {h: 'Estado', f: x => x.estado === 'ANULADO' ? `<span class="chip c-crit" title="${esc(x.motivo_anulacion || '')}">Anulado</span>` : `<span class="chip c-ok">Activo</span>${x.retroactivo ? ' <span class="chip c-warn">con PIN</span>' : ''}${x.origen === 'importado' ? ' <span class="chip c-n">importado</span>' : ''}`},
+      {h: '', f: x => puedeAnular && x.estado === 'ACTIVO' ? `<button type="button" class="btn sm" data-act="vAnular" data-id="${x.id_pago}">Anular</button>` : ''}
+    ], filas, {empty: Busca.norm(f.q) ? 'Ningún pago coincide en este rango de fechas. Prueba con «Todo» para buscar en todas las fechas.' : 'No hay pagos con este filtro.', foot: filas && filas.length ? `<tr class="v-foot"><td colspan="6">Total de pagos activos (${act.length})</td><td class="r">${vbs(totBs)}</td><td></td><td class="r"><b>${vusd(totUsd)}</b></td><td colspan="2"></td></tr>` : ''});
+    return `${vph('Ventas y liquidación', 'Pagos recibidos', 'Lista del día o de la semana, con recibo imprimible y exportación a Excel.', `<button type="button" class="btn" data-act="vPagosCSV">${ic('download', 16)}Descargar CSV</button>`)}
+    ${card('Filtros', `<div class="form"><div class="row3"><label class="fld">Desde<input type="date" data-act-change="vPagosFiltro" data-vf="desde" value="${esc(f.desde)}"></label><label class="fld">Hasta<input type="date" data-act-change="vPagosFiltro" data-vf="hasta" value="${esc(f.hasta)}"></label>${vVendSel('vendedor', f.vendedor, 'vPagosFiltro')}</div>
+      <div class="row3"><label class="fld">Estado<select data-act-change="vPagosFiltro" data-vf="estado"><option value="ACTIVO" ${f.estado === 'ACTIVO' ? 'selected' : ''}>Solo activos</option><option value="ANULADO" ${f.estado === 'ANULADO' ? 'selected' : ''}>Solo anulados</option><option value="TODOS" ${f.estado === 'TODOS' ? 'selected' : ''}>Todos</option></select></label>
+      <label class="fld">Buscar<input type="search" aria-label="Buscar pagos" ${Busca.atr('v-pagos')} value="${esc(f.q)}" placeholder="Cliente, RIF, RC-, nota, banco o referencia"></label><div class="v-rap"><span class="hint">Atajos</span><div class="btnrow">${rapidos}</div></div></div></div>`)}
+    ${card('Pagos', tabla)}`;
+  });
+}
+async function vPagosCSV() {
+  if (!V.pagos.filas) return;
+  await vCSV('pagos-' + vHoy() + '.csv', ['Fecha de pago', 'Recibo', 'Cliente', 'Vendedor', 'Notas', 'Banco', 'Referencia', 'Monto Bs', 'Tasa', 'USD', 'Estado', 'Motivo de anulación'],
+    vPagosVisibles().map(x => [x.fecha_pago, x.recibo, x.cliente, x.vendedor || '', x.notas || '', x.banco || '', x.referencia || '', x.monto_bs, x.tasa, x.usd, x.estado, x.motivo_anulacion || '']));
+}
+function vAnular(id) {
+  modal('Anular el pago ' + 'RC-' + String(id).padStart(5, '0'), `<div class="form"><p>El pago no se borra: queda marcado como <b>anulado</b> con el motivo y la persona que lo anuló, y la nota vuelve a quedar pendiente.</p>
+    <label class="fld">Motivo de la anulación<input type="text" id="v-motivo" maxlength="200" placeholder="Por ejemplo: referencia mal escrita"></label><p class="err" id="v-an-e" role="alert" hidden></p>
+    <div class="btnrow"><button type="button" class="btn pri" id="v-an-ok">Anular el pago</button><button type="button" class="btn" data-act="closeModal">Cancelar</button></div></div>`);
+  $('#v-motivo').focus();
+  $('#v-an-ok').addEventListener('click', async () => {
+    const e = $('#v-an-e'); e.hidden = true;
+    try { await vApi('POST', '/pagos/' + id + '/anular', {motivo: $('#v-motivo').value}); closeModal(); toast('Pago anulado.'); V.clientes = null; await vPagosCargar(); }
+    catch (er) { e.textContent = er.message; e.hidden = false; }
+  });
+}
+
+/* ---------- Quién debe y desde cuándo ---------- */
+async function vDeudaCargar() {
+  const f = V.deuda.f, n = V.deuda.n = (V.deuda.n || 0) + 1; /* si llega una respuesta vieja mientras se sigue escribiendo, se descarta */
+  try { const r = await vApi('GET', '/deuda' + vQS({vendedor: f.vendedor, q: f.q})); if (n !== V.deuda.n) return; V.deuda.data = r; if (!f.q) V.deuda.base = r; } catch (e) { vErr(e); V.deuda.data = {clientes: [], total: 0}; }
+  render();
+}
+const V_DEF_DEUDA = [{tipo: 'Cliente', valores: c => c.razon_social, detalle: c => 'debe ' + vusd(c.saldo)}, {tipo: 'RIF', valores: c => c.rif, detalle: c => c.razon_social}, {tipo: 'Nota o factura', valores: c => c.notas.map(n => n.nro), detalle: c => c.razon_social}];
+function scrDeuda() {
+  return vPantalla(() => {
+    const f = V.deuda.f, d = V.deuda.data; if (!d) vDeudaCargar();
+    const alerta = +V.cfg.dias_alerta_deuda || null;
+    const lista = !d ? '<p class="hint">Cargando…</p>' : !d.clientes.length ? emptyState('Nadie debe nada con este filtro', 'Cuando haya notas o facturas pendientes aparecerán aquí, de la deuda más antigua a la más reciente.')
+      : d.clientes.map(c => `<details class="v-deu"><summary><span class="v-deu-n">${vtxt(c.razon_social)}</span><span class="v-deu-v">${vtxt(c.vendedor || '—')}</span><b>${vusd(c.saldo)}</b>
+        <span>desde ${vfecha(c.desde)}</span><span class="chip c-${alerta && c.dias_desde >= alerta ? 'crit' : 'n'}">${c.dias_desde} días</span></summary>
+        ${table([{h: 'Nota / factura', f: n => `<button type="button" class="btn sm ghost" data-act="vVerDoc" data-id="${n.id_documento}">${vtxt(n.nro)}</button>`}, {h: 'Tipo', f: n => n.sin_detalle ? 'Del Excel' : n.tipo === 'NOTA_ENTREGA' ? 'Nota de entrega' : 'Factura'}, {h: 'Emisión', f: n => vfecha(n.fecha)}, {h: 'Días', r: 1, f: n => n.dias},
+          {h: 'Total', r: 1, f: n => vusd(n.total)}, {h: 'Saldo', r: 1, f: n => `<b>${vusd(n.saldo)}</b>`}], c.notas)}
+        <div class="btnrow"><button type="button" class="btn sm pri" data-act="vIrCobrar" data-id="${c.id_cliente}">${ic('coins', 16)}Cobrar a este cliente</button></div></details>`).join('');
+    return `${vph('Ventas y liquidación', 'Quién debe y desde cuándo', 'Los clientes con notas o facturas pendientes, del más antiguo al más reciente.', `<button type="button" class="btn" data-act="vDeudaCSV">${ic('download', 16)}Descargar CSV</button>`)}
+    ${card('Filtros', `<div class="form"><div class="row2">${vVendSel('vendedor', f.vendedor, 'vDeudaFiltro')}<label class="fld">Buscar<input type="search" aria-label="Buscar en la deuda" ${Busca.atr('v-deuda')} value="${esc(f.q)}" placeholder="Cliente, RIF o número de nota o factura"></label></div>
+      ${alerta ? '' : '<p class="hint">Los días de alerta no están definidos: el Dueño puede fijarlos en Clientes, catálogo y ajustes. Mientras tanto no se marca ninguna deuda como urgente.</p>'}</div>`)}
+    ${d ? `<div class="v-stats">${stat('Deuda total', vusd(d.total), d.clientes.length + ' cliente(s)')}</div>` : ''}
+    ${d && d.clientes.length ? `<div class="v-2c">${card('Por vendedor', table([{h: 'Vendedor', f: g => vtxt(g.nombre)}, {h: 'Clientes', r: 1, f: g => g.clientes}, {h: 'Debe', r: 1, f: g => `<b>${vusd(g.saldo)}</b>`}, {h: 'Más antigua', r: 1, f: g => g.dias_desde + ' días'}], d.por_vendedor || []))}${card('Por zona', table([{h: 'Zona', f: g => vtxt(g.nombre)}, {h: 'Clientes', r: 1, f: g => g.clientes}, {h: 'Debe', r: 1, f: g => `<b>${vusd(g.saldo)}</b>`}, {h: 'Más antigua', r: 1, f: g => g.dias_desde + ' días'}], d.por_zona || []))}</div>` : ''}${lista}`;
+  });
+}
+async function vDeudaCSV() {
+  const d = V.deuda.data; if (!d) return;
+  await vCSV('quien-debe-' + vHoy() + '.csv', ['Cliente', 'Vendedor', 'Zona', 'Nota o factura', 'Tipo', 'Emisión', 'Días', 'Total USD', 'Saldo USD', 'Debe desde'],
+    d.clientes.flatMap(c => c.notas.map(n => [c.razon_social, c.vendedor || '', c.zona || '', n.nro, n.sin_detalle ? 'Del Excel' : n.tipo === 'NOTA_ENTREGA' ? 'Nota de entrega' : 'Factura', n.fecha, n.dias, n.total, n.saldo, c.desde])));
+}
+
+/* ---------- Comisiones, asientos, inventario, auditoría ---------- */
+async function vRepCargar() {
+  const R = V.rep, f = R.f, q = vQS({desde: f.desde, hasta: f.hasta, vendedor: f.vendedor});
+  try { R.data = await vApi('GET', R.tab === 'comisiones' ? '/comisiones' + q : R.tab === 'asientos' ? '/asientos' + q : R.tab === 'inventario' ? '/movimientos' : '/auditoria'); } catch (e) { vErr(e); R.data = []; }
+  render();
+}
+function scrReportes() {
+  return vPantalla(() => {
+    const R = V.rep, d = R.data; if (!d) vRepCargar();
+    const tabs = [['comisiones', 'Comisiones'], ['asientos', 'Asientos contables'], ['inventario', 'Movimientos de inventario'], ...(lvl('v-clientes') >= 3 ? [['auditoria', 'Auditoría']] : [])];
+    let cuerpo = '<p class="hint">Cargando…</p>', csv = '';
+    if (d && R.tab === 'comisiones') {
+      const por = {}; d.forEach(c => { const k = c.vendedor_nombre || 'Sin vendedor'; (por[k] ||= {base: 0, monto: 0, sinPct: 0}); por[k].base += c.base_neta; if (c.monto != null) por[k].monto += c.monto; else por[k].sinPct++; });
+      cuerpo = `${table([{h: 'Vendedor', f: ([k]) => vtxt(k)}, {h: 'Base neta cobrada', r: 1, f: ([, v]) => vusd(v.base)}, {h: 'Comisión', r: 1, f: ([, v]) => v.sinPct ? `${vusd(v.monto)} <span class="muted">(${v.sinPct} sin porcentaje)</span>` : `<b>${vusd(v.monto)}</b>`}], Object.entries(por), {empty: 'Todavía no hay comisiones.'})}
+        <h3 class="v-h3">Detalle</h3>${table([{h: 'Fecha', f: c => vfecha(c.fecha)}, {h: 'Nota', f: c => vtxt(c.nro_control_interno)}, {h: 'Cliente', f: c => vtxt(c.razon_social)}, {h: 'Vendedor', f: c => vtxt(c.vendedor_nombre || '—')}, {h: 'Base neta', r: 1, f: c => vusd(c.base_neta)}, {h: '%', r: 1, f: c => c.pct == null ? 'sin definir' : N2.format(c.pct)}, {h: 'Comisión', r: 1, f: c => c.monto == null ? '—' : vusd(c.monto)}], d)}`;
+      csv = ['comisiones', ['Fecha', 'Nota', 'Cliente', 'Vendedor', 'Base neta USD', 'Porcentaje', 'Comisión USD'], d.map(c => [c.fecha, c.nro_control_interno, c.razon_social, c.vendedor_nombre || '', c.base_neta, c.pct == null ? '' : c.pct, c.monto == null ? '' : c.monto])];
+    } else if (d && R.tab === 'asientos') {
+      cuerpo = d.length ? d.map(a => `<div class="v-asi"><p><b>${vfecha(a.fecha)}</b> · ${vtxt(a.concepto)}${a.ejemplo ? ' <span class="chip c-warn">EJEMPLO</span>' : ''}</p>${table([{h: 'Cuenta', f: l => vtxt(l.cuenta)}, {h: 'Debe', r: 1, f: l => l.debe ? vc2(l.debe) : ''}, {h: 'Haber', r: 1, f: l => l.haber ? vc2(l.haber) : ''}], a.lineas)}</div>`).join('') : emptyState('Sin asientos todavía', 'Se generan solos al vender y cobrar.');
+      csv = ['asientos', ['Fecha', 'Concepto', 'Cuenta', 'Debe USD', 'Haber USD'], d.flatMap(a => a.lineas.map(l => [a.fecha, a.concepto, l.cuenta, (l.debe || 0) / 100, (l.haber || 0) / 100]))];
+    } else if (d && R.tab === 'inventario') {
+      cuerpo = table([{h: 'Fecha', f: m => vfecha(m.fecha)}, {h: 'Producto', f: m => vtxt(m.nombre) + ` <span class="muted mono">${vtxt(m.codigo_sku)}</span>`}, {h: 'Movimiento', f: m => vtxt(m.tipo.toLowerCase().replace(/_/g, ' '))}, {h: 'Cantidad', r: 1, f: m => (m.cantidad > 0 ? '+' : '') + N0.format(m.cantidad)}, {h: 'Documento', r: 1, f: m => m.id_documento || '—'}], d, {empty: 'Sin movimientos.'});
+      csv = ['inventario', ['Fecha', 'SKU', 'Producto', 'Movimiento', 'Cantidad', 'Documento'], d.map(m => [m.fecha, m.codigo_sku, m.nombre, m.tipo, m.cantidad, m.id_documento || ''])];
+    } else if (d && R.tab === 'auditoria') {
+      cuerpo = table([{h: 'Cuándo', f: a => new Date(a.ts).toLocaleString('es-VE')}, {h: 'Quién', f: a => vtxt(a.rol)}, {h: 'Qué', f: a => vtxt(a.accion)}, {h: 'Sobre', f: a => vtxt(a.ent) + ' ' + vtxt(a.ref)}, {h: 'Detalle', f: a => `<span class="v-det-t">${vtxt(a.detalle)}</span>`}], d, {empty: 'Sin registros.'});
+      csv = ['auditoria', ['Cuándo', 'Quién', 'Acción', 'Entidad', 'Referencia', 'Detalle'], d.map(a => [new Date(a.ts).toISOString(), a.rol, a.accion, a.ent, a.ref, a.detalle])];
+    }
+    const filtros = R.tab === 'comisiones' || R.tab === 'asientos' ? `<div class="row3"><label class="fld">Desde<input type="date" data-act-change="vRepFiltro" data-vf="desde" value="${esc(R.f.desde)}"></label><label class="fld">Hasta<input type="date" data-act-change="vRepFiltro" data-vf="hasta" value="${esc(R.f.hasta)}"></label>${R.tab === 'comisiones' ? vVendSel('vendedor', R.f.vendedor, 'vRepFiltro') : ''}</div>` : '';
+    V.rep.csv = csv;
+    return `${vph('Ventas y liquidación', 'Comisiones, asientos e inventario', 'Lo que el sistema calcula solo al vender y cobrar.', csv ? `<button type="button" class="btn" data-act="vRepCSV">${ic('download', 16)}Descargar CSV</button>` : '')}
+    <div class="v-tabs" role="tablist">${tabs.map(([k, t]) => `<button type="button" role="tab" aria-selected="${R.tab === k}" class="v-tab" data-act="vRepTab" data-v="${k}">${t}</button>`).join('')}</div>${filtros ? card('Filtros', `<div class="form">${filtros}</div>`) : ''}${card('', cuerpo)}`;
+  });
+}

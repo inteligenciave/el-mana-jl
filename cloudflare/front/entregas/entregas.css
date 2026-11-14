@@ -1,0 +1,27 @@
+/* Entregas con foto y plazos. Colores de marca (rojo #C92121, amarillo #F2B72E, blanco); verde y ámbar solo como semáforo. Reusa las clases de Ventas (.v-cat, .v-alerta, .v-stats, .v-pk-list, .v-dl). */
+.e-2c{display:grid;gap:14px;grid-template-columns:minmax(0,1fr);align-items:start}
+@media (min-width:1000px){.e-2c{grid-template-columns:minmax(0,36fr) minmax(0,64fr)}}
+.e-2c>.card{margin:0;min-width:0}
+.e-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.e-lista{list-style:none;margin:8px 0 0;padding:0}
+.e-row{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 12px;padding:8px 0;border-bottom:1px solid var(--line);align-items:center}
+@media (min-width:700px){.e-row{grid-template-columns:auto minmax(0,1fr) auto}}
+.e-b{min-width:0}.e-n{font-size:14.5px}.e-s{font-size:12.5px;color:var(--muted);overflow-wrap:anywhere}
+.e-a{display:flex;gap:8px;align-items:center;flex-wrap:wrap;grid-column:1/3}
+@media (min-width:700px){.e-a{grid-column:auto;justify-content:flex-end}}
+.e-th{width:56px;height:56px;border-radius:10px;border:1px solid var(--line-2);background:var(--track);display:grid;place-items:center;overflow:hidden;padding:0;cursor:pointer;color:var(--muted)}
+.e-th img{width:100%;height:100%;object-fit:cover;display:block}
+.e-th0{cursor:default}
+.e-pag{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-top:10px;font-size:13px;color:var(--muted)}
+.e-doc{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:10px;display:flex;flex-direction:column;gap:4px;align-items:flex-start}
+.e-file input{padding:8px;min-height:44px}
+.e-prev{display:grid;grid-template-columns:96px minmax(0,1fr);gap:12px;align-items:center;margin:10px 0}
+.e-prev img{width:96px;height:96px;object-fit:cover;border-radius:10px;border:1px solid var(--line-2)}
+.e-size{display:flex;flex-direction:column;gap:2px;font-size:12.5px;color:var(--muted)}.e-size b{font-size:16px;color:var(--fg)}
+.e-big{display:flex;flex-direction:column;gap:10px}
+.e-bigi{background:#111;border-radius:10px;min-height:160px;display:grid;place-items:center;position:relative;overflow:hidden}
+.e-bigi img{max-width:100%;max-height:60vh;display:block;object-fit:contain}
+.e-bigi img.e-borr{filter:blur(3px);width:100%;max-height:60vh}
+.e-carg{position:absolute;color:#fff;background:rgba(0,0,0,.55);padding:4px 10px;border-radius:8px}
+.e-op{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--line-2);border-radius:10px;padding:10px 12px;margin:6px 0;cursor:pointer}
+.e-op input{margin-top:4px;width:18px;height:18px}

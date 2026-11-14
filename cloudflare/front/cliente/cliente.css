@@ -1,0 +1,31 @@
+/* Pantallas internas del portal de clientes (equipo). Usan los colores de la aplicación. */
+.cp-cols{display:grid;grid-template-columns:minmax(300px,380px) 1fr;gap:14px;align-items:start}
+.cp-lista{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:6px}
+.cp-it{width:100%;display:flex;justify-content:space-between;gap:8px;align-items:center;text-align:left;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--fg);cursor:pointer;font:inherit;min-height:48px}
+.cp-it:hover{border-color:var(--line-2)}.cp-it.on{background:var(--sel-bg);border-color:var(--pri)}
+.cp-it .mini{display:block;font-size:12px;color:var(--muted)}
+.cp-tags{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end}
+.cp-pag{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:10px;font-size:13px;color:var(--muted)}
+.cp-pag .btn[disabled]{opacity:.45;cursor:default}
+.cp-fh{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:flex-start}
+.cp-fh h2{margin:0;font-size:20px}
+.cp-kv{display:grid;grid-template-columns:repeat(3,1fr);gap:8px 14px;margin:10px 0}
+.cp-kv div{min-width:0}.cp-kv dt{font-size:12px;color:var(--muted)}.cp-kv dd{margin:0;font-weight:600;overflow-wrap:anywhere}
+.cp-codigo{border:2px solid var(--warn);background:var(--warn-bg);border-radius:10px;padding:10px 12px;margin:8px 0}
+.cp-codigo p{margin:0 0 6px}
+.cp-acc{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin:8px 0}
+.cp-dias{width:200px}
+.cp-dos{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:8px}
+.cp-dos h3{margin:0 0 4px;font-size:14px}
+.cp-li{margin:0 0 6px;font-size:13px}
+.cp-vacio{display:grid;place-items:center;gap:8px;text-align:center;color:var(--muted);padding:40px 10px}
+.mini{font-size:12px;color:var(--muted)}
+.cp-tarjs{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+.cp-tarj{border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--surface);display:flex;flex-direction:column;gap:6px;min-width:0}
+.cp-t1{display:flex;justify-content:space-between;gap:10px}
+.cp-monto{font-weight:700;white-space:nowrap}
+.cp-lin{margin:0;font-size:13px;overflow-wrap:anywhere}
+.cp-t2{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-top:auto}
+.cp-sel{display:grid;gap:2px;font-size:12px;color:var(--muted)}
+.cp-sel select,.cp-sel input{min-height:36px;max-width:150px}
+@media (max-width:900px){.cp-cols{grid-template-columns:1fr}.cp-tarjs,.cp-dos{grid-template-columns:1fr}.cp-kv{grid-template-columns:1fr 1fr}}

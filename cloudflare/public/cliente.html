@@ -1,0 +1,506 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Mi cuenta · El Maná JL</title>
+<meta name="robots" content="noindex,nofollow"><meta name="referrer" content="no-referrer"><meta name="theme-color" content="#C92121">
+<link rel="icon" href="/favicon.ico" sizes="any"><link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<style>/* Sugerencias desplegables de las barras de búsqueda (todo el sistema) */
+.bq-lista{position:fixed;z-index:2000;margin:0;padding:4px;list-style:none;overflow:auto;background:var(--surface);color:var(--fg);border:1px solid var(--line-2);border-radius:10px;box-shadow:0 10px 28px rgba(0,0,0,.22);overscroll-behavior:contain}
+.bq-lista[hidden]{display:none}
+.bq-lista li{display:flex;flex-direction:column;gap:1px;padding:8px 10px;min-height:44px;justify-content:center;border-radius:7px;cursor:pointer}
+.bq-lista li b{font-weight:600;font-size:14px;overflow-wrap:anywhere}
+.bq-lista li span{font-size:12.5px;color:var(--muted);overflow-wrap:anywhere}
+.bq-lista li:hover,.bq-lista li.on{background:var(--sel-bg)}
+.bq-lista li.on{box-shadow:inset 3px 0 0 var(--pri)}
+.bq-estado{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+input[data-bq]{min-width:0}
+
+/* Portal del cliente · marca: rojo #C92121, amarillo #F2B72E, blanco y gris casi negro. Verde y ámbar solo como semáforo. Móvil primero. */
+:root{
+  --rojo:#C92121;--rojo-osc:#A51B1B;--rojo-cl:#FBE9E9;--amar:#F2B72E;--amar-cl:#FFF4D6;--amar-osc:#5A4300;
+  --tinta:#1F1F1F;--gris:#5E5E5E;--linea:#E2DCDC;--fondo:#F6F4F4;--blanco:#FFFFFF;
+  --ok:#256B4D;--ok-bg:#E1F0E8;--err:#9C1C17;--err-bg:#FBE4E1;
+  --surface:#FFFFFF;--fg:#1F1F1F;--line-2:#CFC8C8;--sel-bg:#FFF4D6;--muted:#5E5E5E;--pri:#C92121;
+  --f:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--fondo);color:var(--tinta);font:16px/1.45 var(--f);min-height:100vh;padding-bottom:calc(72px + env(safe-area-inset-bottom,0px))}
+h1,h2,h3,p{margin:0}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--amar);outline-offset:2px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.cab{background:var(--rojo);color:#fff;position:sticky;top:0;z-index:20}
+.cab-i{max-width:980px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:12px}
+.cab img{width:40px;height:40px;border-radius:50%;background:#fff;flex:none}
+.cab b{display:block;font-size:17px;line-height:1.15}
+.cab small{display:block;font-size:13px;opacity:.95;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:62vw}
+.cab .salir{margin-left:auto;background:transparent;border:1px solid rgba(255,255,255,.7);color:#fff;border-radius:8px;min-height:40px;padding:0 12px;font-size:14px}
+.cab-nav{display:none}
+main{max-width:980px;margin:0 auto;padding:16px}
+.card{background:var(--blanco);border:1px solid var(--linea);border-radius:14px;padding:16px;margin-bottom:14px}
+.card h2{font-size:18px;margin-bottom:10px}
+.grande{font-size:34px;font-weight:800;line-height:1.1;letter-spacing:-.01em}
+.sub{color:var(--gris);font-size:14px}
+.fila{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.sep{justify-content:space-between}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:0 18px;border-radius:12px;border:2px solid var(--rojo);background:var(--rojo);color:#fff;font-weight:700;text-decoration:none}
+.btn:hover:not(:disabled){background:var(--rojo-osc);border-color:var(--rojo-osc)}
+.btn.am{background:var(--amar);border-color:var(--amar);color:#2B2100}
+.btn.am:hover:not(:disabled){background:#E5A91C;border-color:#E5A91C}
+.btn.lin{background:#fff;color:var(--rojo)}
+.btn.lin:hover:not(:disabled){background:var(--rojo-cl)}
+.btn.sm{min-height:44px;padding:0 14px;font-size:15px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.full{width:100%}
+.acciones{display:grid;gap:10px;grid-template-columns:1fr}
+@media(min-width:640px){.acciones{grid-template-columns:repeat(3,1fr)}}
+.fld{display:flex;flex-direction:column;gap:6px;font-weight:600;font-size:15px}
+.fld small{font-weight:400;color:var(--gris)}
+.fld input,.fld select,.fld textarea{min-height:48px;border:1.5px solid var(--line-2);border-radius:10px;padding:0 12px;background:#fff;font-weight:400;width:100%}
+.fld textarea{padding:10px 12px;min-height:84px;resize:vertical}
+.form{display:grid;gap:14px}
+@media(min-width:640px){.form.dos{grid-template-columns:1fr 1fr}.form .ancho{grid-column:1/-1}}
+.chip{display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:3px 10px;font-size:13px;font-weight:700;white-space:nowrap}
+.c-ok{background:var(--ok-bg);color:#1E5E41}
+.c-esp{background:var(--amar-cl);color:var(--amar-osc)}
+.c-mal{background:var(--err-bg);color:var(--err)}
+.c-n{background:#ECE8E8;color:var(--tinta)}
+.aviso{border-radius:10px;padding:10px 12px;font-size:15px;margin:10px 0;border:1px solid}
+.aviso.i{background:var(--amar-cl);border-color:var(--amar);color:var(--tinta)}
+.aviso.e{background:var(--err-bg);border-color:var(--err);color:var(--err);font-weight:600}
+.aviso.v{background:var(--ok-bg);border-color:var(--ok);color:#1E5E41}
+.barra{height:10px;border-radius:99px;background:#ECE8E8;overflow:hidden;margin:8px 0 4px}
+.barra i{display:block;height:100%;background:var(--ok)}
+.barra.w i{background:var(--amar)}.barra.c i{background:var(--err)}
+.kv{display:grid;grid-template-columns:1fr 1fr;gap:10px 14px;margin:12px 0 0}
+.kv dt{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--gris);font-weight:700}
+.kv dd{margin:0;font-weight:700;font-size:17px}
+/* navegación */
+.tabs{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--linea);display:grid;grid-template-columns:repeat(4,1fr);padding-bottom:env(safe-area-inset-bottom,0px);z-index:30}
+.tabs button{border:0;background:none;min-height:64px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:12.5px;font-weight:600;color:var(--gris);position:relative}
+.tabs button svg{width:24px;height:24px}
+.tabs button[aria-current="page"]{color:var(--rojo);box-shadow:inset 0 3px 0 var(--rojo)}
+.pt{position:absolute;top:6px;right:calc(50% - 22px);background:var(--rojo);color:#fff;border-radius:99px;min-width:18px;height:18px;font-size:11px;display:grid;place-items:center;padding:0 5px}
+@media(min-width:900px){
+  body{padding-bottom:24px}
+  .tabs{position:static;border:0;background:transparent;max-width:980px;margin:0 auto;padding:10px 16px 0;display:flex;gap:6px}
+  .tabs button{flex-direction:row;min-height:48px;padding:0 18px;border:1.5px solid var(--linea);border-radius:12px;background:#fff;font-size:15px;gap:8px}
+  .tabs button[aria-current="page"]{background:var(--rojo);color:#fff;border-color:var(--rojo);box-shadow:none}
+  .pt{position:static;background:var(--amar);color:#2B2100}
+}
+/* pedido */
+.bq-f{margin-bottom:10px}
+.cats{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 12px}
+.cats button{min-height:44px;padding:0 16px;border-radius:99px;border:1.5px solid var(--line-2);background:#fff;font-weight:600}
+.cats button[aria-pressed="true"]{background:var(--rojo);border-color:var(--rojo);color:#fff}
+.prods{display:grid;gap:10px;grid-template-columns:1fr}
+@media(min-width:700px){.prods{grid-template-columns:1fr 1fr}}
+.prod{display:grid;grid-template-columns:52px minmax(0,1fr);gap:4px 12px;align-items:center;background:#fff;border:1.5px solid var(--linea);border-radius:14px;padding:12px}
+.prod.on{border-color:var(--amar);box-shadow:0 0 0 2px var(--amar)}
+.prod.sin{background:#F1EEEE}
+.foto{grid-row:1/3;width:52px;height:52px;border-radius:12px;background:var(--amar);color:#2B2100;font-weight:800;display:grid;place-items:center;font-size:17px;overflow:hidden}
+.fnom{font-size:8px;line-height:1.1;text-align:center;padding:2px;font-weight:700;word-break:break-word}
+.foto img{width:100%;height:100%;object-fit:contain;background:#fff}
+.prod b{font-size:15.5px;line-height:1.2}
+.prod .p{font-size:14px;color:var(--gris)}
+.prod .p strong{color:var(--tinta);font-size:16px}
+.cant{grid-column:1/-1;display:flex;gap:8px;align-items:center;justify-content:space-between;margin-top:4px}
+.step{display:flex;gap:6px;align-items:center}
+.step button{width:48px;height:48px;border-radius:12px;border:1.5px solid var(--line-2);background:#fff;font-size:24px;font-weight:700;line-height:1}
+.step button:hover:not(:disabled){background:var(--amar);border-color:var(--amar)}
+.step button:disabled{opacity:.35}
+.step input{width:72px;height:48px;text-align:center;border:1.5px solid var(--line-2);border-radius:12px;font-weight:700;font-size:17px}
+.resumen{position:sticky;bottom:calc(64px + env(safe-area-inset-bottom,0px));z-index:15;background:#fff;border:2px solid var(--rojo);border-radius:14px;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px;box-shadow:0 6px 20px rgba(0,0,0,.15);margin-top:12px}
+@media(min-width:900px){.resumen{bottom:12px}}
+.resumen b{font-size:18px}
+/* listas */
+.lista{display:grid;gap:10px}
+.item{border:1px solid var(--linea);border-radius:12px;padding:12px;background:#fff;display:grid;gap:6px}
+.item .top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.item .num{font-weight:800}
+.item .mini{font-size:14px;color:var(--gris)}
+.item .monto{font-weight:800;font-size:18px;text-align:right}
+.item button.ver{justify-self:start}
+.seg{display:flex;gap:6px;overflow-x:auto;margin:0 0 12px;padding-bottom:2px}
+.seg button{flex:none;min-height:44px;padding:0 14px;border-radius:99px;border:1.5px solid var(--line-2);background:#fff;font-weight:600}
+.seg button[aria-pressed="true"]{background:var(--tinta);border-color:var(--tinta);color:#fff}
+.vacio{text-align:center;color:var(--gris);padding:22px 8px}
+/* tabla en pantalla ancha */
+.tw{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:15px}
+th,td{text-align:left;padding:10px 8px;border-bottom:1px solid var(--linea);vertical-align:top}
+th{font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--gris)}
+td.r,th.r{text-align:right}
+@media(max-width:699px){.solo-ancho{display:none}}
+@media(min-width:700px){.solo-movil{display:none}}
+/* hoja */
+.vel{position:fixed;inset:0;background:rgba(31,31,31,.55);z-index:60;display:flex;align-items:flex-end;justify-content:center}
+.hoja{background:#fff;width:100%;max-width:560px;max-height:92vh;overflow:auto;border-radius:18px 18px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom,0px))}
+@media(min-width:700px){.vel{align-items:center}.hoja{border-radius:18px}}
+.hoja h2{font-size:20px;margin-bottom:10px}
+.hoja .x{float:right;width:44px;height:44px;border:0;background:#F1EEEE;border-radius:50%;font-size:22px}
+.tot{border-top:2px solid var(--tinta);margin-top:8px;padding-top:8px;display:grid;gap:4px}
+.tot p{display:flex;justify-content:space-between;gap:10px}
+.tot .g{font-size:20px;font-weight:800}
+/* entrada */
+.entrada{max-width:520px;margin:8vh auto 0;padding:0 16px}
+.entrada .card{padding:22px}
+.entrada img{width:84px;height:84px;border-radius:50%;display:block;margin:0 auto 12px;background:#fff}
+.entrada h1{font-size:24px;text-align:center;margin-bottom:6px}
+.entrada p.sub{text-align:center;margin-bottom:16px}
+#toast{position:fixed;left:12px;right:12px;bottom:calc(76px + env(safe-area-inset-bottom,0px));z-index:80;display:grid;gap:8px;justify-items:center;pointer-events:none}
+.tt{background:var(--tinta);color:#fff;border-radius:12px;padding:12px 16px;max-width:560px;font-weight:600;pointer-events:auto}
+.tt.e{background:var(--err)}
+@media(min-width:900px){#toast{bottom:20px}}
+@media print{.tabs,.cab .salir,.resumen{display:none}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+@media (max-width:640px){.seg{display:grid;grid-template-columns:1fr 1fr;overflow:visible}.seg button{flex:none;padding:0 8px;font-size:14px}}
+</style></head>
+<body><div id="app"></div><div id="toast" aria-live="polite"></div>
+<noscript><p style="padding:20px">Para ver tu cuenta necesitas activar JavaScript.</p></noscript>
+<script>
+/* Buscador común de TODO el sistema: normalización, coincidencia y lista de sugerencias desplegable.
+   Cada barra recibe SU PROPIO conjunto de datos y de campos: aquí no hay búsqueda cruzada entre áreas.
+   Uso: Busca.registrar('clave', {sugerir: (q, el) => [...], elegir?: (item, el) => ..., vivo?: (q, el) => ..., espera?: ms})
+        y en el HTML de la barra: <input type="search" ${Busca.atr('clave')} value="...">  */
+const Busca = (() => {
+  /* Sin tildes, sin mayúsculas, sin signos: «Ábasto el-Puente» y «ABASTO EL PUENTE» son lo mismo (igual que VD.normNombre) */
+  const norm = s => String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase().replace(/[.,;:()\-_/\\'"]/g, ' ').replace(/\s+/g, ' ').trim();
+  const lista = v => (Array.isArray(v) ? v : [v]).filter(x => x != null && x !== '').map(String);
+  /* ¿La consulta aparece en ESTE texto? Todas las palabras (en cualquier orden) o, para códigos, pegada sin espacios (RC00017) */
+  function coincide(q, texto) {
+    const t = norm(q); if (!t) return true;
+    const h = norm(texto); if (!h) return false;
+    if (!/\s/.test(String(q).trim())) { if (h.includes(t)) return true; } /* una sola «palabra» (código, referencia, RC-00017): seguida, no suelta */
+    else if (t.split(' ').every(k => h.includes(k))) return true;
+    const c = t.replace(/ /g, ''); return c.length >= 3 && h.replace(/ /g, '').includes(c);
+  }
+  /* 3 = empieza igual, 2 = una palabra empieza igual, 1 = contiene */
+  function puntaje(q, texto) {
+    const t = norm(q), h = norm(texto); if (!t) return 0;
+    if (h.startsWith(t)) return 3; if (h.split(' ').some(w => w.startsWith(t.split(' ')[0]))) return 2; return 1;
+  }
+  /* Filtra la lista de la pantalla: items + función que devuelve los textos buscables de cada uno */
+  const filtrar = (items, q, textos) => norm(q) ? items.filter(it => { const t = lista(textos(it)); return t.some(x => coincide(q, x)) || (/\s/.test(String(q).trim()) && coincide(q, t.join(' '))); }) : items;
+  /* Sugerencias por tipo de dato: defs = [{tipo:'Cliente', valores: it => [...], detalle?: it => 'texto'}]. Devuelve [{t, d, tipo}] sin repetir. */
+  function sugerir(q, items, defs, max = 6) {
+    if (!norm(q)) return [];
+    const vistos = new Map();
+    for (const it of items) for (const df of defs) for (const v of lista(df.valores(it))) {
+      if (!coincide(q, v)) continue;
+      const k = df.tipo + '|' + norm(v), p = puntaje(q, v);
+      if (!vistos.has(k) || vistos.get(k).p < p) vistos.set(k, {t: v, tipo: df.tipo, d: df.tipo + (df.detalle ? ' · ' + df.detalle(it) : ''), p, it});
+    }
+    return [...vistos.values()].sort((a, b) => b.p - a.p || a.t.localeCompare(b.t, 'es')).slice(0, max);
+  }
+  const textosDe = defs => it => defs.flatMap(df => lista(df.valores(it)));
+
+  /* ---- componente desplegable (una sola lista para todo el sistema, fija en pantalla para que nunca la recorte un overflow) ---- */
+  const reg = {}, E = {el: null, items: [], act: -1, timer: null};
+  let ul = null, estado = null, silencio = false;
+  const registrar = (clave, def) => { reg[clave] = def; };
+  const atr = (clave, k = '') => `data-bq="${clave}" ${k ? `data-bqk="${k}" ` : ''}role="combobox" aria-autocomplete="list" aria-haspopup="listbox" aria-expanded="false" aria-controls="bq-lista" autocomplete="off" spellcheck="false"`;
+  function asegurar() {
+    if (ul) return;
+    ul = document.createElement('ul'); ul.id = 'bq-lista'; ul.className = 'bq-lista'; ul.setAttribute('role', 'listbox'); ul.setAttribute('aria-label', 'Sugerencias'); ul.hidden = true; document.body.appendChild(ul);
+    estado = document.createElement('div'); estado.className = 'bq-estado'; estado.setAttribute('role', 'status'); estado.setAttribute('aria-live', 'polite'); document.body.appendChild(estado);
+    ul.addEventListener('mousedown', e => e.preventDefault()); /* no le quita el foco a la barra */
+    ul.addEventListener('click', e => { const li = e.target.closest('li[data-i]'); if (li) elegir(+li.dataset.i); });
+  }
+  function posicionar() {
+    if (!E.el || !ul || ul.hidden) return;
+    const r = E.el.getBoundingClientRect(), vw = document.documentElement.clientWidth, ancho = Math.min(Math.max(r.width, 260), vw - 16);
+    const abajo = innerHeight - r.bottom - 8, arriba = r.top - 8, sobre = abajo < 170 && arriba > abajo;
+    ul.style.left = Math.max(8, Math.min(r.left, vw - ancho - 8)) + 'px'; ul.style.width = ancho + 'px';
+    ul.style.maxHeight = Math.max(110, Math.min(300, sobre ? arriba : abajo)) + 'px';
+    if (sobre) { ul.style.top = 'auto'; ul.style.bottom = (innerHeight - r.top + 2) + 'px'; } else { ul.style.bottom = 'auto'; ul.style.top = (r.bottom + 2) + 'px'; }
+  }
+  function cerrar() {
+    if (ul) { ul.hidden = true; ul.innerHTML = ''; }
+    if (E.el && E.el.isConnected) { E.el.setAttribute('aria-expanded', 'false'); E.el.removeAttribute('aria-activedescendant'); }
+    E.items = []; E.act = -1;
+  }
+  function mostrar(el) {
+    asegurar(); E.el = el; const d = reg[el.dataset.bq]; if (!d) return cerrar();
+    E.items = (d.sugerir(el.value, el) || []).slice(0, d.max || 6); E.act = -1;
+    if (!E.items.length) { cerrar(); if (norm(el.value)) estado.textContent = 'Sin sugerencias.'; return; }
+    ul.innerHTML = E.items.map((it, i) => `<li role="option" id="bq-o-${i}" data-i="${i}" aria-selected="false"><b>${esc(it.t)}</b>${it.d ? `<span>${esc(it.d)}</span>` : ''}</li>`).join('');
+    ul.hidden = false; el.setAttribute('aria-expanded', 'true'); el.removeAttribute('aria-activedescendant'); posicionar();
+    estado.textContent = E.items.length + (E.items.length === 1 ? ' sugerencia.' : ' sugerencias.') + ' Usa las flechas y Enter.';
+  }
+  function marcar(i) {
+    const n = E.items.length; if (!n) return; E.act = (i + n) % n;
+    ul.querySelectorAll('li').forEach((li, k) => { const on = k === E.act; li.setAttribute('aria-selected', on); li.classList.toggle('on', on); if (on) { li.scrollIntoView({block: 'nearest'}); E.el.setAttribute('aria-activedescendant', li.id); } });
+  }
+  function elegir(i) {
+    const it = E.items[i], el = E.el; if (!it || !el) return; const d = reg[el.dataset.bq];
+    cerrar();
+    if (d.elegir) d.elegir(it, el); else { el.value = it.t; if (d.vivo) d.vivo(it.t, el); }
+  }
+  /* Tras volver a dibujar la pantalla, la barra se reemplaza: se le devuelve el foco, el cursor y la lista abierta */
+  const guardarFoco = () => { const a = document.activeElement; return a && a.dataset && a.dataset.bq ? {c: a.dataset.bq, k: a.dataset.bqk || '', s: a.selectionStart, e: a.selectionEnd, ab: !!(ul && !ul.hidden)} : null; };
+  function restaurarFoco(g) {
+    if (!g) { if (ul && !ul.hidden && !(E.el && E.el.isConnected)) cerrar(); return; }
+    const n = [...document.querySelectorAll('[data-bq]')].find(x => x.dataset.bq === g.c && (x.dataset.bqk || '') === g.k);
+    if (!n) { cerrar(); return; }
+    silencio = true; n.focus({preventScroll: true}); silencio = false; try { n.setSelectionRange(g.s, g.e); } catch (e) { /* tipo sin selección */ }
+    if (g.ab) mostrar(n); else E.el = n;
+  }
+  document.addEventListener('input', e => {
+    const el = e.target; if (!el || !el.dataset || !el.dataset.bq) return; const d = reg[el.dataset.bq]; if (!d) return;
+    mostrar(el);
+    if (d.vivo) { clearTimeout(E.timer); const hacer = () => d.vivo(el.value, el); if (d.espera) E.timer = setTimeout(hacer, d.espera); else hacer(); }
+  });
+  document.addEventListener('keydown', e => {
+    const el = e.target; if (!el || !el.dataset || !el.dataset.bq || !reg[el.dataset.bq]) return;
+    const abierta = ul && !ul.hidden;
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); if (!abierta) { mostrar(el); if (!E.items.length) return; } marcar(E.act < 0 ? (e.key === 'ArrowDown' ? 0 : E.items.length - 1) : E.act + (e.key === 'ArrowDown' ? 1 : -1)); }
+    else if (e.key === 'Enter' && abierta && E.act >= 0) { e.preventDefault(); e.stopPropagation(); elegir(E.act); }
+    else if (e.key === 'Escape' && abierta) { e.preventDefault(); e.stopPropagation(); cerrar(); }
+  }, true);
+  document.addEventListener('focusout', e => { if (e.target && e.target.dataset && e.target.dataset.bq) setTimeout(() => { const a = document.activeElement; if (!(a && a.dataset && a.dataset.bq)) cerrar(); }, 0); });
+  document.addEventListener('focusin', e => { const el = e.target; if (!silencio && el && el.dataset && el.dataset.bq && reg[el.dataset.bq] && norm(el.value)) mostrar(el); });
+  addEventListener('resize', posicionar); addEventListener('scroll', posicionar, true);
+  return {norm, coincide, puntaje, filtrar, sugerir, textosDe, registrar, atr, mostrar, cerrar, guardarFoco, restaurarFoco};
+})();
+window.Busca = Busca;
+
+</script>
+<script>
+/* Portal del cliente (página pública /cliente.html). Habla SOLO con /api/c/portal/*; el código personal viaja en la cabecera x-token.
+   Nunca manda un id de cliente: el servidor lo saca del código. */
+(function () {
+'use strict';
+const $ = s => document.querySelector(s);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
+window.esc = esc; /* lo usa el buscador común */
+const N2 = new Intl.NumberFormat('es-VE', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+const usd = x => x == null ? '—' : 'US$ ' + N2.format(x), bsf = x => x == null ? '—' : 'Bs ' + N2.format(x);
+const fdl = s => { if (!s) return '—'; const [y, m, d] = String(s).slice(0, 10).split('-'); return d + '/' + m + '/' + y; };
+const ic = {
+  casa: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>',
+  caja: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7l9-4 9 4-9 4-9-4z"/><path d="M3 7v10l9 4 9-4V7"/><path d="M12 11v10"/></svg>',
+  hoja: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h9l4 4v14H6z"/><path d="M9 12h7M9 16h7"/></svg>',
+  moneda: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9.5 9.5c0-1 1.2-1.5 2.5-1.5s2.5.6 2.5 1.7c0 2.3-5 1.2-5 3.6 0 1.1 1.2 1.7 2.5 1.7s2.5-.6 2.5-1.5"/></svg>'
+};
+
+const S = {tok: '', vista: 'inicio', cuenta: null, perfil: null, cat: null, cart: {}, q: '', categoria: 'Todos', sub: 'docs', cargando: true, errLogin: '', enviando: false, hoja: null, pago: {banco: '', referencia: '', monto: '', fecha: '', nota: '', err: '', ok: ''}, nota: ''};
+
+/* ---------- Servidor ---------- */
+async function api(m, p, b) {
+  const r = await fetch('/api/c/portal' + p, {method: m, headers: {'content-type': 'application/json', 'x-token': S.tok}, body: b ? JSON.stringify(b) : undefined});
+  let j = {}; try { j = await r.json(); } catch (e) { /* sin cuerpo */ }
+  if (!r.ok) { const e = new Error(j.error || 'No se pudo completar. Inténtalo de nuevo.'); e.status = r.status; e.info = j; throw e; }
+  return j;
+}
+const leerCodigo = () => (location.hash || '').replace(/^#(k=)?/, '').trim();
+async function cargar() {
+  S.cargando = true; pintar();
+  try {
+    const [yo, cat, cu] = await Promise.all([api('GET', '/yo'), api('GET', '/catalogo'), api('GET', '/cuenta')]);
+    S.perfil = yo; S.cat = cat; S.cuenta = cu; S.errLogin = '';
+    for (const id of Object.keys(S.cart)) { const p = cat.find(x => x.id_producto === +id); if (!p || p.sin_inventario) delete S.cart[id]; else S.cart[id] = Math.min(S.cart[id], p.disponible); }
+  } catch (e) {
+    if (e.status === 401 || e.status === 429) { S.tok = ''; S.errLogin = e.message; try { sessionStorage.removeItem('em_ct'); } catch (x) { /* sin almacenamiento */ } } else S.errLogin = e.message;
+    S.perfil = null;
+  }
+  S.cargando = false; pintar();
+}
+async function refrescarCuenta() { try { const [yo, cu, cat] = await Promise.all([api('GET', '/yo'), api('GET', '/cuenta'), api('GET', '/catalogo')]); S.perfil = yo; S.cuenta = cu; S.cat = cat; } catch (e) { aviso(e.message, 1); } }
+function aviso(t, mal) { const d = document.createElement('div'); d.className = 'tt' + (mal ? ' e' : ''); d.textContent = t; $('#toast').appendChild(d); setTimeout(() => d.remove(), mal ? 7000 : 4500); }
+
+/* ---------- Carrito ---------- */
+const prod = id => (S.cat || []).find(p => p.id_producto === +id);
+const lineasCarrito = () => Object.entries(S.cart).filter(([, q]) => q > 0).map(([id, q]) => ({p: prod(id), q})).filter(x => x.p);
+function totalCarrito() { let sub = 0; for (const {p, q} of lineasCarrito()) sub += q * p.precio; return Math.round(sub * 100) / 100; } /* sin IVA ni descuentos: el total final lo confirma Ventas */
+function totalConIva() { let t = 0; for (const {p, q} of lineasCarrito()) t += q * p.precio * (1 + (p.iva ?? 16) / 100); return Math.round(t * 100) / 100; }
+function ponerCant(id, n) {
+  const p = prod(id); if (!p) return; n = Math.max(0, Math.min(p.disponible, Math.floor(+n || 0)));
+  if (n) S.cart[id] = n; else delete S.cart[id];
+  const q = $('#q-' + id); if (q) q.value = n || '';
+  const card = $('#pr-' + id); if (card) card.classList.toggle('on', n > 0);
+  const m = $('#m-' + id), mas = $('#mas-' + id); if (m) m.disabled = !n; if (mas) mas.disabled = n >= p.disponible;
+  pintarResumen();
+}
+function pintarResumen() {
+  const el = $('#resumen'); if (!el) return; const ls = lineasCarrito(), n = ls.reduce((t, x) => t + x.q, 0);
+  el.hidden = !n; if (n) el.innerHTML = `<div><b>${usd(totalConIva())}</b><div class="sub">${n} ${n === 1 ? 'unidad' : 'unidades'} · con IVA, aproximado</div></div><button type="button" class="btn" data-a="revisar">Revisar pedido</button>`;
+}
+
+/* ---------- Pantallas ---------- */
+const estadoDoc = d => d.estado === 'PENDIENTE' ? (d.vencido ? ['Vencido', 'mal'] : ['Por pagar', 'esp']) : d.estado === 'PAGADO' ? ['Pagado', 'ok'] : d.estado === 'FACTURADO_DESDE_NE' ? ['Facturada', 'n'] : d.estado === 'ANULADO' ? ['Anulado', 'mal'] : [d.estado, 'n'];
+const cls = t => ({ok: 'c-ok', esp: 'c-esp', mal: 'c-mal', n: 'c-n'}[t] || 'c-n');
+const chipE = (t, tono) => `<span class="chip ${cls(tono)}">${esc(t)}</span>`;
+const tonoPedido = e => e === 'APROBADO' ? 'ok' : e === 'RECHAZADO' ? 'mal' : e === 'CANCELADO' ? 'n' : 'esp';
+const tonoPago = e => e === 'CONFIRMADO' ? 'ok' : e === 'RECHAZADO' ? 'mal' : 'esp';
+
+function vEntrada() {
+  return `<div class="entrada"><div class="card"><img src="/icon-192.png" alt="El Maná JL"><h1>Mi cuenta · El Maná JL</h1>
+    <p class="sub">Entra con tu código personal. Te lo entrega quien te atiende en El Maná JL.</p>
+    ${S.errLogin ? `<p class="aviso e" role="alert">${esc(S.errLogin)}</p>` : ''}
+    <form id="f-codigo" class="form"><label class="fld">Tu código personal<input id="codigo" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" required placeholder="Pega aquí tu código"><small>Es privado: no lo compartas con nadie.</small></label>
+    <button class="btn full" type="submit">Entrar</button></form></div></div>`;
+}
+function vInicio() {
+  const y = S.perfil, c = y.credito, usado = c.limite ? Math.min(100, Math.round((c.debe + c.por_confirmar) / c.limite * 100)) : 0;
+  const bs = y.tasa && c.debe > 0 ? Math.round(c.debe * y.tasa.valor * 100) / 100 : null;
+  return `<section class="card"><p class="sub">Hola, <b>${esc(y.cliente.nombre)}</b></p><h2 class="sr">Resumen</h2>
+    <p class="sub" style="margin-top:8px">Lo que debes hoy</p><p class="grande">${usd(c.debe)}</p>
+    ${bs ? `<p class="sub">Aproximadamente ${bsf(bs)} (tasa BCV del ${fdl(y.tasa.fecha)}: ${N2.format(y.tasa.valor)}). Es solo una guía.</p>` : ''}
+    ${y.deuda_desde ? `<p class="sub">Debes desde el ${fdl(y.deuda_desde)} (hace ${y.dias_desde} ${y.dias_desde === 1 ? 'día' : 'días'}).</p>` : '<p class="sub">No tienes facturas ni notas por pagar.</p>'}
+    <dl class="kv"><div><dt>Crédito disponible</dt><dd>${c.sin_limite ? 'Sin límite cargado' : usd(c.disponible)}</dd></div>${c.sin_limite ? '' : `<div><dt>Tu límite</dt><dd>${usd(c.limite)}</dd></div>`}</dl>
+    ${c.sin_limite ? '' : `<div class="barra ${usado >= 90 ? 'c' : usado >= 70 ? 'w' : ''}" role="img" aria-label="Has usado ${usado} por ciento de tu crédito"><i style="width:${usado}%"></i></div><p class="sub">Has usado el ${usado} % de tu crédito${c.por_confirmar ? ' (incluye pedidos por confirmar)' : ''}.</p>`}</section>
+  ${y.pedidos_por_confirmar ? `<p class="aviso i">Tienes <b>${y.pedidos_por_confirmar}</b> ${y.pedidos_por_confirmar === 1 ? 'pedido' : 'pedidos'} por confirmar. Ventas lo revisa y te avisamos aquí.</p>` : ''}
+  ${y.pagos_por_verificar ? `<p class="aviso i">Tienes <b>${y.pagos_por_verificar}</b> ${y.pagos_por_verificar === 1 ? 'pago' : 'pagos'} por verificar. Cobranza lo revisa y lo aplica a tus facturas.</p>` : ''}
+  ${y.restriccion ? `<p class="aviso e">${esc(y.restriccion)}</p>` : ''}
+  <div class="acciones"><button class="btn" data-a="ir" data-v="pedir">Hacer un pedido</button><button class="btn am" data-a="ir" data-v="pagar">Reportar un pago</button><button class="btn lin" data-a="ir" data-v="cuenta">Ver mi cuenta</button></div>`;
+}
+const CATS = ['Todos', 'Papas', 'Salsas'];
+const nomProd = p => (p.nombre + ' ' + (p.gramaje || '')).trim();
+const defProd = [{tipo: 'Producto', valores: p => nomProd(p), detalle: p => p.sku}, {tipo: 'Código', valores: p => p.sku, detalle: p => p.nombre}];
+function prodsVisibles() {
+  let l = S.cat || []; if (S.categoria !== 'Todos') l = l.filter(p => p.categoria === (S.categoria === 'Papas' ? 'PAPAS' : 'SALSAS'));
+  return Busca.filtrar(l, S.q, Busca.textosDe(defProd));
+}
+function htmlProd(p) {
+  const q = S.cart[p.id_producto] || 0, ini = esc(p.nombre.replace(/^Papas?\s+|^Salsa\s+/i, '').slice(0, 2).toUpperCase() || 'EM');
+  return `<div class="prod ${p.sin_inventario ? 'sin' : ''} ${q ? 'on' : ''}" id="pr-${p.id_producto}"><div class="foto">${p.imagen ? `<img src="${esc(p.imagen)}" alt="" loading="lazy">` : `<span class="fnom">${esc(p.nombre)}</span>`}</div>
+    <div><b>${esc(p.nombre)}</b><div class="p">${esc(p.gramaje || '')}<br>A crédito: <strong>${usd(p.precio)}</strong> por bulto${p.precio_pronto_pago ? `<br>De contado: <strong>${usd(p.precio_pronto_pago)}</strong> por bulto` : ''}</div></div>
+    <div class="cant">${p.sin_inventario ? '<span class="chip c-mal">Sin inventario</span>' : `<span class="sub">Hay ${p.disponible}</span><div class="step"><button type="button" id="m-${p.id_producto}" data-a="menos" data-id="${p.id_producto}" aria-label="Quitar uno de ${esc(nomProd(p))}" ${q ? '' : 'disabled'}>−</button>
+      <input id="q-${p.id_producto}" inputmode="numeric" pattern="[0-9]*" data-id="${p.id_producto}" class="qin" value="${q || ''}" placeholder="0" aria-label="Cantidad de ${esc(nomProd(p))}">
+      <button type="button" id="mas-${p.id_producto}" data-a="mas" data-id="${p.id_producto}" aria-label="Agregar uno de ${esc(nomProd(p))}" ${q >= p.disponible ? 'disabled' : ''}>+</button></div>`}</div></div>`;
+}
+function vPedir() {
+  const l = prodsVisibles(), y = S.perfil;
+  return `<section class="card"><h2>Arma tu pedido</h2><p class="sub">Elige las cantidades. Tu pedido queda <b>por confirmar</b> hasta que Ventas lo apruebe.</p>
+    ${y.restriccion ? `<p class="aviso e">${esc(y.restriccion)}</p>` : ''}
+    <label class="fld bq-f" style="margin-top:12px">Buscar producto<input type="search" aria-label="Buscar producto" ${Busca.atr('portal-prod')} value="${esc(S.q)}" placeholder="Nombre, gramaje o código"></label>
+    <div class="cats" role="group" aria-label="Tipo de producto">${CATS.map(c => `<button type="button" data-a="cat" data-v="${c}" aria-pressed="${S.categoria === c}">${c}</button>`).join('')}</div>
+    <div class="prods" id="lista-prod">${l.length ? l.map(htmlProd).join('') : '<p class="vacio">No hay productos con ese texto.</p>'}</div></section>
+    <div class="resumen" id="resumen" hidden></div>`;
+}
+Busca.registrar('portal-prod', {sugerir: q => Busca.sugerir(q, S.cat || [], defProd), vivo: q => { S.q = q; const e = $('#lista-prod'); if (e) { const l = prodsVisibles(); e.innerHTML = l.length ? l.map(htmlProd).join('') : '<p class="vacio">No hay productos con ese texto.</p>'; } }, espera: 120});
+
+const filaDoc = d => { const [t, tn] = estadoDoc(d); return `<div class="item"><div class="top"><div><span class="num">${esc(d.numero)}</span> ${chipE(t, tn)}<div class="mini">${esc(d.tipo)}${d.factura_fiscal ? ' · fact. ' + esc(d.factura_fiscal) : ''} · ${fdl(d.fecha)}${d.vence ? ' · vence ' + fdl(d.vence) : ''}</div></div>
+  <div class="monto">${usd(d.total)}<div class="mini">${d.saldo > 0 ? 'Debes ' + usd(d.saldo) : ''}</div></div></div><button type="button" class="btn lin sm ver" data-a="doc" data-id="${d.id}">Ver detalle</button></div>`; };
+function vCuenta() {
+  const cu = S.cuenta, r = cu.resumen, c = r.credito, subs = [['docs', 'Facturas y notas'], ['pagos', 'Mis pagos'], ['pedidos', 'Mis pedidos'], ['rep', 'Pagos reportados']];
+  let cuerpo = '';
+  if (S.sub === 'docs') cuerpo = (cu.documentos.length ? `<div class="lista">${cu.documentos.map(filaDoc).join('')}</div>` : '<p class="vacio">Todavía no tienes facturas ni notas de entrega.</p>')
+    + (cu.notas.length ? `<h2 style="margin:18px 0 8px">Notas de crédito y débito</h2><div class="lista">${cu.notas.map(n => `<div class="item"><div class="top"><div><span class="num">${esc(n.tipo)} ${esc(n.numero || '')}</span><div class="mini">Sobre ${esc(n.sobre || '')} · ${fdl(n.fecha)}<br>${esc(n.motivo || '')}</div></div><div class="monto">${usd(n.total)}</div></div></div>`).join('')}</div>` : '');
+  else if (S.sub === 'pagos') cuerpo = cu.pagos.length ? `<div class="lista">${cu.pagos.map(p => `<div class="item"><div class="top"><div><span class="num">${esc(p.recibo)}</span><div class="mini">${fdl(p.fecha)} · ${esc(p.banco || '')} · ref. ${esc(p.referencia || '—')}<br>${p.aplicado_a.length ? 'Aplicado a ' + esc(p.aplicado_a.join(', ')) : 'Sin aplicar todavía'}</div></div><div class="monto">${usd(p.usd)}<div class="mini">${bsf(p.monto_bs)}</div></div></div></div>`).join('')}</div>` : '<p class="vacio">Todavía no hay pagos registrados.</p>';
+  else if (S.sub === 'pedidos') cuerpo = cu.pedidos.length ? `<div class="lista">${cu.pedidos.map(p => `<div class="item"><div class="top"><div><span class="num">${esc(p.codigo)}</span> ${chipE(p.estado_texto, tonoPedido(p.estado))}<div class="mini">${new Date(p.creado).toLocaleDateString('es-VE')} · ${p.lineas.map(l => esc(l.cantidad + ' × ' + l.nombre)).join(', ')}</div>${p.motivo_rechazo ? `<div class="mini"><b>Motivo:</b> ${esc(p.motivo_rechazo)}</div>` : ''}</div><div class="monto">${usd(p.total)}</div></div>${p.estado === 'POR_CONFIRMAR' ? `<button type="button" class="btn lin sm ver" data-a="cancelar" data-id="${p.id}">Cancelar pedido</button>` : ''}</div>`).join('')}</div>` : '<p class="vacio">Todavía no has hecho pedidos por aquí.</p>';
+  else cuerpo = cu.reportes.length ? `<div class="lista">${cu.reportes.map(p => `<div class="item"><div class="top"><div><span class="num">${esc(p.codigo)}</span> ${chipE(p.estado_texto, tonoPago(p.estado))}<div class="mini">${fdl(p.fecha_pago)} · ${esc(p.banco)} · ref. ${esc(p.referencia)}${p.recibo ? '<br>Recibo ' + esc(p.recibo) : ''}</div>${p.motivo_rechazo ? `<div class="mini"><b>Motivo:</b> ${esc(p.motivo_rechazo)}</div>` : ''}</div><div class="monto">${bsf(p.monto_bs)}</div></div></div>`).join('')}</div>` : '<p class="vacio">Todavía no has reportado pagos.</p>';
+  return `<section class="card"><p class="sub">Lo que debes</p><p class="grande">${usd(c.debe)}</p>
+    <p class="sub">${r.deuda_desde ? `Desde el ${fdl(r.deuda_desde)} (hace ${r.dias_desde} ${r.dias_desde === 1 ? 'día' : 'días'}).` : 'No tienes deuda pendiente.'}</p>
+    <dl class="kv"><div><dt>Crédito disponible</dt><dd>${c.sin_limite ? 'Sin límite cargado' : usd(c.disponible)}</dd></div>${r.cliente.dias_credito_normal != null ? `<div><dt>Plazo de crédito</dt><dd>${r.cliente.dias_credito_normal} días</dd></div>` : ''}${r.cliente.dias_pronto_pago != null ? `<div><dt>Pronto pago</dt><dd>hasta ${r.cliente.dias_pronto_pago} días</dd></div>` : ''}</dl></section>
+    <div class="seg" role="group" aria-label="Qué ver">${subs.map(([k, t]) => `<button type="button" data-a="sub" data-v="${k}" aria-pressed="${S.sub === k}">${t}</button>`).join('')}</div>${cuerpo}`;
+}
+/* Bancos de la empresa: lista plegable con los datos para pagar. Si aun no hay ninguno, se explica y se deja escribir el banco. */
+function bancoCampo(P) {
+  const L = S.bancos;
+  if (L === undefined) { cargarBancos(); return '<p class="sub ancho">Cargando los bancos…</p>'; }
+  if (!L || !L.bancos.length) return '<p class="aviso i ancho">' + esc((L && L.mensaje_vacio) || 'Todavía no hay bancos cargados.') + '</p><label class="fld">Banco<input name="banco" value="' + esc(P.banco) + '" maxlength="40" required autocomplete="off" placeholder="Escribe el banco"></label>';
+  return '<label class="fld">Banco al que pagaste<select name="id_banco" required><option value="">Elige el banco…</option>' + L.bancos.map(b => '<option value="' + b.id + '"' + (String(P.id_banco) === String(b.id) ? ' selected' : '') + '>' + esc(b.nombre + ' (' + b.moneda_txt.toLowerCase() + ')') + '</option>').join('') + '</select></label><details class="ancho"><summary>Ver los datos de cuenta para pagar</summary>' + L.bancos.map(b => '<p class="sub"><b>' + esc(b.nombre) + '</b> · ' + esc(b.moneda_txt) + (b.cuenta_numero ? '<br>Cuenta: ' + esc(b.cuenta_numero) : '') + (b.cuenta_titular ? '<br>Titular: ' + esc(b.cuenta_titular) : '') + '</p>').join('') + '</details>';
+}
+async function cargarBancos() { S.bancos = null; try { S.bancos = await api('GET', '/bancos'); } catch (e) { S.bancos = null; } pintar(); }
+function vPagar() {
+  const y = S.perfil, c = y.credito, P = S.pago, hoy = y.hoy, bs = y.tasa && c.debe > 0 ? Math.round(c.debe * y.tasa.valor * 100) / 100 : null;
+  return `<section class="card"><h2>Reportar un pago</h2><p class="sub">Escribe los datos de tu transferencia o pago. Queda <b>por verificar</b>: Cobranza lo revisa y recién entonces se aplica a tus facturas.</p>
+    ${c.debe > 0 ? `<p class="aviso i">Debes <b>${usd(c.debe)}</b>${bs ? ` (aprox. ${bsf(bs)} con la tasa BCV del ${fdl(y.tasa.fecha)})` : ''}. El monto final lo confirma el equipo.</p>` : ''}
+    ${P.ok ? `<p class="aviso v" role="status">${esc(P.ok)}</p>` : ''}${P.err ? `<p class="aviso e" role="alert">${esc(P.err)}</p>` : ''}
+    <form id="f-pago" class="form dos" style="margin-top:12px" novalidate>
+      ${bancoCampo(P)}
+      <label class="fld">Número de referencia<input name="referencia" value="${esc(P.referencia)}" maxlength="40" required autocomplete="off" inputmode="text" placeholder="Los números que te dio el banco"></label>
+      <label class="fld">Monto pagado en bolívares (Bs)<input name="monto" value="${esc(P.monto)}" inputmode="decimal" required autocomplete="off" placeholder="0,00"><small>Usa coma para los decimales. Ejemplo: 1250,50</small></label>
+      <label class="fld">Fecha del pago<input type="date" name="fecha" value="${esc(P.fecha || hoy)}" max="${esc(hoy)}" required></label>
+      <label class="fld ancho">Nota (opcional)<input name="nota" value="${esc(P.nota)}" maxlength="200" placeholder="Por ejemplo: abono a la nota 1234"></label>
+      <div class="ancho"><button class="btn full" type="submit" ${S.enviando ? 'disabled' : ''}>${S.enviando ? 'Enviando…' : 'Enviar el reporte'}</button></div></form></section>
+    <section class="card"><h2>Tus pagos reportados</h2>${S.cuenta.reportes.length ? `<div class="lista">${S.cuenta.reportes.slice(0, 8).map(p => `<div class="item"><div class="top"><div><span class="num">${esc(p.codigo)}</span> ${chipE(p.estado_texto, tonoPago(p.estado))}<div class="mini">${fdl(p.fecha_pago)} · ${esc(p.banco)} · ref. ${esc(p.referencia)}</div>${p.motivo_rechazo ? `<div class="mini"><b>Motivo:</b> ${esc(p.motivo_rechazo)}</div>` : ''}</div><div class="monto">${bsf(p.monto_bs)}</div></div></div>`).join('')}</div>` : '<p class="vacio">Todavía no has reportado pagos.</p>'}</section>`;
+}
+const VISTAS = [['inicio', 'Inicio', 'casa'], ['pedir', 'Pedir', 'caja'], ['cuenta', 'Mi cuenta', 'hoja'], ['pagar', 'Pagar', 'moneda']];
+function pintar() {
+  const foco = Busca.guardarFoco(), app = $('#app');
+  if (S.cargando && !S.perfil) { app.innerHTML = '<div class="entrada"><p class="vacio">Cargando tu cuenta…</p></div>'; return; }
+  if (!S.tok || !S.perfil) { app.innerHTML = vEntrada(); Busca.restaurarFoco(foco); return; }
+  const y = S.perfil, pend = (y.pedidos_por_confirmar || 0) + (y.pagos_por_verificar || 0);
+  const cuerpo = S.vista === 'pedir' ? vPedir() : S.vista === 'cuenta' ? vCuenta() : S.vista === 'pagar' ? vPagar() : vInicio();
+  const tabs = `<nav class="tabs" aria-label="Secciones">${VISTAS.map(([k, t, i]) => `<button type="button" data-a="ir" data-v="${k}" ${S.vista === k ? 'aria-current="page"' : ''}>${ic[i]}<span>${t}</span>${k === 'cuenta' && pend ? `<span class="pt" aria-label="${pend} por revisar">${pend}</span>` : ''}</button>`).join('')}</nav>`;
+  app.innerHTML = `<header class="cab"><div class="cab-i"><img src="/icon-192.png" alt=""><div><b>El Maná JL</b><small>${esc(y.cliente.nombre)}</small></div><button type="button" class="salir" data-a="salir">Salir</button></div></header>${tabs}<main id="main" tabindex="-1">${cuerpo}</main>`;
+  pintarResumen(); Busca.restaurarFoco(foco);
+}
+
+/* ---------- Hoja (revisar pedido, detalle) ---------- */
+function abrirHoja(html) { cerrarHoja(); const v = document.createElement('div'); v.className = 'vel'; v.id = 'vel'; v.innerHTML = `<div class="hoja" role="dialog" aria-modal="true" aria-label="Detalle">${html}</div>`; document.body.appendChild(v); const b = v.querySelector('.x'); b && b.focus(); document.body.style.overflow = 'hidden'; }
+function cerrarHoja() { const v = $('#vel'); if (v) v.remove(); document.body.style.overflow = ''; }
+function hojaPedido(err) {
+  const ls = lineasCarrito(), y = S.perfil, c = y.credito, tot = totalConIva(), pasa = !c.sin_limite && tot > c.disponible;
+  abrirHoja(`<button type="button" class="x" data-a="cerrar" aria-label="Cerrar">×</button><h2>Revisa tu pedido</h2>
+    <div class="lista">${ls.map(({p, q}) => `<div class="item"><div class="top"><div><span class="num">${esc(nomProd(p))}</span><div class="mini">${q} × ${usd(p.precio)}</div></div><div class="monto">${usd(Math.round(q * p.precio * 100) / 100)}</div></div></div>`).join('')}</div>
+    <div class="tot"><p><span>Subtotal</span><span>${usd(totalCarrito())}</span></p><p class="g"><span>Total con IVA (aprox.)</span><span>${usd(tot)}</span></p></div>
+    <p class="sub" style="margin:6px 0 10px">El total final lo confirma Ventas al aprobar el pedido (incluye tus condiciones).</p>
+    ${pasa ? `<p class="aviso e" role="alert">Este pedido supera tu crédito disponible (${usd(c.disponible)}). Reporta un pago o quita productos.</p>` : ''}
+    ${err ? `<p class="aviso e" role="alert">${esc(err)}</p>` : ''}
+    <label class="fld">Nota para Ventas (opcional)<textarea id="nota-pedido" maxlength="300" placeholder="Por ejemplo: entregar en la mañana">${esc(S.nota)}</textarea></label>
+    <div class="fila" style="margin-top:12px"><button type="button" class="btn" data-a="enviar-pedido" ${S.enviando || pasa ? 'disabled' : ''}>${S.enviando ? 'Enviando…' : 'Enviar pedido'}</button><button type="button" class="btn lin" data-a="cerrar">Seguir armando</button></div>`);
+}
+async function enviarPedido() {
+  if (S.enviando) return; const nt = $('#nota-pedido'); if (nt) S.nota = nt.value; S.enviando = true; hojaPedido();
+  try {
+    const r = await api('POST', '/pedidos', {lineas: lineasCarrito().map(x => ({id_producto: x.p.id_producto, cantidad: x.q})), nota: S.nota});
+    S.cart = {}; S.nota = ''; S.enviando = false; cerrarHoja(); await refrescarCuenta(); S.vista = 'cuenta'; S.sub = 'pedidos'; pintar();
+    abrirHoja(`<button type="button" class="x" data-a="cerrar" aria-label="Cerrar">×</button><h2>Pedido recibido</h2><p class="aviso v">Tu pedido <b>${esc(r.codigo)}</b> por ${usd(r.total)} quedó <b>por confirmar</b>. Ventas lo revisa y verás aquí cuando lo aprueben.</p><button type="button" class="btn full" data-a="cerrar">Listo</button>`);
+  } catch (e) { S.enviando = false; if (e.info && (e.info.codigo === 'SIN_STOCK')) { await refrescarCuenta(); pintar(); } hojaPedido(e.message); }
+}
+async function verDoc(id) {
+  try {
+    const d = await api('GET', '/documentos/' + id);
+    abrirHoja(`<button type="button" class="x" data-a="cerrar" aria-label="Cerrar">×</button><h2>${esc(d.tipo)} ${esc(d.numero)}</h2><p class="sub">${d.factura_fiscal ? 'Factura fiscal ' + esc(d.factura_fiscal) + ' · ' : ''}Emitida el ${fdl(d.fecha)}${d.vence ? ' · vence el ' + fdl(d.vence) : ''}</p>
+      ${d.sin_detalle ? '<p class="aviso i">Este documento viene del registro anterior y solo tiene el monto total.</p>' : `<div class="lista" style="margin-top:10px">${d.lineas.map(l => `<div class="item"><div class="top"><div><span class="num">${esc(l.nombre)}</span><div class="mini">${l.cantidad} × ${usd(l.precio)}</div></div><div class="monto">${usd(Math.round(l.cantidad * l.precio * 100) / 100)}</div></div></div>`).join('')}</div>`}
+      <div class="tot"><p><span>Subtotal</span><span>${usd(d.subtotal)}</span></p>${d.descuento ? `<p><span>Descuento</span><span>− ${usd(d.descuento)}</span></p>` : ''}<p><span>IVA</span><span>${usd(d.iva)}</span></p><p class="g"><span>Total</span><span>${usd(d.total)}</span></p><p><span>Pagado</span><span>${usd(d.pagado)}</span></p><p><b>Debes</b><b>${usd(d.saldo)}</b></p></div>
+      <button type="button" class="btn lin full" style="margin-top:12px" data-a="cerrar">Cerrar</button>`);
+  } catch (e) { aviso(e.message, 1); }
+}
+async function enviarPago(f) {
+  if (S.enviando) return; const P = S.pago, v = n => f.elements[n] ? f.elements[n].value : '';
+  Object.assign(P, {banco: v('banco'), id_banco: v('id_banco'), referencia: v('referencia'), monto: v('monto'), fecha: v('fecha'), nota: v('nota'), err: '', ok: ''});
+  const monto = Number(String(P.monto).trim().replace(/\./g, '').replace(',', '.'));
+  if (S.bancos && S.bancos.bancos.length ? !P.id_banco : !P.banco.trim()) { P.err = 'Elige el banco.'; return pintar(); }
+  if (!P.referencia.trim()) { P.err = 'Escribe el número de referencia.'; return pintar(); }
+  if (!(monto > 0)) { P.err = 'Escribe el monto en bolívares. Ejemplo: 1250,50'; return pintar(); }
+  S.enviando = true; pintar();
+  try {
+    const r = await api('POST', '/pagos', {banco: P.banco, id_banco: P.id_banco || undefined, referencia: P.referencia, monto_bs: monto, fecha_pago: P.fecha, nota: P.nota});
+    Object.assign(P, {banco: '', id_banco: '', referencia: '', monto: '', fecha: '', nota: '', err: '', ok: `${r.codigo}: ${r.mensaje}`}); S.enviando = false; await refrescarCuenta(); pintar();
+  } catch (e) { S.enviando = false; P.err = e.message; pintar(); }
+}
+
+/* ---------- Eventos ---------- */
+document.addEventListener('click', async e => {
+  const b = e.target.closest('[data-a]'); if (!b) return; const a = b.dataset.a, id = b.dataset.id;
+  if (a === 'ir') { S.vista = b.dataset.v; S.pago.ok = ''; pintar(); window.scrollTo(0, 0); }
+  else if (a === 'cat') { S.categoria = b.dataset.v; pintar(); }
+  else if (a === 'sub') { S.sub = b.dataset.v; pintar(); }
+  else if (a === 'mas') ponerCant(id, (S.cart[id] || 0) + 1);
+  else if (a === 'menos') ponerCant(id, (S.cart[id] || 0) - 1);
+  else if (a === 'revisar') hojaPedido();
+  else if (a === 'enviar-pedido') enviarPedido();
+  else if (a === 'cerrar') cerrarHoja();
+  else if (a === 'doc') verDoc(id);
+  else if (a === 'cancelar') { if (!confirm('¿Cancelar este pedido?')) return; try { await api('POST', '/pedidos/' + id + '/cancelar'); await refrescarCuenta(); pintar(); aviso('Pedido cancelado.'); } catch (er) { aviso(er.message, 1); } }
+  else if (a === 'salir') { S.tok = ''; S.perfil = null; S.cuenta = null; S.cart = {}; try { sessionStorage.removeItem('em_ct'); } catch (x) { /* nada */ } history.replaceState(null, '', location.pathname); pintar(); }
+});
+document.addEventListener('input', e => { const t = e.target; if (t.classList && t.classList.contains('qin')) { const l = t.value.replace(/\D/g, ''); if (l !== t.value) t.value = l; ponerCant(t.dataset.id, l === '' ? 0 : +l); } });
+document.addEventListener('submit', e => {
+  e.preventDefault();
+  if (e.target.id === 'f-codigo') { S.tok = $('#codigo').value.trim(); try { sessionStorage.setItem('em_ct', S.tok); } catch (x) { /* nada */ } history.replaceState(null, '', location.pathname + '#' + S.tok); cargar(); }
+  else if (e.target.id === 'f-pago') enviarPago(e.target);
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') cerrarHoja(); });
+document.addEventListener('click', e => { if (e.target.id === 'vel') cerrarHoja(); });
+
+S.tok = leerCodigo(); try { if (!S.tok) S.tok = sessionStorage.getItem('em_ct') || ''; } catch (x) { /* nada */ }
+if (S.tok) cargar(); else { S.cargando = false; pintar(); }
+})();
+
+</script></body></html>

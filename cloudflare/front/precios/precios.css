@@ -1,0 +1,15 @@
+.p-lin{list-style:none;margin:6px 0;padding:0;font-size:14px}.p-lin li{margin:2px 0}
+.p-cambios{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px}
+.p-cambio .card-b{display:flex;flex-direction:column;gap:6px}
+.p-pag{justify-content:flex-end;align-items:center;margin-top:8px}
+.p-listas{width:100%;border-collapse:collapse}
+.p-listas th{font-size:13px;padding:5px 8px}.p-listas td{padding:3px 8px;vertical-align:middle;font-size:14px}
+.p-listas td.p-cel{padding:2px 4px}
+.p-cbtn{display:flex;flex-direction:column;align-items:flex-end;gap:1px;width:100%;min-height:34px;padding:3px 8px;border:1px solid var(--line-2);border-radius:8px;background:var(--surface);cursor:pointer;font:inherit;color:inherit;line-height:1.15}
+.p-cbtn:hover,.p-cbtn:focus-visible{border-color:#C92121;box-shadow:0 0 0 2px #F2B72E}
+.p-cbtn b{font-size:15px}.p-bs{font-size:13px;color:var(--muted)}
+.p-cbtn .chip{font-size:12px;margin-top:2px;white-space:normal;text-align:right}
+.p-listas th.c{text-align:center}
+.p-tabs{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0}
+.p-est{max-height:58vh;overflow:auto}.p-est td,.p-est th{padding:3px 8px}.p-est select{font-size:14px;min-height:34px}
+.p-listas td.p-cel{padding:1px 4px}.p-cbtn{padding-top:1px;padding-bottom:1px;min-height:32px}
