@@ -53,6 +53,7 @@ export async function previsualizarLiquidacion(ctx, idDoc, fecha) {
 const fmtEntrega = e => ({id: e.id, id_documento: e.id_documento, nro: nroDoc(e), tipo: e.tipo_origen, cliente: e.razon_social, rif: e.rif_id, total: dol(e.total_cents), fecha_emision: e.fecha_emision, estado: e.estado, fecha_hora: e.fecha_hora, foto_ts: e.foto_ts,
   subido_rol: e.subido_rol, subido_ts: e.subido_ts, kb: Math.round(e.foto_bytes / 1024), confirmado_rol: e.confirmado_rol, confirmado_ts: e.confirmado_ts, motivo_rechazo: e.motivo_rechazo, ejemplo: !!e.ejemplo});
 
+const fmtLlegadaCorta = l => l ? {id: l.id, recibidos: l.bultos_recibidos, despachados: l.bultos_despachados, coincide: l.coincide == null ? null : !!l.coincide, foto_ts: l.foto_ts} : null;
 export async function subirEntrega(ctx, b) {
   exigir(ctx, 'subir', 'Tu rol no sube fotos de entrega: lo hacen Despachos, el Jefe de producción y el Dueño.');
   const {db} = ctx, ahora = Date.now(), id = +b.id_documento;
@@ -68,6 +69,7 @@ export async function subirEntrega(ctx, b) {
   }
   const vig = await R.entregaVigente(db, id);
   if (vig && vig.estado === 'CONFIRMADA') throw err(409, 'Este documento ya tiene la entrega confirmada: su plazo ya está corriendo. Si la foto es incorrecta, recházala primero.', {codigo: 'YA_CONFIRMADA'});
+  if (vig && vig.subido_rol === 'Cliente' && vig.foto_ts < foto_ts) foto_ts = vig.foto_ts;   // la primera foto que llegó (la del cliente) es la que manda para los días
   const st = [];
   if (vig) st.push(R.stReemplazar(db, vig.id));
   st.push(R.stInsertarEntrega(db, {id_documento: id, fecha_hora: new Date(foto_ts).toISOString(), foto_ts, subido_rol: rolTxt(ctx), foto: b.foto, mini: b.mini, foto_bytes: E.bytesDeB64(b.foto), ejemplo: false}));
@@ -79,7 +81,8 @@ export async function subirEntrega(ctx, b) {
 export async function listarEntregas(ctx, {estado, q}) {
   exigir(ctx, 'ver');
   if (estado && !['SUBIDA', 'CONFIRMADA', 'RECHAZADA'].includes(estado)) throw err(400, 'Estado no válido.');
-  const filas = (await R.listarEntregas(ctx.db, {estado})).map(fmtEntrega), n = String(q || '').trim().toUpperCase();
+  const crudas = await R.listarEntregas(ctx.db, {estado}), llegs = new Map((await R.llegadasDe(ctx.db, [...new Set(crudas.map(e => e.id_documento))])).map(l => [l.id_documento, l]));
+  const filas = crudas.map(e => ({...fmtEntrega(e), llegada: fmtLlegadaCorta(llegs.get(e.id_documento))})), n = String(q || '').trim().toUpperCase();
   return n ? filas.filter(f => [f.nro, f.cliente, f.rif].some(x => String(x || '').toUpperCase().includes(n))) : filas;
 }
 export async function minis(ctx, ids) {
@@ -114,7 +117,7 @@ export async function resolverEntrega(ctx, id, accion, motivo) {
 /* ---------- Cobranza: plazos, avisos y reclamos ---------- */
 const publicoTemp = t => ({estado: t.estado, tramo: t.tramo, dias: t.dias, dias_vencida: t.dias_vencida, restante_ms: t.restante_ms, vence_ts: t.vence_ts, descuento_pct: t.descuento_pct, recargo_pct: t.recargo_pct, aplica_ajuste: t.aplica_ajuste, pausada: t.pausada, caso: t.caso});
 export async function plazos(ctx, ahora = Date.now()) {
-  exigir(ctx, 'cobranza', 'Esta pantalla es de Cobranza, Administración y el Dueño.');
+  exigir(ctx, 'verCobranza', 'Esta pantalla es de Cobranza, Administración, Ventas y el Dueño.');
   const [filas, aj] = await Promise.all([R.conEntrega(ctx.db), R.leerAjustes(ctx.db)]);
   const pausas = await R.pausasDe(ctx.db, filas.map(f => f.id_documento)), porDoc = new Map();
   for (const p of pausas) (porDoc.get(p.id_documento) || porDoc.set(p.id_documento, []).get(p.id_documento)).push(p);
@@ -128,7 +131,7 @@ export async function plazos(ctx, ahora = Date.now()) {
     resumen: {tramo1: cuenta('TRAMO1'), tramo2: cuenta('TRAMO2'), vencidas: cuenta('VENCIDA'), pausadas: cuenta('PAUSADA'), sin_verificar: sv.length}};
 }
 export async function listarDisputas(ctx, estado) {
-  exigir(ctx, 'cobranza');
+  exigir(ctx, 'verCobranza', 'Esta pantalla es de Cobranza, Administración, Ventas y el Dueño.');
   return (await R.listarDisputas(ctx.db, estado === 'ABIERTA' || estado === 'RESUELTA' ? estado : null)).map(x => ({id: x.id, id_documento: x.id_documento, nro: nroDoc(x), cliente: x.razon_social, rif: x.rif_id, total: dol(x.total_cents), estado: x.estado, nota_cliente: x.nota_cliente, creado_ts: x.creado_ts,
     resuelto_ts: x.resuelto_ts, resuelto_rol: x.resuelto_rol, resolucion: x.resolucion, nota_resolucion: x.nota_resolucion}));
 }
@@ -148,19 +151,63 @@ export async function resolverDisputa(ctx, id, {resolucion, nota}) {
 /* ---------- Portal del cliente: lo que ve el cliente (ctx = {db, cliente}, el cliente sale del código, nunca de un parámetro) ---------- */
 export async function estadoPortal(ctx, ahora = Date.now()) {
   const {db, cliente} = ctx, [docs, aj, tasa, disp] = await Promise.all([R.docsPendientesCliente(db, cliente.id_cliente), R.leerAjustes(db), tasaReferencia(db), R.disputasDeCliente(db, cliente.id_cliente)]);
-  const pausas = await R.pausasDe(db, docs.map(d => d.id_documento)), porDoc = new Map();
+  const ids = docs.map(d => d.id_documento), pausas = await R.pausasDe(db, ids), porDoc = new Map();
   for (const p of pausas) (porDoc.get(p.id_documento) || porDoc.set(p.id_documento, []).get(p.id_documento)).push(p);
+  const [bultos, llegs] = await Promise.all([R.bultosDe(db, ids), R.llegadasDe(db, ids)]);
   const a = E.normalizarAjustes(aj);
   const documentos = docs.map(d => {
     const t = E.calcularTemporizador({entrega_ts: d.foto_ts, ahora, pausas: porDoc.get(d.id_documento) || [], ajustes: aj}), m = E.montoHoy({total_cents: d.total_cents, pagado_cents: d.pagado_cents, temporizador: t});
     const abierta = disp.find(x => x.id_documento === d.id_documento && x.estado === 'ABIERTA'), nRec = disp.filter(x => x.id_documento === d.id_documento).length;
     return {id_documento: d.id_documento, nro: nroDoc(d), tipo: d.tipo_origen, fecha_emision: d.fecha_emision, total: dol(d.total_cents), pagado: dol(d.pagado_cents),
-      entrega: d.foto_ts ? {fecha_hora: d.fecha_hora} : null,
+      entrega: d.foto_ts ? {fecha_hora: d.fecha_hora, por: d.subido_rol === 'Cliente' ? 'cliente' : 'despachos'} : null,
+      bultos_despachados: (bultos.find(x => x.id_documento === d.id_documento) || {}).n ?? null,
+      llegada: (l => l ? {bultos_recibidos: l.bultos_recibidos, coincide: l.coincide == null ? null : !!l.coincide, foto_ts: l.foto_ts} : null)(llegs.find(x => x.id_documento === d.id_documento)),
       temporizador: {...publicoTemp(t), texto: E.ESTADO_TXT[t.estado], restante_texto: E.textoRestante(t.restante_ms)},
       pagar: {normal_usd: dol(m.normal_cents), hoy_usd: dol(m.hoy_cents), hoy_bs: tasa ? dol(E.usdABs(m.hoy_cents, tasa.valor)) : null, normal_bs: tasa ? dol(E.usdABs(m.normal_cents, tasa.valor)) : null, descuento_aplicado: m.aplica && m.hoy_cents < m.normal_cents, recargo_aplicado: m.aplica && m.hoy_cents > m.normal_cents},
       reclamo: abierta ? {estado: 'ABIERTA', creado_ts: abierta.creado_ts} : null, puede_reclamar: !abierta && nRec < MAX_RECLAMOS};
   });
   return {ahora, tramos: {dias_tramo1: a.dias_tramo1, dias_tramo2: a.dias_tramo2}, tasa, documentos};
+}
+/* El cliente avisa la llegada: foto + UN total de bultos recibidos. La primera foto (la suya o la de Despachos) arranca el reloj.
+   Si el total no coincide con lo despachado se abre un reclamo (el mismo de «no recibí esto») y el plazo queda en pausa. */
+export async function registrarLlegada(ctx, b, ahora = Date.now()) {
+  const {db, cliente} = ctx, id = +(b && b.id_documento);
+  if (!Number.isInteger(id) || id <= 0) throw err(400, 'Documento no válido.');
+  const bv = E.validarBultos(b.bultos_recibidos); if (bv.error) throw err(400, bv.error);
+  const msg = E.validarFoto(b.foto, b.mini); if (msg) throw err(400, msg);
+  const doc = await R.documento(db, id);
+  if (!doc || doc.id_cliente !== cliente.id_cliente || doc.estado_doc === 'ANULADO') throw err(404, 'No encontramos ese documento en tu cuenta.');   // misma respuesta si es de otro cliente
+  if (await R.llegadaDeDoc(db, id)) throw err(409, 'Ya avisaste la llegada de este despacho.', {codigo: 'YA_AVISADO'});
+  const despachados = ((await R.bultosDe(db, [id]))[0] || {}).n ?? null, coincide = despachados == null ? null : bv.n === despachados;
+  const vig = await R.entregaVigente(db, id), arranca = !vig, kb = E.bytesDeB64(b.foto);
+  const st = [];
+  if (arranca) st.push(R.stInsertarEntrega(db, {id_documento: id, fecha_hora: new Date(ahora).toISOString(), foto_ts: ahora, subido_rol: 'Cliente', foto: b.foto, mini: b.mini, foto_bytes: kb, ejemplo: cliente.ejemplo}));
+  st.push(R.stInsertarLlegada(db, {id_documento: id, id_cliente: cliente.id_cliente, foto: b.foto, mini: b.mini, foto_bytes: kb, foto_ts: ahora, bultos_recibidos: bv.n, bultos_despachados: despachados, coincide, arranco_reloj: arranca, ejemplo: cliente.ejemplo}));
+  let reclamo = false;
+  if (coincide === false && !await R.disputaAbierta(db, id) && await R.contarDisputas(db, id) < MAX_RECLAMOS) {
+    reclamo = true;
+    st.push(R.stNuevaDisputa(db, {id_documento: id, id_cliente: cliente.id_cliente, nota_cliente: `Recibí ${bv.n} bultos de ${despachados} despachados.`, creado_ts: ahora, ejemplo: cliente.ejemplo}));
+  }
+  st.push(...R.stAuditoria(db, {rol: 'portal', rolTxt: 'Portal del cliente', ent: 'entrega', ref: nroDoc(doc), nom: cliente.razon_social, accion: 'el cliente avisó la llegada del despacho', detalle: {documento: nroDoc(doc), recibidos: bv.n, despachados, coincide, arranco_reloj: arranca, reclamo, kb: Math.round(kb / 1024)}}));
+  try { await R.lote(db, st); }
+  catch (e) { if (/UNIQUE/i.test(String(e && e.message))) throw err(409, 'Ya avisaste la llegada de este despacho.', {codigo: 'YA_AVISADO'}); throw e; }
+  const mensaje = coincide === false ? 'Recibimos tu aviso. El total no coincide con lo despachado: Ventas y Cobranza lo revisan y tu plazo queda en pausa mientras tanto.'
+    : arranca ? 'Listo, gracias. Tu plazo de pago empezó con tu foto.' : 'Listo, gracias. Tu plazo de pago ya venía corriendo desde la primera foto de la entrega.';
+  return {ok: true, coincide, reclamo, arranco_reloj: arranca, mensaje};
+}
+export async function listarLlegadas(ctx) {
+  exigir(ctx, 'ver');
+  return (await R.listarLlegadas(ctx.db)).map(l => ({id: l.id, id_documento: l.id_documento, nro: nroDoc(l), tipo: l.tipo_origen, cliente: l.razon_social, rif: l.rif_id, recibidos: l.bultos_recibidos, despachados: l.bultos_despachados, coincide: l.coincide == null ? null : !!l.coincide, foto_ts: l.foto_ts, subido_por: l.subido_por, arranco_reloj: !!l.arranco_reloj, kb: Math.round(l.foto_bytes / 1024)}));
+}
+export async function minisLlegada(ctx, ids) {
+  exigir(ctx, 'ver');
+  const lista = [...new Set(ids)].filter(Number.isInteger).slice(0, 12);
+  return Object.fromEntries((await R.minisLlegada(ctx.db, lista)).map(r => [r.id, r.mini]));
+}
+export async function fotoLlegada(ctx, id) {
+  exigir(ctx, 'ver');
+  const l = await R.llegadaPorId(ctx.db, id); if (!l) throw err(404, 'Aviso de llegada no encontrado.');
+  return {id: l.id, nro: nroDoc(l), cliente: l.razon_social, recibidos: l.bultos_recibidos, despachados: l.bultos_despachados, coincide: l.coincide == null ? null : !!l.coincide, foto_ts: l.foto_ts, subido_por: l.subido_por, foto: (await R.fotoLlegada(ctx.db, id)).foto};
 }
 export async function noRecibi(ctx, idDoc, nota, ahora = Date.now()) {
   const {db, cliente} = ctx, id = +idDoc;

@@ -5,9 +5,13 @@ import {rutasTasa} from './tasa/rutas.js';
 import {rutasPortal, rutasEquipo} from './cliente/rutas.js';
 import {rutasEntregas, rutasEntregasCliente} from './entregas/rutas.js';
 import {rutasPrecios} from './precios/rutas.js';
+import {rutasProduccion} from './produccion/rutas.js';
 import {rutasBancos} from './bancos/rutas.js';
+import {rutasCompras} from './compras/rutas.js';
+import {rutasFlota} from './flota/rutas.js';
 import {rutasPantallas} from './pantallas/rutas.js';
 import * as Tasa from './tasa/servicio.js';
+import {rolDe, puedeLeer, puedeEscribir, filtrarDoc} from './acceso.js';
 const COLS = new Set(['ajustes', 'meta', 'proveedores', 'productos', 'partidas', 'recepciones', 'compras', 'cxp', 'pagos', 'movimientos', 'lotes', 'salsas_lotes',
   'empaques', 'reposiciones', 'bultos', 'despachos', 'flota', 'empleados', 'caja_gastos', 'caja_reposiciones', 'caja_arqueos', 'prestamos', 'gestion', 'mermas', 'asistencia', 'clientes', 'auditoria', 'solicitudes_compra']);
 const ID_RE = /^[A-Za-z0-9_.~:@+-]{1,120}$/;
@@ -66,10 +70,10 @@ async function apply(db, op) {
   }
   throw {status: 400, message: 'Operación desconocida.'};
 }
-async function allDocs(db) {
+async function allDocs(db, rol) {
   const r = await db.prepare('SELECT col, data FROM docs').all(), cols = {};
   for (const c of COLS) cols[c] = [];
-  for (const x of r.results) { try { (cols[x.col] ||= []).push(JSON.parse(x.data)); } catch (e) {} }
+  for (const x of r.results) { try { const d = JSON.parse(x.data); if (puedeLeer(rol, x.col, d && d.id)) (cols[x.col] ||= []).push(filtrarDoc(rol, x.col, d)); } catch (e) {} }
   const v = await db.prepare('SELECT v FROM ver WHERE id = 1').first();
   return {ver: v ? v.v : 0, cols};
 }
@@ -86,14 +90,20 @@ async function handle(req, env, url) {
   if (p === '/api/v/portal' || p.startsWith('/api/v/portal/')) return rutasEquipo(req, env, url);   // acciones del equipo sobre el portal
   if (p === '/api/c/entregas' || p.startsWith('/api/c/entregas/')) return rutasEntregasCliente(req, env, url);   // entrega con foto + temporizador (cliente, x-token)
   if (p === '/api/v/entregas' || p.startsWith('/api/v/entregas/')) return rutasEntregas(req, env, url);         // entrega con foto + temporizador (equipo, x-rol)
+  if (p === '/api/p' || p.startsWith('/api/p/')) return rutasProduccion(req, env, url);                         // producción por zonas: pedidos, salidas, turnos
   if (p === '/api/v/pantallas' || p.startsWith('/api/v/pantallas/')) return rutasPantallas(req, env, url);       // funciones extra por rol (lanzador Opciones)
+  if (p === '/api/f' || p.startsWith('/api/f/')) return rutasFlota(req, env, url);                                 // flota de vehículos y choferes de nómina
+  if (p === '/api/v/compras' || p.startsWith('/api/v/compras/')) return rutasCompras(req, env, url);              // hacer una compra al proveedor (pedidos)
   if (p === '/api/v/bancos' || p.startsWith('/api/v/bancos/')) return rutasBancos(req, env, url);                // bancos de la empresa
   if (p === '/api/v/precios' || p.startsWith('/api/v/precios/')) return rutasPrecios(req, env, url);          // cambios de precio con aprobación del Dueño
   if (p === '/api/v/tasa' || p.startsWith('/api/v/tasa/')) return rutasTasa(req, env, url);
   if (p.startsWith('/api/v/')) return rutasVentas(req, env, url);
   if (m === 'GET' && p === '/api/ver') { const v = await db.prepare('SELECT v FROM ver WHERE id = 1').first(); return json({ver: v ? v.v : 0}); }
-  if (m === 'GET' && p === '/api/all') return json(await allDocs(db));
   if (m === 'GET' && p === '/api/health') return json({ok: true});
+  /* Desde aquí, todo lo de la app principal exige puesto (x-rol válido) */
+  const rol = rolDe(req);
+  if (!rol && (p === '/api/all' || p === '/api/batch' || p === '/api/lock' || p.startsWith('/api/c/'))) return err(403, 'Falta indicar tu puesto.');
+  if (m === 'GET' && p === '/api/all') return json(await allDocs(db, rol));
 
   if (m === 'POST' && p === '/api/batch') {
     const b = await readJson(req);
@@ -104,6 +114,7 @@ async function handle(req, env, url) {
     // las actualizaciones dependen del estado actual: se aplican en orden, vaciando antes lo pendiente
     for (const op of b.ops) {
       if (!isObj(op)) return err(400, 'Operación no válida.');
+      if (!puedeEscribir(rol, op.c, op.id)) return err(403, 'Tu puesto no puede modificar esta información.');
       if (op.op === 'update' && stm.length) { await db.batch(stm); stm = []; }
       stm.push(...await apply(db, op));
       if (op.op === 'update') { await db.batch(stm); stm = []; }
@@ -119,16 +130,18 @@ async function handle(req, env, url) {
     return json({acquired: !!(r.meta && r.meta.changes > 0)});
   }
   const ml = p.match(/^\/api\/c\/([^/]+)$/);
-  if (m === 'GET' && ml) { const c = decodeURIComponent(ml[1]); if (!COLS.has(c)) return err(400, 'Colección desconocida.'); const r = await db.prepare('SELECT data FROM docs WHERE col = ?1').bind(c).all(); return json(r.results.map(x => JSON.parse(x.data))); }
+  if (m === 'GET' && ml) { const c = decodeURIComponent(ml[1]); if (!COLS.has(c)) return err(400, 'Colección desconocida.'); const r = await db.prepare('SELECT data FROM docs WHERE col = ?1').bind(c).all(); return json(r.results.map(x => JSON.parse(x.data)).filter(d => puedeLeer(rol, c, d && d.id)).map(d => filtrarDoc(rol, c, d))); }
   const mm = p.match(/^\/api\/c\/([^/]+)\/([^/]+)$/);
   if (mm) {
     const c = decodeURIComponent(mm[1]), id = decodeURIComponent(mm[2]);
+    if ((m === 'PUT' || m === 'PATCH' || m === 'DELETE') && !puedeEscribir(rol, c, id)) return err(403, 'Tu puesto no puede modificar esta información.');
+    if (m === 'GET' && !puedeLeer(rol, c, id)) return err(403, 'Tu puesto no puede ver esta información.');
     if (m === 'PUT' || m === 'PATCH') {
       const d = await readJson(req); if (!isObj(d)) return err(400, 'El documento debe ser un objeto.'); const st = await apply(db, {op: m === 'PUT' ? 'set' : 'update', c, id, d});
       await db.batch([...st, bump(db)]); return json({ok: true, ver: await curVer(db)});
     }
     if (m === 'DELETE') { const st = await apply(db, {op: 'del', c, id}); await db.batch([...st, bump(db)]); return json({ok: true, ver: await curVer(db)}); }
-    if (m === 'GET') { checkDoc(c, id); const r = await db.prepare('SELECT data FROM docs WHERE col = ?1 AND id = ?2').bind(c, id).first(); return r ? json(JSON.parse(r.data)) : err(404, 'No existe.'); }
+    if (m === 'GET') { checkDoc(c, id); const r = await db.prepare('SELECT data FROM docs WHERE col = ?1 AND id = ?2').bind(c, id).first(); return r ? json(filtrarDoc(rol, c, JSON.parse(r.data))) : err(404, 'No existe.'); }
   }
   return err(404, 'Ruta no encontrada.');
 }

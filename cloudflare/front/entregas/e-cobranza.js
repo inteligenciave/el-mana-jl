@@ -29,7 +29,7 @@ function scrPlazos() {
         <div class="e-a">${x.estado === 'ABIERTA' ? chip('Plazo en pausa', 'warn') + (lvl('e-plazos') >= 2 ? `<button type="button" class="btn sm pri" data-act="eResolver" data-id="${x.id}">Resolver</button>` : '') : chip('Resuelto', 'ok')}</div></li>`).join('')}</ul>${ds.length > n ? `<div class="e-pag"><button type="button" class="btn sm" data-act="ePagR" data-d="-1" ${P.pagR === 0 ? 'disabled' : ''}>Anterior</button><span>Página ${P.pagR + 1} de ${pags}</span><button type="button" class="btn sm" data-act="ePagR" data-d="1" ${P.pagR >= pags - 1 ? 'disabled' : ''}>Siguiente</button></div>` : ''}`
         : emptyState('Sin reclamos', 'Cuando un cliente pulse «no recibí esto» en su portal, aparecerá aquí y su plazo se pausa.');
     } else {
-      const filas = ePlzFilas(), n = innerWidth >= 1000 ? Math.max(3, Math.min(8, Math.floor((innerHeight - 440) / 56))) : 5, pags = Math.max(1, Math.ceil(filas.length / n)); P.pag = Math.min(P.pag, pags - 1);
+      const filas = ePlzFilas(), n = innerWidth >= 1000 ? Math.max(3, Math.min(8, Math.floor((innerHeight - 470) / 50))) : 5, pags = Math.max(1, Math.ceil(filas.length / n)); P.pag = Math.min(P.pag, pags - 1);
       const r = d.resumen || {}, stats = `<div class="v-stats">${stat('Descuento A', r.tramo1 || 0, 'hasta ' + d.ajustes.dias_tramo1 + ' días')}${stat('Descuento B', r.tramo2 || 0, 'hasta ' + d.ajustes.dias_tramo2 + ' días')}${stat('Vencidas', r.vencidas || 0, 'pasaron ' + d.ajustes.dias_tramo2 + ' días', (r.vencidas || 0) ? 'crit' : '')}${stat('En pausa', r.pausadas || 0, 'reclamo abierto')}${stat('Sin verificar', r.sin_verificar || 0, 'sin foto')}</div>`;
       const filtros = E_FILTROS.map(([k, t]) => `<button type="button" class="v-cat" data-act="ePlzFiltro" data-v="${k}" aria-pressed="${P.f === k}">${t}</button>`).join('');
       cuerpo = `${stats}<div class="e-tabs">${filtros}</div><label class="fld bq-f">Buscar<input type="search" aria-label="Buscar en los plazos" ${Busca.atr('e-plz')} value="${esc(P.q)}" placeholder="Número, cliente o RIF"></label>
@@ -81,7 +81,7 @@ async function eAjustesGuardar() {
 
 /* ---------- Registro en la aplicación ---------- */
 Object.assign(ICONS, {camera: '<path d="M4 8h3l1.6-2.4h6.8L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.6"/>'});
-Object.assign(PERM_DEF, {'e-entregas': 'jefeprod:3 empaque:2', 'e-plazos': 'cobranza:2 adm:1', 'e-ajustes': 'adm:3'});
+Object.assign(PERM_DEF, {'e-entregas': 'jefeprod:3 empaque:2', 'e-plazos': 'cobranza:2 adm:1 ventas:1', 'e-ajustes': 'adm:3'});
 Object.assign(SCREENS, {
   'e-entregas': {mod: 'prod', g: 'Planta', t: 'Entregas con foto', s: 'Entregas', ic: 'camera', r: scrEntregas},
   'e-plazos':   {mod: 'adm', g: 'Ventas y liquidación', t: 'Plazos y reclamos de entrega', s: 'Plazos', ic: 'calendar', r: scrPlazos},
@@ -97,6 +97,7 @@ const EACT = {
   eTab: el => { EN.tab = el.dataset.v; EN.pag = 0; render(); },
   ePag: el => { if (el.disabled) return; EN.pag = Math.max(0, EN.pag + (+el.dataset.d)); render(); },
   eVerFoto: el => eVerFoto(eId(el)),
+  eVerLlegada: el => eVerLlegada(eId(el)),
   eElegirDoc: el => { const d = (EN.sin || []).find(x => x.id_documento === eId(el)); if (!d) return; EN.up = {...EN.up, doc: d, foto: null, mini: null, aviso: '', vista: '', hora: ''}; if (EN.tab !== 'SIN') EN.tab = EN.tab; render(); },
   eCambiarDoc: () => { EN.up = {...EN.up, doc: null, foto: null, mini: null, aviso: '', vista: '', q: ''}; render(); },
   eFoto: async el => {

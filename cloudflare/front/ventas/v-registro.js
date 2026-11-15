@@ -6,9 +6,11 @@ Object.assign(SCREENS, {
   'v-pagos':    {mod: 'adm', g: 'Ventas y liquidación', t: 'Pagos recibidos', s: 'Pagos', ic: 'receipt', r: scrPagos},
   'v-deuda':    {mod: 'adm', g: 'Ventas y liquidación', t: 'Quién debe y desde cuándo', s: 'Deuda', ic: 'calendar', r: scrDeuda},
   'v-reportes': {mod: 'adm', g: 'Ventas y liquidación', t: 'Comisiones, asientos e inventario', s: 'Reportes', ic: 'chart', r: scrReportes},
-  'v-clientes': {mod: 'adm', g: 'Ventas y liquidación', t: 'Clientes, catálogo y ajustes', s: 'Clientes', ic: 'users', r: scrClientes},
+  'v-clientes': {mod: 'adm', g: 'Ventas y liquidación', t: 'Clientes, catálogo y ajustes', s: 'Clientes', ic: 'users', r: scrClientesVentas},
   'v-importar': {mod: 'adm', g: 'Ventas y liquidación', t: 'Importar del Excel', s: 'Importar', ic: 'download', r: scrImportar}
 });
+if (SCREENS.clientes) SCREENS.clientes.r = scrClientesVentas;   /* UNA sola lista de clientes: la de Ventas (estado → zona → lista de precios) */
+if (SCREENS.ventas) SCREENS.ventas.r = scrRegVentas; /* «Registro de ventas»: datos reales, ya no las cifras de ejemplo */
 S.perm = permInit();
 Object.assign(ROLE_HOME, {ventas: 'v-pedido', cobranza: 'v-cobro'});
 
@@ -26,7 +28,7 @@ const vRecargarTodo = async () => { V.clientes = null; V.adm.clientes = null; V.
 const VACT = {
   vReintentar: () => { V.boot = null; render(); },
   vElegirCliente: el => el.dataset.pk === 'ped' ? vPedElegir(vElId(el)) : vCobElegir(vElId(el)),
-  vCambiarCliente: () => { const P = vPed(); Object.assign(P, {cid: null, cli: null, precios: {}, cant: {}, q: ''}); render(); },
+  vCambiarCliente: () => { const P = vPed(); Object.assign(P, {cid: null, cli: null, precios: {}, cant: {}, q: ''}); vPedBorrarGuardado(); render(); },
   vVista: el => { try { localStorage.setItem('elmana:vista', el.dataset.v); } catch (e) { /* sin almacenamiento */ } vPed().pag = 0; render(); },
   vCond: el => { vPed().cond = el.dataset.v; vPedRefrescar(); const g = $('#v-grid-w'); if (g) g.innerHTML = vPedGrid(); },
   vCat: el => { vPed().cat = el.dataset.v; vPed().pag = 0; render(); },
@@ -34,6 +36,7 @@ const VACT = {
   vQty: el => { const id = vElId(el); vPedPonerCantidad(id, (vPed().cant[id] || 0) + (+el.dataset.d), +el.dataset.d); },
   vGenerar: el => vPedGenerar(el.dataset.t),
   vIrPedido: () => { const e = $('#vp3'); e && e.scrollIntoView({behavior: 'smooth', block: 'start'}); },
+  vPdfDoc: el => vPdfBajar('documento/' + vElId(el)), vPdfPed: el => vPdfBajar('pedido/' + vElId(el)),
   vVerDoc: el => vDocModal(vElId(el)), vVerPago: el => vReciboModal(vElId(el)),
   vNuevoCliente: () => vClienteModal(null),
   vEditarCliente: el => { const c = (V.adm.clientes || []).find(x => x.id_cliente === vElId(el)); c && vClienteModal(c); },
@@ -99,7 +102,7 @@ document.addEventListener('input', e => {
   if (t.classList.contains('v-q')) { vPedPonerCantidad(+t.dataset.id, vSoloDigitos(t)); return; }
   if (t.classList.contains('v-int')) { vSoloDigitos(t); return; }
   if (t.dataset.apl) { vCob().apl[t.dataset.apl] = t.value; vCobRefrescarRes(); return; }
-  if (t.dataset.vk) { vSet(V, t.dataset.vk, t.value); if (/^cob\.monto$/.test(t.dataset.vk)) vCobRefrescarRes(); }
+  if (t.dataset.vk) { vSet(V, t.dataset.vk, t.value); if (t.dataset.vk.indexOf('ped.') === 0) vPedGuardar(); if (/^cob\.monto$/.test(t.dataset.vk)) vCobRefrescarRes(); }
 });
 
 /* Altura disponible para la pantalla de Nueva venta (sin deslizar la página) */

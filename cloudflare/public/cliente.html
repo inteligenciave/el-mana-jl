@@ -76,7 +76,7 @@ main{max-width:980px;margin:0 auto;padding:16px}
 .kv dt{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--gris);font-weight:700}
 .kv dd{margin:0;font-weight:700;font-size:17px}
 /* navegación */
-.tabs{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--linea);display:grid;grid-template-columns:repeat(4,1fr);padding-bottom:env(safe-area-inset-bottom,0px);z-index:30}
+.tabs{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--linea);display:grid;grid-template-columns:repeat(5,1fr);padding-bottom:env(safe-area-inset-bottom,0px);z-index:30}
 .tabs button{border:0;background:none;min-height:64px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:12.5px;font-weight:600;color:var(--gris);position:relative}
 .tabs button svg{width:24px;height:24px}
 .tabs button[aria-current="page"]{color:var(--rojo);box-shadow:inset 0 3px 0 var(--rojo)}
@@ -155,9 +155,328 @@ td.r,th.r{text-align:right}
 @media print{.tabs,.cab .salir,.resumen{display:none}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 @media (max-width:640px){.seg{display:grid;grid-template-columns:1fr 1fr;overflow:visible}.seg button{flex:none;padding:0 8px;font-size:14px}}
+
+.comp-prev{display:flex;gap:12px;align-items:center;margin-top:8px}.comp-prev img{width:96px;max-height:120px;object-fit:cover;border-radius:8px;border:1px solid var(--linea)}.comp-prev>div{display:grid;gap:6px;justify-items:start}
+/* COMPACTO (pedido del dueño): en computador, menos espacio en blanco. El celular queda igual. */
+@media (min-width:900px){
+body{font-size:14px;line-height:1.4;padding-bottom:16px}
+.cab-i{padding:5px 16px}.cab img{width:34px;height:34px}.cab b{font-size:16px}.cab small{font-size:12.5px}
+.cab .salir{min-height:34px;padding:0 12px}
+main{padding:10px 16px}
+.card{padding:10px 14px;margin-bottom:8px;border-radius:12px}
+.card h2{font-size:16px;margin-bottom:6px}
+.grande{font-size:28px}
+.btn{min-height:38px;padding:0 14px;font-size:14px}
+.btn.sm{min-height:34px;padding:0 12px;font-size:14px}
+.acciones{gap:8px}.form{gap:8px}
+}
 </style></head>
 <body><div id="app"></div><div id="toast" aria-live="polite"></div>
 <noscript><p style="padding:20px">Para ver tu cuenta necesitas activar JavaScript.</p></noscript>
+<script>
+/* BORRADOR: guarda lo que la persona está escribiendo (y la pestaña/pantalla donde estaba) para recuperarlo si la página se actualiza.
+   Solo este navegador (localStorage), por pantalla y por rol, 24 h. Nunca guarda contraseñas, PIN, claves, cuentas ni tarjetas.
+   Si localStorage falla, la pantalla funciona igual. Va ANTES de todo lo demás en la página.
+   API: Borrador.registrar(clave, getEstado, setEstado)  estado propio de una pantalla (carrito, filtros...) que vive en JS
+        Borrador.tab(ruta[, i])   pestaña abierta        Borrador.exito()  «se guardó bien»: borra lo que ya se envió
+        Borrador.limpiar()        borra todo (cambiar rol / salir)    Borrador.sesion()  devuelve al rol/módulo donde estaba
+        Borrador.config({ctx, aviso, raices, sesion}) lo usa el portal del cliente */
+(function () {
+"use strict";
+const PRE = 'elmana:borr:', VIDA = 24 * 36e5, DEB = 400, VENTANA = 20000, MAXV = 5000;
+let cfg = {ctx: null, aviso: null, raices: null, interno: !!document.getElementById('main')};
+const regs = {}, aplicadoReg = new Set(), pend = {}, nrest = {}, ventana = {};
+let ctxAct = null, modalAbierto = false, restaurando = false, aplicando = false, avisado = false, propio = false, ultimo = null, sesCache = '', tFlush = 0, tObs = 0;
+
+/* ---------- almacenamiento (todo con try/catch) ---------- */
+const ls = {
+  get(k) { try { const t = localStorage.getItem(k); return t ? JSON.parse(t) : null; } catch (e) { return null; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; } },
+  del(k) { try { localStorage.removeItem(k); } catch (e) { /* sin almacenamiento */ } },
+  claves() { const r = []; try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && k.indexOf(PRE) === 0) r.push(k); } } catch (e) { /* nada */ } return r; }
+};
+function leer(ctx) { const d = ls.get(PRE + 'd:' + ctx); if (!d) return null; if (!d.ts || Date.now() - d.ts > VIDA) { ls.del(PRE + 'd:' + ctx); return null; } return d; }
+function escribir(ctx, d) {
+  if (!d.f || !Object.keys(d.f).length) delete d.f;
+  if (d.r && !Object.keys(d.r).length) delete d.r;
+  if (!d.f && !d.r && d.tab == null) { ls.del(PRE + 'd:' + ctx); return; }
+  d.ts = Date.now(); ls.set(PRE + 'd:' + ctx, d);
+}
+function purgar() { ls.claves().forEach(k => { const d = ls.get(k); if (!d || !d.ts || Date.now() - d.ts > VIDA) ls.del(k); }); }
+
+/* ---------- contexto: pantalla + rol ---------- */
+function ctxDe(ruta) {
+  try {
+    if (cfg.ctx) return cfg.ctx(ruta);
+    if (typeof S === 'undefined' || !S || S.entry !== 'in') return null;
+    if (typeof Boot !== 'undefined' && Boot.state !== 'ready') return null;
+    return 'i:' + S.rol + ':' + (ruta || S.route);
+  } catch (e) { return null; }
+}
+const raices = () => cfg.raices || (cfg.interno ? ['#main', '#modal', '#top'] : ['#app']);
+const ambito = el => { const r = raices(); for (let i = 0; i < r.length; i++) { const n = document.querySelector(r[i]); if (n && n.contains(el)) return r[i] === '#modal' ? 'o' : r[i] === '#top' ? 't' : 'm'; } return null; };
+
+/* ---------- qué campos se pueden guardar ---------- */
+const SECRETO = /pass|contras|clave|(^|[^a-z])pin([^a-z]|$)|token|cuenta|(^|[^a-z])cta([^a-z]|$)|tarjeta|card|cvv|cvc|iban|secret|swift|routing|c[oó]digo.?seg/i;
+function guardable(el) {
+  if (!el || !el.tagName) return false;
+  const t = el.tagName;
+  if (t !== 'INPUT' && t !== 'SELECT' && t !== 'TEXTAREA') return false;
+  const ty = (el.type || '').toLowerCase();
+  if (/^(password|file|hidden|button|submit|reset|image)$/.test(ty)) return false;
+  if (el.hasAttribute('data-nodraft') || el.closest('[data-nodraft]') || el.hasAttribute('data-act-change') || el.disabled || el.readOnly) return false;
+  const marca = [el.id, el.name, el.getAttribute('data-k'), el.getAttribute('autocomplete'), el.getAttribute('placeholder'), el.getAttribute('aria-label')].join(' ');
+  if (SECRETO.test(marca) || /^cc-/.test(el.getAttribute('autocomplete') || '')) return false;
+  if (ty === 'tel' || ty === 'text' || ty === 'number' || ty === '') { if (/^\D*(\d[\s.-]?){12,}\D*$/.test(el.value || '')) return false; }
+  return true;
+}
+const base = el => el.id || el.name || el.getAttribute('data-k') || '';
+function claveDe(el, orden) {
+  const a = ambito(el); if (!a) return null;
+  let b = base(el);
+  if (!b) { const l = el.closest('label'); b = '~' + (el.getAttribute('aria-label') || el.getAttribute('placeholder') || (l && l.textContent.trim().slice(0, 24)) || el.getAttribute('data-act') || el.tagName.toLowerCase() + (el.type || '')); if (orden) { orden[a + b] = (orden[a + b] || 0) + 1; b += '#' + orden[a + b]; } else b += '#?'; }
+  return a + ':' + b;
+}
+function valorDe(el) {
+  const ty = (el.type || '').toLowerCase();
+  if (ty === 'checkbox') return {v: !!el.checked, b: !!el.defaultChecked};
+  if (ty === 'radio') return el.checked ? {v: el.value, b: null} : null;
+  if (el.tagName === 'SELECT') { const d = [...el.options].find(o => o.defaultSelected) || el.options[0]; return {v: el.value, b: d ? d.value : ''}; }
+  return {v: String(el.value).slice(0, MAXV), b: el.defaultValue};
+}
+const esDefecto = (el, x) => { const ty = (el.type || '').toLowerCase(); return ty === 'radio' ? !el.checked : x.v === x.b; };
+function campos() { /* [{el, key}] de lo que hay ahora en pantalla */
+  const orden = {}, r = [];
+  raices().forEach(sel => document.querySelectorAll(sel + ' input,' + sel + ' select,' + sel + ' textarea').forEach(el => { if (guardable(el)) { const k = claveDe(el, orden); if (k) r.push({el, key: k}); } }));
+  return r;
+}
+
+/* ---------- guardar ---------- */
+const dueno = new WeakMap(); /* a qué pantalla pertenece cada campo: un «change» tardío (al cambiar de pantalla) no debe caer en la nueva */
+function anotar(el, esChange) {
+  if (restaurando || !el || !el.isConnected || !guardable(el)) return;
+  const ctx = (esChange && dueno.get(el)) || ctxDe(); if (!ctx) return;
+  dueno.set(el, ctx);
+  const orden = {}; /* el orden solo importa para campos sin id: se calcula con todo lo que hay en pantalla */
+  const hit = campos().find(c => c.el === el); const key = hit ? hit.key : claveDe(el, orden); if (!key) return;
+  const ty = (el.type || '').toLowerCase(), v = valorDe(el); if (!v) { if (ty === 'radio') return; return; }
+  (pend[ctx] = pend[ctx] || {})[ty === 'radio' ? key : key] = {x: v, radio: ty === 'radio', def: ty === 'radio' ? false : esDefecto(el, v)};
+  programar();
+}
+function programar() { clearTimeout(tFlush); tFlush = setTimeout(flush, DEB); }
+function flush() {
+  clearTimeout(tFlush);
+  try {
+    Object.keys(pend).forEach(ctx => {
+      const d = leer(ctx) || {f: {}}; d.f = d.f || {};
+      Object.keys(pend[ctx]).forEach(k => { const p = pend[ctx][k]; if (p.def) delete d.f[k]; else d.f[k] = p.x; });
+      escribir(ctx, d); delete pend[ctx];
+    });
+    const grupos = {};
+    Object.keys(regs).forEach(c => { const rc = ctxReg(c); if (rc) (grupos[rc] = grupos[rc] || []).push(c); });
+    Object.keys(grupos).forEach(rc => {
+      const d = leer(rc) || {}; let cambio = false; d.r = d.r || {};
+      grupos[rc].forEach(c => {
+        let v; try { v = regs[c].get(); } catch (e) { return; }
+        const nuevo = v == null || (typeof v === 'object' && !Object.keys(v).length) ? undefined : v;
+        if (JSON.stringify(nuevo) !== JSON.stringify(d.r[c])) { if (nuevo === undefined) delete d.r[c]; else d.r[c] = nuevo; cambio = true; }
+      });
+      if (cambio) escribir(rc, d);
+    });
+    guardarSesion();
+  } catch (e) { /* sin almacenamiento */ }
+}
+function guardarSesion() {
+  try {
+    if (!cfg.interno || typeof S === 'undefined' || typeof Boot === 'undefined' || Boot.state !== 'ready') return;
+    if (S.entry === 'in') { const t = JSON.stringify({rol: S.rol, mod: S.mod}); if (t !== sesCache) { sesCache = t; ls.set(PRE + 'ses', {rol: S.rol, mod: S.mod, ts: Date.now()}); } }
+    else if (sesCache !== '-') { sesCache = '-'; ls.del(PRE + 'ses'); }
+  } catch (e) { /* nada */ }
+}
+
+/* ---------- borrar: enviado, cancelado, cambio de rol ---------- */
+function quitar(ctx, claves) {
+  if (!ctx || !claves || !claves.length) return;
+  try {
+    if (pend[ctx]) claves.forEach(k => delete pend[ctx][k]);
+    const d = leer(ctx); if (!d || !d.f) return;
+    claves.forEach(k => delete d.f[k]); escribir(ctx, d);
+  } catch (e) { /* nada */ }
+}
+function cerrarVentana() { Object.keys(ventana).forEach(k => { ventana[k] = 0; }); }
+function contenedor(desde) { /* el grupo más cercano que tiene campos: ahí vive el formulario del botón */
+  let n = desde;
+  while (n && n !== document.body) {
+    if (n.id === 'main' || n.id === 'top' || n.id === 'app') return null;
+    if (n.querySelector && n.querySelector('input,select,textarea') && campos().some(c => n.contains(c.el))) return n;
+    n = n.parentElement;
+  }
+  return null;
+}
+function clavesDe(cont) { return cont ? campos().filter(c => cont.contains(c.el)).map(c => c.key) : []; }
+function limpiarTodo() {
+  Object.keys(pend).forEach(k => delete pend[k]); clearTimeout(tFlush);
+  ls.claves().forEach(k => ls.del(k)); sesCache = '';
+  Object.keys(nrest).forEach(k => delete nrest[k]);
+}
+function exito() {
+  if (propio) return;
+  try {
+    const u = ultimo, ctx = ctxDe();
+    if (u && Date.now() - u.t < 20000 && u.ctx === ctx) quitar(ctx, u.keys);
+    cerrarVentana();
+    setTimeout(() => { /* si la pantalla se vació sola tras guardar, lo que quedó guardado ya no vale */
+      try {
+        const c = ctxDe(), d = c && leer(c); if (!d || !d.f) return;
+        const vivos = campos(), borrar = [];
+        vivos.forEach(({el, key}) => { const x = d.f[key]; if (!x) return; const v = valorDe(el); if (v && esDefecto(el, v) && !((el.type || '') === 'radio')) borrar.push(key); });
+        quitar(c, borrar);
+      } catch (e) { /* nada */ }
+    }, 700);
+  } catch (e) { /* nada */ }
+}
+
+/* ---------- recuperar ---------- */
+function restaurable(el, x) {
+  const ty = (el.type || '').toLowerCase();
+  if (ty === 'radio') return !el.checked && el.value === x.v;
+  const cur = valorDe(el); if (!cur) return false;
+  if (ty === 'checkbox') return cur.v === x.b && cur.v !== x.v;
+  if (el.tagName === 'SELECT') return cur.v === x.b && cur.v !== x.v && [...el.options].some(o => o.value === x.v);
+  return cur.v === x.b && cur.v !== x.v && (cur.v === '' || cur.v === x.b);
+}
+function poner(el, x) {
+  restaurando = true;
+  try {
+    const ty = (el.type || '').toLowerCase();
+    if (ty === 'checkbox') el.checked = !!x.v; else if (ty === 'radio') el.checked = true; else el.value = x.v;
+    el.dispatchEvent(new Event(ty === 'checkbox' || ty === 'radio' || el.tagName === 'SELECT' ? 'change' : 'input', {bubbles: true}));
+  } finally { restaurando = false; }
+}
+function ventanaAbierta(ambitoK) { return Date.now() < (ventana[ambitoK] || 0); }
+const ctxReg = c => { try { return regs[c].ctx ? regs[c].ctx() : ctxDe(); } catch (e) { return null; } };
+function aplicarTodosRegs() { let algo = false; Object.keys(regs).forEach(c => { const rc = ctxReg(c), d = rc && leer(rc); if (d && aplicarRegs(rc, d, c)) algo = true; }); return algo; }
+function aplicarRegs(ctx, d, solo) {
+  if (!d || !d.r) return false; let algo = false;
+  Object.keys(regs).forEach(c => {
+    if (solo && c !== solo) return;
+    const id = ctx + '|' + c; if (aplicadoReg.has(id) || d.r[c] === undefined) return;
+    aplicadoReg.add(id);
+    try { regs[c].set(d.r[c]); algo = true; } catch (e) { console.error(e); }
+  });
+  return algo;
+}
+function aplicar() {
+  if (aplicando) return; aplicando = true;
+  let nuevo = false;
+  try {
+    const ctx = ctxDe(); if (aplicarTodosRegs()) nuevo = true; if (!ctx) return;
+    for (let vuelta = 0; vuelta < 6; vuelta++) {
+      const d = leer(ctx); if (!d) break;
+      if (!d.f) break;
+      let volver = false;
+      for (const {el, key} of campos()) {
+        const x = d.f[key]; if (!x || !ventanaAbierta(key[0])) continue;
+        const id = ctx + '|' + key; if ((nrest[id] || 0) >= 6) continue;
+        if (!el.isConnected || !restaurable(el, x)) continue;
+        nrest[id] = (nrest[id] || 0) + 1; poner(el, x); nuevo = true;
+        if (!el.isConnected) { volver = true; break; } /* el cambio redibujó la pantalla: se vuelve a mirar */
+      }
+      if (!volver) break;
+    }
+  } catch (e) { console.error(e); } finally { aplicando = false; }
+  if (nuevo && !avisado) {
+    avisado = true; propio = true;
+    try { if (cfg.aviso) cfg.aviso('Recuperamos lo que estabas escribiendo'); else if (typeof toast === 'function') toast('Recuperamos lo que estabas escribiendo'); } catch (e) { /* nada */ }
+    propio = false;
+  }
+}
+
+/* ---------- vigilar la pantalla ---------- */
+function alCambiar() {
+  try {
+    const ctx = ctxDe();
+    if (ctx !== ctxAct) { ctxAct = ctx; ventana.m = ventana.t = ctx ? Date.now() + VENTANA : 0; ventana.o = 0; }
+    if (cfg.interno) {
+      const mo = document.getElementById('modal'), abierto = !!(mo && !mo.hidden && mo.firstElementChild);
+      if (abierto && !modalAbierto) ventana.o = Date.now() + VENTANA;
+      if (!abierto && modalAbierto && ctx) { /* se cerró sin guardar: lo escrito ahí ya no hace falta */
+        const d = leer(ctx); if (d && d.f) quitar(ctx, Object.keys(d.f).filter(k => k[0] === 'o'));
+      }
+      modalAbierto = abierto;
+    }
+    if (ctx) aplicar();
+    guardarSesion();
+  } catch (e) { console.error(e); }
+}
+function vigilar() {
+  const sels = raices(); let alguno = false;
+  const mo = new MutationObserver(() => { clearTimeout(tObs); tObs = setTimeout(alCambiar, 30); });
+  sels.concat(cfg.interno ? ['#modal'] : []).forEach(s => { const n = document.querySelector(s); if (n) { mo.observe(n, {childList: true, subtree: true, attributes: true, attributeFilter: ['hidden']}); alguno = true; } });
+  if (!alguno) return;
+  alCambiar();
+}
+
+/* ---------- eventos ---------- */
+const CANCELA = /cancel|descart|closeModal|^cerrar$|^cerrarHoja$/i;
+document.addEventListener('input', e => { anotar(e.target); }, true);
+document.addEventListener('change', e => { anotar(e.target, true); programar(); }, true);
+document.addEventListener('keyup', () => { programar(); }, true);
+document.addEventListener('click', e => {
+  try {
+    programar();
+    const a = e.target.closest && e.target.closest('[data-act],[data-a]'); if (!a) return;
+    const act = a.getAttribute('data-act') || a.getAttribute('data-a') || '';
+    if (/^(cambiarRol|elegirRol|setRol|salir)$/.test(act)) { limpiarTodo(); return; }
+    if (act === 'inicio') { ls.del(PRE + 'ses'); sesCache = ''; return; }
+    const ctx = ctxDe(), cont = contenedor(a) || (a.closest('#modal') ? document.getElementById('modal') : null), keys = clavesDe(cont);
+    ultimo = {t: Date.now(), ctx, keys};
+    if (CANCELA.test(act) || /^\s*(cancelar|descartar)\b/i.test(a.textContent || '')) { quitar(ctx, keys); cerrarVentana(); }
+  } catch (er) { /* nada */ }
+}, true);
+document.addEventListener('submit', e => { try { const ctx = ctxDe(), f = e.target; ultimo = {t: Date.now(), ctx, keys: campos().filter(c => f.contains(c.el)).map(c => c.key)}; } catch (er) { /* nada */ } }, true);
+document.addEventListener('reset', e => { try { const f = e.target; quitar(ctxDe(), campos().filter(c => f.contains(c.el)).map(c => c.key)); } catch (er) { /* nada */ } }, true);
+window.addEventListener('hashchange', () => { setTimeout(alCambiar, 30); });
+window.addEventListener('pagehide', flush);
+document.addEventListener('visibilitychange', () => { if (document.hidden) flush(); });
+
+/* ---------- API ---------- */
+window.Borrador = {
+  registrar(clave, get, set, ctx) {
+    regs[clave] = {get, set, ctx: ctx || null};
+    try { const rc = ctxReg(clave), d = rc && leer(rc); if (d) aplicarRegs(rc, d, clave); } catch (e) { /* nada */ }
+  },
+  tab(ruta, i) {
+    try {
+      const ctx = ctxDe(ruta); if (!ctx) return i == null ? undefined : undefined;
+      const d = leer(ctx);
+      if (i === undefined) return d && typeof d.tab === 'number' ? d.tab : undefined;
+      const x = d || {}; if (x.tab === i) return; x.tab = i; escribir(ctx, x);
+    } catch (e) { /* nada */ }
+  },
+  exito, limpiar: limpiarTodo, flush,
+  sesion() {
+    try {
+      if (typeof S === 'undefined' || S.entry === 'in') return;
+      const s = ls.get(PRE + 'ses'); if (!s || !s.ts || Date.now() - s.ts > VIDA) { ls.del(PRE + 'ses'); return; }
+      if (typeof ROLES !== 'undefined' && ROLES[s.rol] && typeof modsOf === 'function' && modsOf(s.rol).includes(s.mod)) { S.rol = s.rol; S.mod = s.mod; S.entry = 'in'; }
+    } catch (e) { /* nada */ }
+  },
+  config(o) { Object.assign(cfg, o || {}); }
+};
+purgar();
+/* avisos de éxito de la app del equipo: cada toast sin tipo (verde) es «se guardó» */
+try {
+  document.addEventListener('DOMContentLoaded', () => {
+    try {
+      if (cfg.interno && typeof window.toast === 'function') { const t0 = window.toast; window.toast = function (t, kind) { const r = t0.apply(this, arguments); if (!kind) exito(); return r; }; }
+    } catch (e) { /* nada */ }
+    vigilar();
+  });
+} catch (e) { /* nada */ }
+})();
+
+</script>
 <script>
 /* Buscador común de TODO el sistema: normalización, coincidencia y lista de sugerencias desplegable.
    Cada barra recibe SU PROPIO conjunto de datos y de campos: aquí no hay búsqueda cruzada entre áreas.
@@ -267,6 +586,336 @@ window.Busca = Busca;
 
 </script>
 <script>
+/* Generador mínimo de PDF (sin librerías, sin internet): arma el ARCHIVO PDF real de una nota de entrega o factura
+   a partir del JSON que entrega el servidor (/pdf/pedido/:id o /pdf/documento/:id). Lo usan Ventas y el portal del cliente.
+   Fuentes estándar Helvetica (vienen en todo lector de PDF); logo JPEG incrustado. El texto queda legible/extraíble. */
+const ElManaPDF = (() => {
+  const RED = [0.788, 0.129, 0.129], YEL = [0.949, 0.718, 0.18], INK = [0.1, 0.1, 0.1], GRY = [0.42, 0.42, 0.42], LINE = [0.8, 0.8, 0.8], SOFT = [0.97, 0.95, 0.9];
+  const W = 595.28, H = 841.89, M = 40;
+  /* Anchos Helvetica / Helvetica-Bold (AFM) de los caracteres 32..126, en milésimas de punto */
+  const WR = [278,278,355,556,556,889,667,191,333,333,389,584,278,333,278,278,556,556,556,556,556,556,556,556,556,556,278,278,584,584,584,556,1015,667,667,722,722,667,611,778,722,278,500,667,556,833,722,778,667,778,722,667,611,722,667,944,667,667,611,278,278,278,469,556,333,556,556,500,556,556,278,556,556,222,222,500,222,833,556,556,556,556,333,500,278,556,500,722,500,500,500,334,260,334,584];
+  const WB = [278,333,474,556,556,889,722,238,333,333,389,584,278,333,278,278,556,556,556,556,556,556,556,556,556,556,333,333,584,584,584,611,975,722,722,722,722,667,611,778,722,278,556,722,611,833,722,778,667,778,722,667,611,722,667,944,667,667,611,333,278,333,584,556,333,556,611,556,611,556,333,611,611,278,278,556,278,889,611,611,611,611,389,556,333,611,556,778,556,556,500,389,280,389,584];
+  const CP = {'€': 128, '‚': 130, '„': 132, '…': 133, '‘': 145, '’': 146, '“': 147, '”': 148, '•': 149, '–': 150, '—': 151, '™': 153};
+  const baseDe = c => { const s = c.normalize('NFD').replace(/[̀-ͯ]/g, ''); return s.length ? s.charCodeAt(0) : 63; };
+  const cod = ch => { const c = ch.charCodeAt(0); if (c >= 32 && c < 127) return c; if (CP[ch]) return CP[ch]; if (c >= 160 && c < 256) return c; return 63; };
+  const bytesTxt = t => { let o = ''; for (const ch of String(t == null ? '' : t)) o += String.fromCharCode(cod(ch)); return o; };
+  const esc = s => s.replace(/[\\()]/g, m => '\\' + m);
+  const anchoCh = (ch, b) => { const c = ch.charCodeAt(0); const k = c >= 32 && c < 127 ? c : (c >= 160 && c < 256 ? baseDe(ch) : 63); return ((b ? WB : WR)[(k >= 32 && k < 127 ? k : 63) - 32]) || 556; };
+  const ancho = (t, sz, b) => { let a = 0; for (const ch of String(t == null ? '' : t)) a += anchoCh(ch, b); return a * sz / 1000; };
+  const f2 = n => (Math.round(n * 100) / 100).toFixed(2);
+  function envolver(t, sz, b, max) {
+    const pal = String(t == null ? '' : t).split(/\s+/).filter(Boolean), out = []; let cur = '';
+    for (let w of pal) {
+      while (ancho(w, sz, b) > max) { let k = w.length; while (k > 1 && ancho(w.slice(0, k), sz, b) > max) k--; if (cur) { out.push(cur); cur = ''; } out.push(w.slice(0, k)); w = w.slice(k); }
+      const prueba = cur ? cur + ' ' + w : w;
+      if (ancho(prueba, sz, b) <= max) cur = prueba; else { if (cur) out.push(cur); cur = w; }
+    }
+    if (cur) out.push(cur); return out.length ? out : [''];
+  }
+  const N = (n, d = 2) => (n == null || isNaN(n)) ? '—' : Number(n).toLocaleString('es-VE', {minimumFractionDigits: d, maximumFractionDigits: d});
+  const usd = n => 'US$ ' + N(n);
+  const bs = n => 'Bs ' + N(n);
+  const fecha = f => { const m = String(f || '').match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? m[3] + '/' + m[2] + '/' + m[1] : String(f || ''); };
+
+  /* ---- lienzo de páginas ---- */
+  function Lienzo() {
+    const pags = []; let c = null;
+    const col = (a, st) => a.map(x => x.toFixed(3)).join(' ') + (st ? ' RG' : ' rg');
+    const cmdRect = (x, y, w, h, relleno, borde) => { const o = ['q']; if (relleno) o.push(col(relleno)); if (borde) o.push(col(borde, 1) + ' 0.6 w'); o.push(`${f2(x)} ${f2(H - y - h)} ${f2(w)} ${f2(h)} re ${relleno && borde ? 'B' : relleno ? 'f' : 'S'}`, 'Q'); return o; };
+    return {
+      nueva() { c = []; pags.push(c); },
+      get pags() { return pags; },
+      rect(x, y, w, h, relleno, borde) { c.push(...cmdRect(x, y, w, h, relleno, borde)); },
+      marca() { return c.length; },
+      rectAntes(pos, x, y, w, h, relleno, borde) { c.splice(pos, 0, ...cmdRect(x, y, w, h, relleno, borde)); },
+      linea(x1, y1, x2, y2, color = LINE, g = 0.6) { c.push(`q ${col(color, 1)} ${g} w ${f2(x1)} ${f2(H - y1)} m ${f2(x2)} ${f2(H - y2)} l S Q`); },
+      /* y = línea base (desde arriba); al = 'l' | 'r' | 'c' alrededor de x */
+      texto(t, x, y, sz = 9, o = {}) {
+        const s = String(t == null ? '' : t); if (!s) return; const b = !!o.b, w = ancho(s, sz, b);
+        const xx = o.al === 'r' ? x - w : o.al === 'c' ? x - w / 2 : x;
+        c.push(`BT ${col(o.color || INK)} /${b ? 'F2' : 'F1'} ${sz} Tf ${f2(xx)} ${f2(H - y)} Td (${esc(bytesTxt(s))}) Tj ET`);
+      },
+      imagen(x, y, w, h) { c.push(`q ${f2(w)} 0 0 ${f2(h)} ${f2(x)} ${f2(H - y - h)} cm /Im1 Do Q`); }
+    };
+  }
+
+  function armar(paginas, logo, titulo) {
+    const objs = []; const add = s => { objs.push(s); return objs.length; };
+    const catalogo = add(''), arbol = add(''), f1 = add('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>'), f2o = add('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>');
+    let im = 0; if (logo) im = add({stream: logo.bytes, dic: `/Type /XObject /Subtype /Image /Width ${logo.w} /Height ${logo.h} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode`});
+    const kids = [];
+    for (const cont of paginas) {
+      const flujo = cont.join('\n'), cs = add({stream: flujo, dic: ''});
+      const pg = add(`<< /Type /Page /Parent ${arbol} 0 R /MediaBox [0 0 ${W} ${H}] /Resources << /Font << /F1 ${f1} 0 R /F2 ${f2o} 0 R >>${im ? ` /XObject << /Im1 ${im} 0 R >>` : ''} >> /Contents ${cs} 0 R >>`);
+      kids.push(pg + ' 0 R');
+    }
+    const info = add(`<< /Title (${esc(bytesTxt(titulo))}) /Producer (El Mana JL) /Creator (El Mana JL) >>`);
+    objs[catalogo - 1] = `<< /Type /Catalog /Pages ${arbol} 0 R >>`;
+    objs[arbol - 1] = `<< /Type /Pages /Kids [${kids.join(' ')}] /Count ${kids.length} >>`;
+    let out = '%PDF-1.4\n%\xE2\xE3\xCF\xD3\n'; const pos = [];
+    objs.forEach((o, i) => {
+      pos.push(out.length); out += `${i + 1} 0 obj\n`;
+      if (typeof o === 'string') out += o + '\nendobj\n';
+      else { const s = o.stream; out += `<< ${o.dic} /Length ${s.length} >>\nstream\n` + s + '\nendstream\nendobj\n'; }
+    });
+    const xr = out.length;
+    out += `xref\n0 ${objs.length + 1}\n0000000000 65535 f \n` + pos.map(p => String(p).padStart(10, '0') + ' 00000 n \n').join('') + `trailer\n<< /Size ${objs.length + 1} /Root ${catalogo} 0 R /Info ${info} 0 R >>\nstartxref\n${xr}\n%%EOF\n`;
+    const u = new Uint8Array(out.length); for (let i = 0; i < out.length; i++) u[i] = out.charCodeAt(i) & 255; return u;
+  }
+
+  /* ---- el documento ---- */
+  function generar(d, logo) {
+    const L = Lienzo(), T = d.totales || {}, E = d.empresa || {}, cli = d.cliente || {}, envio = d.envio || {};
+    const lineas = d.lineas || [], pedido = d.kind === 'pedido';
+    const nPag = () => L.pags.length;
+    const franja = () => { L.rect(0, 0, W, 9, RED); L.rect(0, 9, W, 3.5, YEL); };
+    L.nueva(); franja();
+    /* encabezado: logo + empresa | tipo y número */
+    let x0 = M; if (logo) { L.imagen(M, 26, 52, 52 * logo.h / logo.w); x0 = M + 62; }
+    L.texto(E.razon || 'El Maná JL', x0, 44, 15, {b: 1, color: RED});
+    const datos = [E.rif && 'RIF ' + E.rif, E.telefono && 'Tel. ' + E.telefono].filter(Boolean).join('  ·  ');
+    if (datos) L.texto(datos, x0, 58, 8.5, {color: GRY});
+    let yy = 69; for (const ln of envolver(E.direccion || '', 8.5, 0, 280).slice(0, 2)) { if (ln) { L.texto(ln, x0, yy, 8.5, {color: GRY}); yy += 11; } }
+    L.texto(d.titulo, W - M, 44, 18, {b: 1, al: 'r', color: INK});
+    L.texto('N.º ' + d.numero, W - M, 61, 12, {b: 1, al: 'r', color: RED});
+    if (d.nro_fiscal) L.texto('Factura fiscal ' + d.nro_fiscal, W - M, 74, 9, {al: 'r'});
+    L.texto('Fecha de emisión: ' + fecha(d.fecha), W - M, d.nro_fiscal ? 86 : 75, 9.5, {al: 'r'});
+    let y = 100;
+    if (pedido) {
+      L.rect(M, y, W - 2 * M, 22, YEL); L.texto(d.rotulo, M + 8, y + 15, 10, {b: 1});
+      L.texto('Aún no despachado', W - M - 8, y + 15, 9, {al: 'r', b: 1}); y += 30;
+    }
+    /* datos del cliente y condiciones (dos columnas) */
+    const colW = (W - 2 * M - 12) / 2, campo = (x, y0, rot, val, ancho0) => {
+      L.texto(rot.toUpperCase(), x, y0, 7, {b: 1, color: GRY}); let yl = y0 + 11;
+      for (const ln of envolver(val || '—', 9.5, 0, ancho0)) { L.texto(ln, x, yl, 9.5); yl += 11.5; } return yl;
+    };
+    const filaTop = y, posCajas = L.marca(); y += 4;
+    let yA = y + 10, yB = y + 10; const xB = M + colW + 12;
+    yA = campo(M + 8, yA, 'Cliente', cli.razon, colW - 16) + 3; yA = campo(M + 8, yA, 'RIF', cli.rif, colW - 16) + 3;
+    if (cli.vendedor) yA = campo(M + 8, yA, 'Vendedor', cli.vendedor, colW - 16) + 3;
+    const ub = [envio.estado && 'Estado: ' + envio.estado, envio.zona && 'Zona: ' + envio.zona, envio.direccion && 'Dirección: ' + envio.direccion].filter(Boolean).join('  ·  ');
+    yA = campo(M + 8, yA, 'Ubicación de envío', ub || 'Falta completar la zona y la dirección de entrega', colW - 16) + 3;
+    yB = campo(xB + 8, yB, 'Tasa BCV del día de emisión', d.tasa ? `${N(d.tasa.valor, 4)} Bs por US$ 1  (${fecha(d.tasa.fecha)})` : 'Sin tasa guardada para esa fecha', colW - 16) + 3;
+    yB = campo(xB + 8, yB, 'Condición de pago', [d.condicion, d.plazo].filter(Boolean).join(' · ') + (d.vence ? ' · vence el ' + fecha(d.vence) : ''), colW - 16) + 3;
+    const bk = d.banco ? [d.banco.nombre, d.banco.cuenta && 'Cuenta ' + d.banco.cuenta, d.banco.titular && 'Titular: ' + d.banco.titular].filter(Boolean).join(' · ') : 'No se eligió un banco';
+    yB = campo(xB + 8, yB, 'Cuenta bancaria para el pago', bk, colW - 16) + 3;
+    const alto = Math.max(yA, yB) - filaTop + 2;
+    L.rectAntes(posCajas, xB, filaTop, colW, alto, SOFT, LINE); L.rectAntes(posCajas, M, filaTop, colW, alto, SOFT, LINE);
+    y = filaTop + alto + 14;
+    /* tabla */
+    const cols = [{h: 'Producto', x: M + 6, w: 214, al: 'l'}, {h: 'Bultos', x: M + 290, al: 'r'}, {h: 'Kilos', x: M + 352, al: 'r'}, {h: 'Precio x bulto', x: M + 432, al: 'r'}, {h: 'Total US$', x: W - M - 6, al: 'r'}];
+    const cabTabla = () => { L.rect(M, y, W - 2 * M, 18, RED); for (const c of cols) L.texto(c.h, c.x, y + 12.5, 8.5, {b: 1, al: c.al, color: [1, 1, 1]}); y += 18; };
+    cabTabla();
+    const limite = () => H - 150;
+    if (!lineas.length) { L.texto('Documento importado del Excel: no trae detalle de productos, solo el monto total.', M + 6, y + 16, 9, {color: GRY}); y += 28; }
+    lineas.forEach((l, i) => {
+      const nom = envolver(l.nombre, 9, 0, cols[0].w), h = Math.max(1, nom.length) * 11 + 8;
+      if (y + h > limite()) { L.nueva(); franja(); y = 36; cabTabla(); }
+      if (i % 2) L.rect(M, y, W - 2 * M, h, [0.985, 0.985, 0.985]);
+      nom.forEach((t, k) => L.texto(t, cols[0].x, y + 12 + k * 11, 9));
+      L.texto(N(l.bultos, 0), cols[1].x, y + 12, 9, {al: 'r', b: 1}); L.texto(l.kg != null ? N(l.kg, 2) + ' kg' : '—', cols[2].x, y + 12, 9, {al: 'r'});
+      L.texto(usd(l.precio_bulto), cols[3].x, y + 12, 9, {al: 'r'}); L.texto(usd(l.total), cols[4].x, y + 12, 9, {al: 'r', b: 1});
+      L.linea(M, y + h, W - M, y + h); y += h;
+    });
+    /* totales */
+    if (y + 170 > H - 60) { L.nueva(); franja(); y = 36; }
+    y += 12; const tx = W - M - 230, tw = 230, fila = (rot, val, o = {}) => { L.texto(rot, tx + 8, y + 11, o.sz || 9.5, {b: o.b, color: o.color}); L.texto(val, tx + tw - 8, y + 11, o.sz || 9.5, {al: 'r', b: o.b, color: o.color}); y += o.h || 16; };
+    const y0 = y;
+    L.texto('Bultos: ' + N(T.bultos, 0), M, y + 11, 9.5, {b: 1}); L.texto('Kilos totales: ' + (T.kilos != null ? N(T.kilos, 2) + ' kg' : '—'), M, y + 27, 9.5, {b: 1});
+    fila('Subtotal', usd(T.subtotal)); if (T.descuento) fila('Descuento' + (T.descuento_pct ? ' ' + N(T.descuento_pct, 2) + ' %' : ''), '- ' + usd(T.descuento));
+    fila('IVA', usd(T.iva)); L.rect(tx, y - 1, tw, 24, RED); y += 1; fila('TOTAL US$', usd(T.total), {b: 1, color: [1, 1, 1], sz: 11, h: 24});
+    fila('Total en Bs' + (d.tasa ? ' (tasa ' + N(d.tasa.valor, 2) + ')' : ''), T.total_bs != null ? bs(T.total_bs) : '—', {b: 1});
+    L.linea(tx, y0 - 2, tx + tw, y0 - 2, YEL, 1.5);
+    y += 6;
+    if (d.observaciones) { for (const ln of envolver('Observaciones: ' + d.observaciones, 8.5, 0, W - 2 * M)) { L.texto(ln, M, y + 10, 8.5, {color: GRY}); y += 11; } y += 4; }
+    if (d.aviso) { const ls = envolver(d.aviso, 8.5, 0, W - 2 * M - 16); L.rect(M, y, W - 2 * M, ls.length * 11 + 8, [1, 0.97, 0.85], YEL); ls.forEach((t, k) => L.texto(t, M + 8, y + 13 + k * 11, 8.5)); y += ls.length * 11 + 14; }
+    /* firmas y pie */
+    if (y + 34 > H - 70) { L.nueva(); franja(); y = 60; }
+    const yfi = Math.max(y + 34, H - 100);
+    L.linea(M, yfi, M + 170, yfi, INK, 0.6); L.linea(W - M - 170, yfi, W - M, yfi, INK, 0.6);
+    L.texto(pedido ? 'Vendedor' : 'Despachado por', M, yfi + 11, 8.5, {color: GRY}); L.texto('Recibido conforme', W - M - 170, yfi + 11, 8.5, {color: GRY});
+    const total = nPag();
+    /* pie con número de página en cada hoja */
+    const pie = [];
+    for (let i = 0; i < total; i++) { L.pags[i].push(`BT ${RED.map(v => v.toFixed(3)).join(' ')} rg /F1 7.5 Tf ${M} ${f2(24)} Td (${esc(bytesTxt(d.titulo + ' ' + d.numero + ' · ' + (E.razon || 'El Maná JL')))}) Tj ET`);
+      const pg = 'Página ' + (i + 1) + ' de ' + total; L.pags[i].push(`BT 0.42 0.42 0.42 rg /F1 7.5 Tf ${f2(W - M - ancho(pg, 7.5))} ${f2(24)} Td (${esc(bytesTxt(pg))}) Tj ET`); }
+    return armar(L.pags.map(p => p.map(String)), logo, d.titulo + ' ' + d.numero);
+  }
+
+  /* Logo: cualquier imagen (data URL o ruta del mismo sitio) → JPEG RGB sobre fondo blanco, para incrustarlo sin librerías */
+  function cargarLogo(src) {
+    return new Promise(res => {
+      if (!src || typeof Image === 'undefined') return res(null);
+      const im = new Image();
+      im.onload = () => {
+        try {
+          const w = Math.min(im.naturalWidth, 200), h = Math.round(w * im.naturalHeight / im.naturalWidth), cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+          const cx = cv.getContext('2d'); cx.fillStyle = '#fff'; cx.fillRect(0, 0, w, h); cx.drawImage(im, 0, 0, w, h);
+          const b = atob(cv.toDataURL('image/jpeg', 0.9).split(',')[1]); res({bytes: b, w, h});
+        } catch (e) { res(null); }
+      };
+      im.onerror = () => res(null); im.src = src;
+    });
+  }
+  function bajar(bytes, nombre) {
+    const blob = new Blob([bytes], {type: 'application/pdf'}), url = URL.createObjectURL(blob), a = document.createElement('a');
+    a.href = url; a.download = nombre; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 15000);
+  }
+  /* Punto de entrada: datos del servidor → archivo descargado */
+  async function descargar(d, logoSrc) {
+    const bytes = generar(d, await cargarLogo(logoSrc)); bajar(bytes, d.archivo || 'Documento.pdf'); return bytes;
+  }
+  return {generar, descargar, cargarLogo};
+})();
+
+</script>
+<script>
+/* Entregas en el PORTAL DEL CLIENTE: por factura, cuenta regresiva, descuento vigente, «cuánto pagar hoy» (US$ y Bs) y el botón «No recibí esto».
+   Autocontenido: no depende de la app del equipo. Uso desde cualquier página del portal:
+     EntregasPortal.montar(document.getElementById('x'), {token: 'CODIGO_PERSONAL'});   // pide /api/c/entregas/estado con la cabecera x-token
+     EntregasPortal.html(estado)  → solo el HTML de las tarjetas (si el portal ya tiene `estado` de /api/c/entregas/estado)
+   Rutas: GET /api/c/entregas/estado · POST /api/c/entregas/no-recibi {id_documento, nota} · POST /api/c/entregas/llegada {id_documento, foto, mini, bultos_recibidos}. */
+const EntregasPortal = (() => {
+  const N2 = new Intl.NumberFormat('es-VE', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
+  const usd = x => x == null ? '—' : 'US$ ' + N2.format(x), bs = x => x == null ? '—' : 'Bs ' + N2.format(x);
+  const fecha = s => { const d = new Date(String(s).slice(0, 10) + 'T12:00:00'); return isNaN(d) ? '—' : d.toLocaleDateString('es-VE', {day: '2-digit', month: '2-digit', year: 'numeric'}); };
+  const fechaHora = ts => new Date(ts).toLocaleString('es-VE', {day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'});
+  const MS = 864e5;
+  const cuenta = ms => { if (ms == null) return '—'; if (ms <= 0) return '0 min'; const d = Math.floor(ms / MS), h = Math.floor(ms % MS / 36e5), m = Math.floor(ms % 36e5 / 6e4), s = Math.floor(ms % 6e4 / 1e3); return d > 0 ? `${d} d ${String(h).padStart(2, '0')} h ${String(m).padStart(2, '0')} min` : `${h} h ${String(m).padStart(2, '0')} min ${String(s).padStart(2, '0')} s`; };
+  let st = {token: null, el: null, estado: null, desfase: 0, timer: null, err: null, ll: {}, vistos: {}};
+
+  /* Compresión de la foto en el navegador: lado mayor 1000 px, JPEG calidad 0.6. Si aun así pasa del tope, baja la calidad y luego el tamaño. */
+  const TOPE = 400000, MAX_ORIGINAL = 40 * 1048576;
+  async function abrir(file) {
+    if (typeof createImageBitmap === 'function') { try { return await createImageBitmap(file, {imageOrientation: 'from-image'}); } catch (e) { /* se prueba con <img> */ } }
+    const url = URL.createObjectURL(file);
+    try { return await new Promise((ok, mal) => { const im = new Image(); im.onload = () => ok(im); im.onerror = () => mal(new Error('x')); im.src = url; }); } finally { setTimeout(() => URL.revokeObjectURL(url), 5000); }
+  }
+  function dibujar(img, lado, q) {
+    const w0 = img.naturalWidth || img.width, h0 = img.naturalHeight || img.height, k = Math.min(1, lado / Math.max(w0, h0));
+    const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(w0 * k)); c.height = Math.max(1, Math.round(h0 * k));
+    const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.drawImage(img, 0, 0, c.width, c.height);
+    return c.toDataURL('image/jpeg', q).split(',')[1];
+  }
+  async function comprimir(file) {
+    if (!file || (file.type && !/^image\//i.test(file.type))) throw new Error(/pdf/i.test(file.type) ? 'Los PDF no se pueden subir. Toma una foto o una captura de pantalla del comprobante.' : 'Ese archivo no es una imagen. Elige una foto o una captura de pantalla.');
+    if (file.size > MAX_ORIGINAL) throw new Error('La imagen es demasiado pesada. Elige una de menos de 40 MB.');
+    let img; try { img = await abrir(file); } catch (e) { throw new Error(/hei[cf]/i.test(file.type + ' ' + file.name) ? 'Esa foto está en formato HEIC y este aparato no la puede abrir. Toma una captura de pantalla de la foto o cambia la cámara a «Más compatible» (JPG).' : 'No se pudo leer esa imagen. Prueba con una foto JPG o PNG o una captura de pantalla.'); }
+    let lado = 1000, q = 0.6, foto = dibujar(img, lado, q);
+    while (foto.length > TOPE && q > 0.31) { q = Math.round((q - 0.1) * 10) / 10; foto = dibujar(img, lado, q); }
+    while (foto.length > TOPE && lado > 640) { lado -= 120; foto = dibujar(img, lado, q); }
+    if (foto.length > TOPE) throw new Error('La imagen sigue siendo demasiado grande. Toma otra foto o una captura más pequeña.');
+    return {foto, mini: dibujar(img, 200, 0.5), kb: Math.round(foto.length * 0.75 / 1024)};
+  }
+
+  const CSS = `.ep{display:grid;gap:12px;font-family:inherit}.ep *{box-sizing:border-box}
+  .ep-c{background:#fff;color:#1b1b1b;border:1px solid #ddd;border-radius:14px;padding:14px;display:grid;gap:8px}
+  .ep-h{display:flex;justify-content:space-between;gap:8px;align-items:baseline;flex-wrap:wrap}.ep-h b{font-size:17px}.ep-h span{color:#666;font-size:13px}
+  .ep-chip{display:inline-block;border-radius:999px;padding:3px 10px;font-size:12.5px;font-weight:600;background:#eee;color:#333}
+  .ep-ok{background:#E3F4E6;color:#1B6B2C}.ep-warn{background:#FFF1CC;color:#7A5200}.ep-crit{background:#FBE0E0;color:#A31B1B}
+  .ep-cd{font-size:26px;font-weight:700;line-height:1.15;color:#C92121}.ep-cd small{display:block;font-size:13px;font-weight:500;color:#555;margin-top:2px}
+  .ep-pay{background:#FFF8E1;border:1px solid #F2B72E;border-radius:10px;padding:10px 12px;display:grid;gap:2px}.ep-pay b{font-size:20px}.ep-pay span{font-size:13px;color:#555}
+  .ep-btn{min-height:46px;border-radius:10px;border:1px solid #C92121;background:#fff;color:#C92121;font-weight:600;font-size:15px;padding:0 14px;cursor:pointer}.ep-btn.p{background:#C92121;color:#fff}.ep-btn:disabled{opacity:.5}
+  .ep-f{display:grid;gap:8px}.ep-f textarea{width:100%;min-height:70px;border:1px solid #bbb;border-radius:8px;padding:8px;font:inherit}
+  .ep-ll{border-top:1px dashed #ddd;padding-top:8px;display:grid;gap:8px}.ep-ll label{display:grid;gap:4px;font-size:14px;font-weight:600}.ep-ll input[type=text],.ep-ll input[type=file]{font:inherit;min-height:46px;border:1px solid #bbb;border-radius:8px;padding:8px;background:#fff}
+  .ep-prev{max-width:180px;border-radius:8px;border:1px solid #ddd}
+  .ep-m{color:#555;font-size:13px}.ep-e{color:#A31B1B;font-size:13.5px}.ep-vacio{text-align:center;color:#555;padding:20px}`;
+
+  function tarjeta(d) {
+    const t = d.temporizador, p = d.pagar, tasa = st.estado.tasa;
+    let estado, cd = '';
+    if (!d.entrega) { estado = '<span class="ep-chip ep-warn">Entrega sin verificar</span>'; cd = '<p class="ep-m">Tu plazo de pago empieza con la primera foto de la entrega: la tuya o la de Despachos.</p>'; }
+    else if (t.pausada) { estado = '<span class="ep-chip ep-warn">Plazo en pausa</span>'; cd = '<p class="ep-m">Avisaste que no recibiste esto. Mientras Cobranza lo revisa, tu plazo no corre.</p>'; }
+    else if (t.tramo === 3) { estado = '<span class="ep-chip ep-crit">Vencida</span>'; cd = `<p class="ep-m">Pasaron ${t.dias} días desde la entrega${t.dias_vencida ? ` (${t.dias_vencida} después del plazo)` : ''}.${t.recargo_pct != null ? ` Recargo por mora: ${N2.format(t.recargo_pct)} %.` : ''}</p>`; }
+    else {
+      estado = `<span class="ep-chip ${t.descuento_pct != null ? 'ep-ok' : ''}">${t.tramo === 1 ? 'Primer plazo' : 'Segundo plazo'}</span>`;
+      cd = `<div class="ep-cd" data-vence="${t.vence_ts}">${cuenta(t.restante_ms)}<small>${t.descuento_pct != null ? `para pagar con ${N2.format(t.descuento_pct)} % de descuento` : 'que le quedan a este plazo'} · entregada el ${fechaHora(d.entrega.fecha_hora)}</small></div>`;
+    }
+    const mostrarPago = d.entrega || p.normal_usd != null;
+    const pago = mostrarPago ? `<div class="ep-pay"><span>${p.descuento_aplicado ? 'Pagando hoy con el descuento' : p.recargo_aplicado ? 'Pagando hoy (con recargo por mora)' : 'Saldo a pagar'}</span><b>${usd(p.hoy_usd)}</b>${p.hoy_bs != null ? `<span>${bs(p.hoy_bs)} · tasa BCV ${N2.format(tasa.valor)} del ${fecha(tasa.fecha)}${tasa.es_de_hoy ? '' : ' (última publicada)'}</span>` : '<span>Equivalente en bolívares no disponible por ahora.</span>'}${p.descuento_aplicado ? `<span>Ahorras ${usd((p.normal_usd - p.hoy_usd))} frente a pagar sin descuento (${usd(p.normal_usd)}).</span>` : ''}</div>` : '';
+    const rec = d.reclamo ? '<p class="ep-m">Ya avisaste que no lo recibiste. Estamos revisando.</p>' : d.puede_reclamar ? `<button type="button" class="ep-btn" data-ep="reclamar" data-id="${d.id_documento}">No recibí esto</button>` : '<p class="ep-m">Este documento ya tuvo reclamos: comunícate con Cobranza.</p>';
+    const ll = d.llegada ? `<p class="ep-m">${d.llegada.coincide === false ? `Avisaste que recibiste <b>${d.llegada.bultos_recibidos}</b>${d.bultos_despachados != null ? ' de ' + d.bultos_despachados : ''} bultos. No coincide con lo despachado: Ventas y Cobranza lo revisan.` : `Avisaste que recibiste <b>${d.llegada.bultos_recibidos}</b> ${d.llegada.bultos_recibidos === 1 ? 'bulto' : 'bultos'}. Gracias.`}</p>`
+      : `<div class="ep-ll" data-ll="${d.id_documento}"><button type="button" class="ep-btn" data-ep="llegada" data-id="${d.id_documento}">Ya llegó mi pedido</button></div>`;
+    return `<article class="ep-c" data-doc="${d.id_documento}"><div class="ep-h"><b>${d.tipo === 'NOTA_ENTREGA' ? 'Nota de entrega' : 'Factura'} ${esc(d.nro)}</b><span>Emitida ${fecha(d.fecha_emision)} · ${usd(d.total)}</span></div><div>${estado}</div>${cd}${pago}${ll}<div data-form="${d.id_documento}">${rec}</div></article>`;
+  }
+  const html = estado => estado.documentos.length ? `<div class="ep">${estado.documentos.map(d => tarjeta(d)).join('')}</div>` : '<div class="ep"><p class="ep-vacio">No tienes facturas ni notas pendientes de pago.</p></div>';
+
+  async function api(metodo, ruta, cuerpo) {
+    const r = await fetch('/api/c/entregas' + ruta, {method: metodo, headers: {'content-type': 'application/json', 'x-token': st.token}, body: cuerpo ? JSON.stringify(cuerpo) : undefined});
+    let j = {}; try { j = await r.json(); } catch (e) { /* sin cuerpo */ }
+    if (!r.ok) { const e = new Error(j.error || 'No se pudo completar la operación.'); e.status = r.status; throw e; }
+    return j;
+  }
+  async function cargar(silencioso) {
+    try { st.estado = await api('GET', '/estado'); st.desfase = st.estado.ahora - Date.now(); st.err = null; } catch (e) { st.err = e; }
+    if (silencioso && st.el && st.el.querySelector('[data-ll] input, [data-form] textarea, [data-form] input')) return;   // no borrar una foto o un texto a medio llenar
+    pintar();
+  }
+  function pintar() {
+    if (!st.el) return;
+    st.el.innerHTML = st.err ? `<div class="ep"><p class="ep-e" role="alert">${esc(st.err.message)}</p></div>` : html(st.estado);
+  }
+  function tic() {
+    if (!st.el || !st.estado) return;
+    const ahora = Date.now() + st.desfase; let vencido = false;
+    st.el.querySelectorAll('[data-vence]').forEach(e => { const ms = +e.dataset.vence - ahora; if (ms <= 0 && !st.vistos[e.dataset.vence]) { vencido = true; st.vistos[e.dataset.vence] = 1; } const n = e.firstChild; if (n && n.nodeType === 3) n.nodeValue = cuenta(ms); });
+    if (vencido) { cargar(true); }
+  }
+  function formulario(id) {
+    const c = st.el.querySelector(`[data-form="${id}"]`); if (!c) return;
+    c.innerHTML = `<div class="ep-f"><label>¿Qué pasó? (opcional)<textarea maxlength="300" data-ep-nota placeholder="Por ejemplo: no llegó el pedido"></textarea></label><p class="ep-m">Tu plazo de pago se pone en pausa hasta que Cobranza lo revise.</p><p class="ep-e" data-ep-err role="alert" hidden></p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="ep-btn p" data-ep="enviar" data-id="${id}">Enviar aviso</button><button type="button" class="ep-btn" data-ep="cancelar">Cancelar</button></div></div>`;
+    c.querySelector('textarea').focus();
+  }
+  async function enviar(id, btn) {
+    const c = st.el.querySelector(`[data-form="${id}"]`), e = c.querySelector('[data-ep-err]'); e.hidden = true; btn.disabled = true;
+    try { const r = await api('POST', '/no-recibi', {id_documento: id, nota: c.querySelector('[data-ep-nota]').value}); await cargar(); const n = st.el.querySelector(`[data-form="${id}"]`); if (n) n.insertAdjacentHTML('afterbegin', `<p class="ep-m" role="status">${esc(r.mensaje)}</p>`); }
+    catch (er) { e.textContent = er.message; e.hidden = false; btn.disabled = false; }
+  }
+  function formLlegada(id) {
+    const c = st.el.querySelector(`[data-ll="${id}"]`); if (!c) return; st.ll[id] = {foto: null, mini: null};
+    c.innerHTML = `<label>Foto de cuando llegó el pedido<input type="file" accept="image/*" data-ep-file="${id}"></label><div data-ep-prev="${id}"></div>
+      <label>Total de bultos que recibiste<input type="text" inputmode="numeric" maxlength="6" autocomplete="off" data-ep-bultos placeholder="0"></label><p class="ep-e" data-ep-lerr role="alert" hidden></p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="ep-btn p" data-ep="llegada-enviar" data-id="${id}">Enviar</button><button type="button" class="ep-btn" data-ep="llegada-cancelar" data-id="${id}">Cancelar</button></div>`;
+  }
+  async function elegirFoto(id, input) {
+    const c = st.el.querySelector(`[data-ll="${id}"]`), pv = c.querySelector(`[data-ep-prev="${id}"]`), er = c.querySelector('[data-ep-lerr]'); er.hidden = true; st.ll[id].foto = null;
+    if (!input.files || !input.files[0]) { pv.innerHTML = ''; return; }
+    pv.innerHTML = '<p class="ep-m">Preparando la foto…</p>';
+    try { const r = await comprimir(input.files[0]); st.ll[id] = {foto: r.foto, mini: r.mini}; pv.innerHTML = `<img class="ep-prev" alt="Tu foto" src="data:image/jpeg;base64,${r.foto}"><p class="ep-m">Lista (${r.kb} KB).</p>`; }
+    catch (e) { pv.innerHTML = ''; input.value = ''; er.textContent = e.message; er.hidden = false; }
+  }
+  async function enviarLlegada(id, btn) {
+    const c = st.el.querySelector(`[data-ll="${id}"]`), er = c.querySelector('[data-ep-lerr]'), f = st.ll[id] || {}, n = c.querySelector('[data-ep-bultos]').value.trim(); er.hidden = true;
+    if (!f.foto) { er.textContent = 'Toma o elige la foto de cuando llegó el pedido.'; er.hidden = false; return; }
+    if (!/^\d{1,6}$/.test(n)) { er.textContent = 'Escribe cuántos bultos recibiste en total (un número entero, 0 o más).'; er.hidden = false; return; }
+    btn.disabled = true;
+    try { const r = await api('POST', '/llegada', {id_documento: id, foto: f.foto, mini: f.mini, bultos_recibidos: +n}); delete st.ll[id]; await cargar(); const a = st.el.querySelector(`[data-doc="${id}"]`); if (a) a.insertAdjacentHTML('beforeend', `<p class="ep-m" role="status"><b>${esc(r.mensaje)}</b></p>`); }
+    catch (x) { er.textContent = x.message; er.hidden = false; btn.disabled = false; }
+  }
+  function montar(el, {token}) {
+    st.token = token; st.el = el; el.innerHTML = '<div class="ep"><p class="ep-vacio">Cargando…</p></div>';
+    if (!document.getElementById('ep-css')) { const s = document.createElement('style'); s.id = 'ep-css'; s.textContent = CSS; document.head.appendChild(s); }
+    el.addEventListener('click', ev => {
+      const b = ev.target.closest('[data-ep]'); if (!b) return;
+      if (b.dataset.ep === 'reclamar') formulario(+b.dataset.id);
+      else if (b.dataset.ep === 'cancelar') pintar();
+      else if (b.dataset.ep === 'enviar') enviar(+b.dataset.id, b);
+      else if (b.dataset.ep === 'llegada') formLlegada(+b.dataset.id);
+      else if (b.dataset.ep === 'llegada-cancelar') pintar();
+      else if (b.dataset.ep === 'llegada-enviar') enviarLlegada(+b.dataset.id, b);
+    });
+    el.addEventListener('change', ev => { const i = ev.target.closest('[data-ep-file]'); if (i) elegirFoto(+i.dataset.epFile, i); });
+    clearInterval(st.timer); st.timer = setInterval(tic, 1000);
+    return cargar();
+  }
+  return {montar, html, cuenta, recargar: cargar, comprimir, CSS};
+})();
+
+</script>
+<script>
 /* Portal del cliente (página pública /cliente.html). Habla SOLO con /api/c/portal/*; el código personal viaja en la cabecera x-token.
    Nunca manda un id de cliente: el servidor lo saca del código. */
 (function () {
@@ -281,10 +930,11 @@ const ic = {
   casa: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>',
   caja: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7l9-4 9 4-9 4-9-4z"/><path d="M3 7v10l9 4 9-4V7"/><path d="M12 11v10"/></svg>',
   hoja: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h9l4 4v14H6z"/><path d="M9 12h7M9 16h7"/></svg>',
+  camion: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 6h11v10H2z"/><path d="M13 9h4l4 4v3h-8"/><circle cx="7" cy="17.5" r="1.8"/><circle cx="17" cy="17.5" r="1.8"/></svg>',
   moneda: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9.5 9.5c0-1 1.2-1.5 2.5-1.5s2.5.6 2.5 1.7c0 2.3-5 1.2-5 3.6 0 1.1 1.2 1.7 2.5 1.7s2.5-.6 2.5-1.5"/></svg>'
 };
 
-const S = {tok: '', vista: 'inicio', cuenta: null, perfil: null, cat: null, cart: {}, q: '', categoria: 'Todos', sub: 'docs', cargando: true, errLogin: '', enviando: false, hoja: null, pago: {banco: '', referencia: '', monto: '', fecha: '', nota: '', err: '', ok: ''}, nota: ''};
+const S = {tok: '', vista: 'inicio', cuenta: null, perfil: null, cat: null, cart: {}, q: '', categoria: 'Todos', sub: 'docs', cargando: true, errLogin: '', enviando: false, hoja: null, pago: {banco: '', referencia: '', monto: '', fecha: '', nota: '', comp: null, compKb: 0, compOcupado: false, err: '', ok: ''}, nota: ''};
 
 /* ---------- Servidor ---------- */
 async function api(m, p, b) {
@@ -307,7 +957,7 @@ async function cargar() {
   S.cargando = false; pintar();
 }
 async function refrescarCuenta() { try { const [yo, cu, cat] = await Promise.all([api('GET', '/yo'), api('GET', '/cuenta'), api('GET', '/catalogo')]); S.perfil = yo; S.cuenta = cu; S.cat = cat; } catch (e) { aviso(e.message, 1); } }
-function aviso(t, mal) { const d = document.createElement('div'); d.className = 'tt' + (mal ? ' e' : ''); d.textContent = t; $('#toast').appendChild(d); setTimeout(() => d.remove(), mal ? 7000 : 4500); }
+function aviso(t, mal) { if (!mal && window.Borrador) Borrador.exito(); const d = document.createElement('div'); d.className = 'tt' + (mal ? ' e' : ''); d.textContent = t; $('#toast').appendChild(d); setTimeout(() => d.remove(), mal ? 7000 : 4500); }
 
 /* ---------- Carrito ---------- */
 const prod = id => (S.cat || []).find(p => p.id_producto === +id);
@@ -382,11 +1032,16 @@ function vPedir() {
 Busca.registrar('portal-prod', {sugerir: q => Busca.sugerir(q, S.cat || [], defProd), vivo: q => { S.q = q; const e = $('#lista-prod'); if (e) { const l = prodsVisibles(); e.innerHTML = l.length ? l.map(htmlProd).join('') : '<p class="vacio">No hay productos con ese texto.</p>'; } }, espera: 120});
 
 const filaDoc = d => { const [t, tn] = estadoDoc(d); return `<div class="item"><div class="top"><div><span class="num">${esc(d.numero)}</span> ${chipE(t, tn)}<div class="mini">${esc(d.tipo)}${d.factura_fiscal ? ' · fact. ' + esc(d.factura_fiscal) : ''} · ${fdl(d.fecha)}${d.vence ? ' · vence ' + fdl(d.vence) : ''}</div></div>
-  <div class="monto">${usd(d.total)}<div class="mini">${d.saldo > 0 ? 'Debes ' + usd(d.saldo) : ''}</div></div></div><button type="button" class="btn lin sm ver" data-a="doc" data-id="${d.id}">Ver detalle</button></div>`; };
+  <div class="monto">${usd(d.total)}<div class="mini">${d.saldo > 0 ? 'Debes ' + usd(d.saldo) : ''}</div></div></div><button type="button" class="btn lin sm ver" data-a="doc" data-id="${d.id}">Ver detalle</button> <button type="button" class="btn lin sm ver" data-a="pdfdoc" data-id="${d.id}">Descargar PDF</button></div>`; };
+const filaPedVenta = p => `<div class="item"><div class="top"><div><span class="num">${esc(p.numero)}</span> ${chipE('Por despachar', 'esp')}<div class="mini">Pedido / ${esc(p.tipo)} · ${fdl(p.fecha)} · ${p.bultos} ${p.bultos === 1 ? 'bulto' : 'bultos'}</div></div></div><button type="button" class="btn lin sm ver" data-a="pdfped" data-id="${p.id}">Descargar PDF</button></div>`;
+async function bajarPdf(ruta) {
+  try { const d = await api('GET', ruta); await ElManaPDF.descargar(d, '/icon-192.png'); aviso('Se descargó el PDF ' + d.archivo + '.'); }
+  catch (e) { aviso(e.message || 'No se pudo descargar el PDF.', 1); }
+}
 function vCuenta() {
   const cu = S.cuenta, r = cu.resumen, c = r.credito, subs = [['docs', 'Facturas y notas'], ['pagos', 'Mis pagos'], ['pedidos', 'Mis pedidos'], ['rep', 'Pagos reportados']];
   let cuerpo = '';
-  if (S.sub === 'docs') cuerpo = (cu.documentos.length ? `<div class="lista">${cu.documentos.map(filaDoc).join('')}</div>` : '<p class="vacio">Todavía no tienes facturas ni notas de entrega.</p>')
+  if (S.sub === 'docs') cuerpo = ((cu.pedidos_venta || []).filter(p => p.estado !== 'DESPACHADO').length ? `<h2 style="margin:0 0 8px">Pedidos por despachar</h2><div class="lista" style="margin-bottom:14px">${cu.pedidos_venta.filter(p => p.estado !== 'DESPACHADO').map(filaPedVenta).join('')}</div>` : '') + (cu.documentos.length ? `<div class="lista">${cu.documentos.map(filaDoc).join('')}</div>` : '<p class="vacio">Todavía no tienes facturas ni notas de entrega.</p>')
     + (cu.notas.length ? `<h2 style="margin:18px 0 8px">Notas de crédito y débito</h2><div class="lista">${cu.notas.map(n => `<div class="item"><div class="top"><div><span class="num">${esc(n.tipo)} ${esc(n.numero || '')}</span><div class="mini">Sobre ${esc(n.sobre || '')} · ${fdl(n.fecha)}<br>${esc(n.motivo || '')}</div></div><div class="monto">${usd(n.total)}</div></div></div>`).join('')}</div>` : '');
   else if (S.sub === 'pagos') cuerpo = cu.pagos.length ? `<div class="lista">${cu.pagos.map(p => `<div class="item"><div class="top"><div><span class="num">${esc(p.recibo)}</span><div class="mini">${fdl(p.fecha)} · ${esc(p.banco || '')} · ref. ${esc(p.referencia || '—')}<br>${p.aplicado_a.length ? 'Aplicado a ' + esc(p.aplicado_a.join(', ')) : 'Sin aplicar todavía'}</div></div><div class="monto">${usd(p.usd)}<div class="mini">${bsf(p.monto_bs)}</div></div></div></div>`).join('')}</div>` : '<p class="vacio">Todavía no hay pagos registrados.</p>';
   else if (S.sub === 'pedidos') cuerpo = cu.pedidos.length ? `<div class="lista">${cu.pedidos.map(p => `<div class="item"><div class="top"><div><span class="num">${esc(p.codigo)}</span> ${chipE(p.estado_texto, tonoPedido(p.estado))}<div class="mini">${new Date(p.creado).toLocaleDateString('es-VE')} · ${p.lineas.map(l => esc(l.cantidad + ' × ' + l.nombre)).join(', ')}</div>${p.motivo_rechazo ? `<div class="mini"><b>Motivo:</b> ${esc(p.motivo_rechazo)}</div>` : ''}</div><div class="monto">${usd(p.total)}</div></div>${p.estado === 'POR_CONFIRMAR' ? `<button type="button" class="btn lin sm ver" data-a="cancelar" data-id="${p.id}">Cancelar pedido</button>` : ''}</div>`).join('')}</div>` : '<p class="vacio">Todavía no has hecho pedidos por aquí.</p>';
@@ -415,19 +1070,23 @@ function vPagar() {
       <label class="fld">Monto pagado en bolívares (Bs)<input name="monto" value="${esc(P.monto)}" inputmode="decimal" required autocomplete="off" placeholder="0,00"><small>Usa coma para los decimales. Ejemplo: 1250,50</small></label>
       <label class="fld">Fecha del pago<input type="date" name="fecha" value="${esc(P.fecha || hoy)}" max="${esc(hoy)}" required></label>
       <label class="fld ancho">Nota (opcional)<input name="nota" value="${esc(P.nota)}" maxlength="200" placeholder="Por ejemplo: abono a la nota 1234"></label>
+      <div class="fld ancho"><label for="f-comp">Foto o captura del comprobante (opcional)</label><input type="file" id="f-comp" accept="image/*">
+        ${P.compOcupado ? '<small>Preparando la imagen…</small>' : P.comp ? `<div class="comp-prev"><img alt="Tu comprobante" src="data:image/jpeg;base64,${P.comp}"><div><small>Lista (${P.compKb} KB)</small><button type="button" class="btn lin" data-a="quitar-comp">Quitar</button></div></div>` : ''}</div>
       <div class="ancho"><button class="btn full" type="submit" ${S.enviando ? 'disabled' : ''}>${S.enviando ? 'Enviando…' : 'Enviar el reporte'}</button></div></form></section>
     <section class="card"><h2>Tus pagos reportados</h2>${S.cuenta.reportes.length ? `<div class="lista">${S.cuenta.reportes.slice(0, 8).map(p => `<div class="item"><div class="top"><div><span class="num">${esc(p.codigo)}</span> ${chipE(p.estado_texto, tonoPago(p.estado))}<div class="mini">${fdl(p.fecha_pago)} · ${esc(p.banco)} · ref. ${esc(p.referencia)}</div>${p.motivo_rechazo ? `<div class="mini"><b>Motivo:</b> ${esc(p.motivo_rechazo)}</div>` : ''}</div><div class="monto">${bsf(p.monto_bs)}</div></div></div>`).join('')}</div>` : '<p class="vacio">Todavía no has reportado pagos.</p>'}</section>`;
 }
-const VISTAS = [['inicio', 'Inicio', 'casa'], ['pedir', 'Pedir', 'caja'], ['cuenta', 'Mi cuenta', 'hoja'], ['pagar', 'Pagar', 'moneda']];
+function vEntregas() { return '<section class="card"><h2>Mis entregas</h2><div id="ep-x"></div></section>'; }
+const VISTAS = [['inicio', 'Inicio', 'casa'], ['pedir', 'Pedir', 'caja'], ['entregas', 'Entregas', 'camion'], ['cuenta', 'Mi cuenta', 'hoja'], ['pagar', 'Pagar', 'moneda']];
 function pintar() {
   const foco = Busca.guardarFoco(), app = $('#app');
   if (S.cargando && !S.perfil) { app.innerHTML = '<div class="entrada"><p class="vacio">Cargando tu cuenta…</p></div>'; return; }
   if (!S.tok || !S.perfil) { app.innerHTML = vEntrada(); Busca.restaurarFoco(foco); return; }
   const y = S.perfil, pend = (y.pedidos_por_confirmar || 0) + (y.pagos_por_verificar || 0);
-  const cuerpo = S.vista === 'pedir' ? vPedir() : S.vista === 'cuenta' ? vCuenta() : S.vista === 'pagar' ? vPagar() : vInicio();
+  const cuerpo = S.vista === 'pedir' ? vPedir() : S.vista === 'entregas' ? vEntregas() : S.vista === 'cuenta' ? vCuenta() : S.vista === 'pagar' ? vPagar() : vInicio();
   const tabs = `<nav class="tabs" aria-label="Secciones">${VISTAS.map(([k, t, i]) => `<button type="button" data-a="ir" data-v="${k}" ${S.vista === k ? 'aria-current="page"' : ''}>${ic[i]}<span>${t}</span>${k === 'cuenta' && pend ? `<span class="pt" aria-label="${pend} por revisar">${pend}</span>` : ''}</button>`).join('')}</nav>`;
   app.innerHTML = `<header class="cab"><div class="cab-i"><img src="/icon-192.png" alt=""><div><b>El Maná JL</b><small>${esc(y.cliente.nombre)}</small></div><button type="button" class="salir" data-a="salir">Salir</button></div></header>${tabs}<main id="main" tabindex="-1">${cuerpo}</main>`;
   pintarResumen(); Busca.restaurarFoco(foco);
+  if (S.vista === 'entregas' && typeof EntregasPortal !== 'undefined' && $('#ep-x')) EntregasPortal.montar($('#ep-x'), {token: S.tok});
 }
 
 /* ---------- Hoja (revisar pedido, detalle) ---------- */
@@ -470,8 +1129,8 @@ async function enviarPago(f) {
   if (!(monto > 0)) { P.err = 'Escribe el monto en bolívares. Ejemplo: 1250,50'; return pintar(); }
   S.enviando = true; pintar();
   try {
-    const r = await api('POST', '/pagos', {banco: P.banco, id_banco: P.id_banco || undefined, referencia: P.referencia, monto_bs: monto, fecha_pago: P.fecha, nota: P.nota});
-    Object.assign(P, {banco: '', id_banco: '', referencia: '', monto: '', fecha: '', nota: '', err: '', ok: `${r.codigo}: ${r.mensaje}`}); S.enviando = false; await refrescarCuenta(); pintar();
+    const r = await api('POST', '/pagos', {banco: P.banco, id_banco: P.id_banco || undefined, referencia: P.referencia, monto_bs: monto, fecha_pago: P.fecha, nota: P.nota, comprobante: P.comp || undefined});
+    Object.assign(P, {banco: '', id_banco: '', referencia: '', monto: '', fecha: '', nota: '', comp: null, compKb: 0, err: '', ok: `${r.codigo}: ${r.mensaje}`}); S.enviando = false; await refrescarCuenta(); pintar();
   } catch (e) { S.enviando = false; P.err = e.message; pintar(); }
 }
 
@@ -486,11 +1145,21 @@ document.addEventListener('click', async e => {
   else if (a === 'revisar') hojaPedido();
   else if (a === 'enviar-pedido') enviarPedido();
   else if (a === 'cerrar') cerrarHoja();
+  else if (a === 'quitar-comp') { S.pago.comp = null; S.pago.compKb = 0; pintar(); }
   else if (a === 'doc') verDoc(id);
+  else if (a === 'pdfdoc') bajarPdf('/documentos/' + id + '/pdf');
+  else if (a === 'pdfped') bajarPdf('/pedidos-venta/' + id + '/pdf');
   else if (a === 'cancelar') { if (!confirm('¿Cancelar este pedido?')) return; try { await api('POST', '/pedidos/' + id + '/cancelar'); await refrescarCuenta(); pintar(); aviso('Pedido cancelado.'); } catch (er) { aviso(er.message, 1); } }
   else if (a === 'salir') { S.tok = ''; S.perfil = null; S.cuenta = null; S.cart = {}; try { sessionStorage.removeItem('em_ct'); } catch (x) { /* nada */ } history.replaceState(null, '', location.pathname); pintar(); }
 });
 document.addEventListener('input', e => { const t = e.target; if (t.classList && t.classList.contains('qin')) { const l = t.value.replace(/\D/g, ''); if (l !== t.value) t.value = l; ponerCant(t.dataset.id, l === '' ? 0 : +l); } });
+document.addEventListener('change', async e => {
+  if (e.target.id !== 'f-comp') return; const P = S.pago, f = e.target.files && e.target.files[0]; if (!f) return;
+  const f2 = document.getElementById('f-pago'); if (f2) Object.assign(P, {banco: f2.elements.banco ? f2.elements.banco.value : P.banco, id_banco: f2.elements.id_banco ? f2.elements.id_banco.value : P.id_banco, referencia: f2.elements.referencia.value, monto: f2.elements.monto.value, fecha: f2.elements.fecha.value, nota: f2.elements.nota.value});
+  P.err = ''; P.ok = ''; P.compOcupado = true; P.comp = null; pintar();
+  try { const r = await EntregasPortal.comprimir(f); P.comp = r.foto; P.compKb = r.kb; } catch (er) { P.err = er.message; }
+  P.compOcupado = false; pintar();
+});
 document.addEventListener('submit', e => {
   e.preventDefault();
   if (e.target.id === 'f-codigo') { S.tok = $('#codigo').value.trim(); try { sessionStorage.setItem('em_ct', S.tok); } catch (x) { /* nada */ } history.replaceState(null, '', location.pathname + '#' + S.tok); cargar(); }
@@ -500,6 +1169,16 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') cerrarHoja()
 document.addEventListener('click', e => { if (e.target.id === 'vel') cerrarHoja(); });
 
 S.tok = leerCodigo(); try { if (!S.tok) S.tok = sessionStorage.getItem('em_ct') || ''; } catch (x) { /* nada */ }
+/* Borrador: lo que la persona estaba escribiendo y dónde estaba (solo en este navegador, 24 h; el código personal nunca se guarda) */
+try {
+  if (window.Borrador) {
+    const hh = s => { let h = 5381; for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0; return (h >>> 0).toString(36); };
+    Borrador.config({ctx: () => S.tok ? 'p:' + hh(S.tok) + ':' + S.vista : null, aviso: t => aviso(t)});
+    Borrador.registrar('portal', () => ({vista: S.vista, cat: S.categoria, sub: S.sub, q: S.q, nota: S.nota, cart: S.cart, pago: {banco: S.pago.banco, id_banco: S.pago.id_banco, referencia: S.pago.referencia, monto: S.pago.monto, fecha: S.pago.fecha, nota: S.pago.nota}}),
+      v => { if (!v) return; S.vista = v.vista || S.vista; S.categoria = v.cat || S.categoria; S.sub = v.sub || S.sub; S.q = v.q || ''; S.nota = v.nota || ''; Object.assign(S.cart, v.cart || {}); Object.assign(S.pago, v.pago || {}); if (S.perfil) pintar(); },
+      () => S.tok ? 'p:' + hh(S.tok) + ':*' : null);
+  }
+} catch (e) { /* sin borrador */ }
 if (S.tok) cargar(); else { S.cargando = false; pintar(); }
 })();
 

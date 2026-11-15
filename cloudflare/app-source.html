@@ -48,7 +48,7 @@
 
 /* ===== Base ===== */
 *{box-sizing:border-box}
-body{background:var(--bg);color:var(--fg);font:15px/1.5 var(--f-body);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 var(--f-body);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
 h1,h2,h3{font-family:var(--f-display);font-weight:600;line-height:1.15;margin:0;text-wrap:balance;letter-spacing:.005em}
 h1{font-size:30px} h2{font-size:20px} h3{font-size:17px}
 p{margin:0}
@@ -93,12 +93,13 @@ button{cursor:pointer;touch-action:manipulation}
 /* ===== Estructura ===== */
 .shell{display:grid;grid-template-columns:minmax(0,1fr)}
 .side{display:none}
-.btn-menu{display:none}
+.btn-menu{display:none;width:40px;height:40px;padding:0;margin-right:8px;border:0;border-radius:8px;background:transparent;color:inherit;cursor:pointer;align-items:center;justify-content:center;flex:none}
+.btn-menu:hover{background:rgba(255,255,255,.18)}
 @media (min-width:1024px){.btn-menu{display:inline-flex}}
 main{min-width:0;padding-block:20px 112px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 @media (min-width:1024px){
   .shell{grid-template-columns:252px minmax(0,1fr)}
-  .side{display:block;position:sticky;top:0;align-self:start;height:100vh;overflow:auto;background:var(--surface);border-right:1px solid var(--line);padding:14px 10px 24px}
+  .side{display:block;position:sticky;top:0;align-self:start;height:calc(100vh - var(--toph,79px));overflow:auto;background:var(--surface);border-right:1px solid var(--line);padding:14px 10px 24px}
   main{padding-block:26px 48px;padding-left:max(28px,env(safe-area-inset-left,0px));padding-right:max(28px,env(safe-area-inset-right,0px))}
   .bottom{display:none!important}
   body.sin-menu .shell{grid-template-columns:minmax(0,1fr)}
@@ -107,9 +108,9 @@ main{min-width:0;padding-block:20px 112px;padding-left:max(16px,env(safe-area-in
 .wrap{max-width:1360px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
 
 /* Navegación */
-.nav-g{margin-bottom:12px}
-.nav-gt{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);padding:8px 10px 4px;font-weight:600}
-.nav a{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;color:var(--fg);text-decoration:none;font-weight:500;min-height:40px}
+.nav-g{margin-bottom:6px}.nav-g.ses{display:flex;flex-wrap:wrap;gap:2px;border-top:1px solid var(--line);margin-top:8px;padding-top:4px}.nav-g.ses .nav-gt{width:100%;padding-top:4px;padding-bottom:2px}.nav-g.ses a{flex:1 1 auto;min-width:0}
+.nav-gt{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);padding:6px 10px 2px;font-weight:600}
+.nav a{display:flex;align-items:center;gap:10px;padding:6px 10px;border-radius:8px;color:var(--fg);text-decoration:none;font-weight:500;min-height:34px}
 .nav a:hover{background:var(--surface-2)}
 .nav a[aria-current="page"]{background:var(--sel-bg);color:var(--fg);font-weight:600;box-shadow:inset 3px 0 0 var(--orange)}
 .nav a .ic{color:var(--muted)}
@@ -170,6 +171,9 @@ main{min-width:0;padding-block:20px 112px;padding-left:max(16px,env(safe-area-in
 .c-ask{background:var(--orange);color:var(--orange-ink)}
 
 /* Tablas */
+.desp-m{display:none}.desp-n{border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:grid;gap:4px}.desp-n .btnrow{margin-top:6px;flex-wrap:wrap}
+@media (max-width:640px){.desp-t{display:none}.desp-m{display:grid;gap:10px}}
+@media (max-width:420px){.bottom a,.bottom button{font-size:10px;letter-spacing:-.2px;padding:6px 0}}
 .tw{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 -18px;padding:0 18px}
 table{border-collapse:collapse;width:100%;font-size:14px}
 th{font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600;text-align:left;padding:8px 10px;border-bottom:1px solid var(--line-2);white-space:nowrap}
@@ -1066,10 +1070,10 @@ const MR_C = {v: null, bl: null, lc: {}, pv: null}; // memoria de las fuentes de
 /* ---------- Backend C: API del Worker de Cloudflare (D1). Misma interfaz que los otros dos backends ---------- */
 function makeHttpBackend() {
   const subs = {}, errs = [], cache = {};
-  let ver = -1, loaded = false, busy = false, timer = null;
+  let ver = -1, loaded = false, busy = false, timer = null, redo = false;
   const api = async (method, path, body, tries = 3) => {
     let r;
-    try { r = await fetch('/api' + path, {method, headers: body !== undefined ? {'content-type': 'application/json'} : {}, body: body !== undefined ? JSON.stringify(body) : undefined}); }
+    try { r = await fetch('/api' + path, {method, headers: {'x-rol': S.rol, ...(body !== undefined ? {'content-type': 'application/json'} : {})}, body: body !== undefined ? JSON.stringify(body) : undefined}); }
     catch (e) { throw fail('Sin conexión con el servidor.', 'unavailable'); }
     let j = null; try { j = await r.json(); } catch (e) {}
     if (r.status === 429 && tries > 0) { await wait(4000); return api(method, path, body, tries - 1); }
@@ -1080,14 +1084,14 @@ function makeHttpBackend() {
   const emit = c => (subs[c] || []).forEach(fn => fn());
   const track = j => { if (j && typeof j.ver === 'number') { if (j.ver === ver + 1) ver = j.ver; } };
   async function pull(force) {
-    if (busy) return; busy = true;
+    if (busy) { if (force) redo = true; return; } busy = true;
     try {
       if (!force && loaded) { const v = await api('GET', '/ver'); if (v.ver === ver) return; }
       const a = await api('GET', '/all'); ver = a.ver;
       COLS.forEach(c => { const m = {}; (a.cols[c] || []).forEach(d => { m[d.id] = d; }); cache[c] = m; });
       loaded = true; COLS.forEach(emit);
     } catch (e) { if (!loaded) errs.forEach(fn => fn(e)); }
-    finally { busy = false; }
+    finally { busy = false; if (redo) { redo = false; pull(true); } }
   }
   const start = () => {
     if (timer) return;
@@ -1098,6 +1102,7 @@ function makeHttpBackend() {
   const applyLocal = o => { const m = colMap(o.c); if (o.op === 'set') m[o.id] = {...clean(o.d), id: o.id}; else if (o.op === 'update') { if (m[o.id]) Object.assign(m[o.id], clean(o.d)); } else delete m[o.id]; };
   return {
     kind: 'http',
+    refresh() { return pull(true); },   // al cambiar de puesto: el servidor entrega distinto según el puesto
     sub(col, next, err) {
       const fn = () => next(Object.values(colMap(col)).map(clean), {fromCache: false});
       (subs[col] ||= []).push(fn); if (err) errs.push(err);
@@ -1255,7 +1260,7 @@ async function startLayer(hooks) {
 function hydrate() {
   const A = Store.c.ajustes || {};
   /* La tasa ya no se escribe: con servidor viene del BCV (S.tasaInfo, desde /api/v/tasa); en la maqueta sin servidor queda la del ajuste. */
-  S.tasa = (S.tasaInfo && S.tasaInfo.valor > 0) ? S.tasaInfo.valor : (A.tasa ? A.tasa.valor : DATA.tasaInicial);
+  S.tasa = (S.tasaInfo && S.tasaInfo.valor > 0) ? S.tasaInfo.valor : (window.__EM_HTTP ? (S.tasa > 0 && S.tasaVista ? S.tasa : 0) : (A.tasa ? A.tasa.valor : DATA.tasaInicial));   // con servidor, SOLO manda la tasa vigente del servidor (nunca el valor viejo guardado en ajustes)
   tasaCargar();
   if (!S.polDirty) S.pol = {...DATA.politicas, ...(A.politicas || {})};
   if (!S.matDirty) { S.perm = (A.matriz && A.matriz.perm) ? {...permInit(), ...clone(A.matriz.perm)} : permInit(); S.mods = (A.matriz && A.matriz.mods) ? clone(A.matriz.mods) : clone(MODS_DEF); }
@@ -2059,7 +2064,7 @@ function scrRecepcion() {
   <div class="cols c32">
     <section class="card">
       <div class="card-h"><div><h2>Nueva recepción</h2><p class="sub">El número se asigna al guardar</p></div></div>
-      <div class="card-b form">
+      <div class="card-b form cp-c3"><div>
         <fieldset><legend>¿Qué llegó?</legend>
           <div class="opts">
             <button type="button" class="opt" aria-pressed="${f.tipo === 'papa'}" data-act="recTipo" data-v="papa">${ic('potato', 22)}Materia prima<small>Papa cruda o seca</small></button>
@@ -2074,13 +2079,17 @@ function scrRecepcion() {
           <label class="fld">Quién recibe
             <select id="rf-rec" data-k="recForm.recibe">${DATA.recibidores.length ? DATA.recibidores.map(n => `<option ${n === f.recibe ? 'selected' : ''}>${n}</option>`).join('') : '<option value="">Sin personal: agrégalo en Equipo y flota</option>'}</select></label>
         </div>
+        <fieldset><legend>Calidad</legend>
+          <div class="opts o4">${[['A', 'Óptima'], ['B', 'Aceptable'], ['C', 'Con defectos'], ['R', 'Rechazo parcial']].map(([v, t]) => `<button type="button" class="opt q-${v}" aria-pressed="${f.calidad === v}" data-act="recCal" data-v="${v}">${v === 'R' ? 'Rechazo' : v}<small>${t}</small></button>`).join('')}</div>
+        </fieldset>
+        </div><div>
         <div class="row3">
           <div class="fld"><span class="lbl">Sacos o bultos</span>
             <div class="stepper"><button type="button" data-act="step" data-k="recForm.sacos" data-d="-1" aria-label="Restar un saco">−</button>
             <input id="rf-sacos" type="number" inputmode="numeric" min="0" data-k="recForm.sacos" value="${f.sacos}" aria-label="Sacos o bultos">
             <button type="button" data-act="step" data-k="recForm.sacos" data-d="1" aria-label="Sumar un saco">+</button></div></div>
           <label class="fld">Kg por saco (nominal)<input id="rf-kgs" type="number" inputmode="decimal" step="0.01" data-k="recForm.kgSaco" value="${f.kgSaco}"></label>
-          <label class="fld">Kg facturados<input id="rf-fact" type="number" inputmode="decimal" data-k="recForm.kgFact" value="${f.kgFact}"><small>Según la factura de compra o nota de entrega del proveedor</small></label>
+          <label class="fld">Kg facturados<input id="rf-fact" type="number" min="0.1" step="any" inputmode="decimal" data-k="recForm.kgFact" value="${f.kgFact}"><small>Según la factura de compra o nota de entrega del proveedor</small></label>
         </div>
         ${f.tipo === 'papa'
           ? `<label class="fld">Kg recibidos en la balanza<input id="rf-kgrec" class="big" type="number" inputmode="decimal" data-k="recForm.kgRec" value="${f.kgRec || ''}" placeholder="0"><small>Peso total de la papa descargada</small></label>`
@@ -2089,14 +2098,12 @@ function scrRecepcion() {
               <div class="samples">${f.muestras.map((m, i) => `<label class="fld"><span>Saco ${i + 1}</span><input id="rf-m${i}" type="number" inputmode="decimal" step="0.01" data-k="recForm.muestras.${i}" value="${m}"></label>`).join('')}</div>
               <div class="btnrow"><button type="button" class="btn sm" data-act="addMuestra">${ic('plus', 16)}Agregar pesada</button>${f.muestras.length > 3 ? `<button type="button" class="btn sm ghost" data-act="delMuestra">Quitar la última</button>` : ''}</div>
             </fieldset>`}
-        <div id="rec-calc">${recCalcHTML()}</div>
-        <fieldset><legend>Calidad</legend>
-          <div class="opts o4">${[['A', 'Óptima'], ['B', 'Aceptable'], ['C', 'Con defectos'], ['R', 'Rechazo parcial']].map(([v, t]) => `<button type="button" class="opt q-${v}" aria-pressed="${f.calidad === v}" data-act="recCal" data-v="${v}">${v === 'R' ? 'Rechazo' : v}<small>${t}</small></button>`).join('')}</div>
-        </fieldset>
         <label class="fld">Observaciones<textarea id="rf-obs" data-k="recForm.obs" rows="2" placeholder="Ej.: 4 sacos con tierra húmeda">${esc(f.obs)}</textarea></label>
+        </div><div>
+        <div id="rec-calc">${recCalcHTML()}</div>
         ${S.recErr ? `<p class="err" role="alert">${ic('alert')}${S.recErr}</p>` : ''}
         <button type="button" class="btn pri xl" data-act="guardarRec">${ic('check')}Guardar y enviar a Administración</button>
-      </div>
+      </div></div>
     </section>
     <div class="stack">
       ${card('Recorrido de cada recepción', `${flow('validado', true)}
@@ -2252,22 +2259,22 @@ function scrEmpaque() {
       {})}
     ${card('Reposición controlada', `<ul class="list">${S.repos.map(r => `<li><div class="l-main"><p class="l-t"><span class="mono">${r.id}</span> · ${pn(r.pres)} × ${N0.format(r.cant)}</p><p class="l-s">Pide ${r.pide} · ${r.motivo}</p></div>${r.estado === 'Pendiente' ? `<button type="button" class="btn sm pri" data-act="aprobarRepo" data-id="${r.id}">Aprobar</button>` : chip(r.estado, 'ok')}</li>`).join('')}</ul>`, {})}
   </div>
-  <div class="cols c2">${empaqueCard()}${pedirRepoCard()}</div>
-  ${card('Stock por presentación', hbars(S.pres.filter(p => p.cod !== 'GRA').map(p => ({l:p.n, v:p.stock, c:p.stock < p.min ? 'hi' : '', tip:`${p.n}: ${N0.format(p.stock)} und · mínimo ${N0.format(p.min)}`})), v => N0.format(v) + ' und'), {sub:'En naranja: bajo el mínimo'})}`;
+  <div class="cols c2">${typeof empaqueUnicoCard === 'function' ? empaqueUnicoCard() : ''}${pedirRepoCard()}</div>
+  ${typeof invUnicoCard === 'function' ? invUnicoCard() : ''}`;
 }
 
 function scrDespachos() {
   const tone = e => ({'En ruta':'info', 'Cargando':'warn', 'Entregada':'ok'})[e] || 'n';
   return `${ph('Producción · salida', 'Despachos', 'Notas de entrega impresas para salseras y distribuidores. Las transferencias internas a la línea salsera (sal y bolsones) también quedan registradas.')}
   <div class="fleet">${DATA.flota.map(v => `<div class="veh">${ic(v.tipo, 30)}<div><p><b>${v.id}</b></p><p class="muted" style="font-size:13px">Chofer ${v.chofer} · ${v.dest}</p><p style="margin-top:6px">${chip(v.estado, v.estado === 'Disponible' ? 'ok' : v.estado === 'Cargando' ? 'warn' : 'info')}</p></div></div>`).join('')}</div>
-  ${card('Notas de entrega y transferencias', table([
+  ${card('Notas de entrega y transferencias', `<div class="desp-m">${S.notas.map(n => `<div class="desp-n"><p><b class="mono">${n.id}</b> · ${fd(n.fecha)} ${chip(n.estado, tone(n.estado))}</p><p>${n.dest} <span class="muted">· ${n.tipo}</span></p><p class="muted">Vehículo ${n.veh}</p><p class="muted">${n.items.map(i => `${N0.format(i.c)} ${i.u} ${i.d}`).join(', ')}</p><div class="btnrow"><button type="button" class="btn sm" data-act="verNota" data-id="${n.id}">${ic('file', 16)}Ver nota</button>${n.estado !== 'Entregada' ? `<button type="button" class="btn sm" data-act="notaEstado" data-id="${n.id}">${n.estado === 'Cargando' ? 'Marcar en ruta' : 'Marcar entregada'}</button>` : ''}</div></div>`).join('')}</div><div class="desp-t">` + table([
     {h:'Documento', f:n => `<span class="mono">${n.id}</span><br><span class="muted">${fd(n.fecha)}</span>`},
     {h:'Destino', f:n => `${n.dest}<br><span class="muted">${n.tipo}</span>`},
     {h:'Vehículo', f:n => n.veh},
     {h:'Contenido', f:n => n.items.map(i => `${N0.format(i.c)} ${i.u} ${i.d}`).join('<br>')},
     {h:'Estado', f:n => chip(n.estado, tone(n.estado))},
-    {h:'', f:n => `<button type="button" class="btn sm" data-act="verNota" data-id="${n.id}">${ic('file', 16)}Ver nota</button>${n.estado !== 'Entregada' ? ` <button type="button" class="btn sm" data-act="notaEstado" data-id="${n.id}">${n.estado === 'Cargando' ? 'Marcar en ruta' : 'Marcar entregada'}</button>` : ''}`}], S.notas, {empty:'Todavía no hay notas de entrega.'}))}
-  ${notaCard()}`;
+    {h:'', f:n => `<button type="button" class="btn sm" data-act="verNota" data-id="${n.id}">${ic('file', 16)}Ver nota</button>${n.estado !== 'Entregada' ? ` <button type="button" class="btn sm" data-act="notaEstado" data-id="${n.id}">${n.estado === 'Cargando' ? 'Marcar en ruta' : 'Marcar entregada'}</button>` : ''}`}], S.notas, {empty:'Todavía no hay notas de entrega.'}) + '</div>')}
+  ${typeof despachoUnicoCard === 'function' ? despachoUnicoCard() : ''}`;
 }
 
 function scrCotejo() { return `${ph('Producción · control', 'Cotejo compra vs producción', 'Lo que se compró frente a lo que se produjo, lote por lote. Aquí se ve qué proveedor rinde de verdad.')}${cotejoBody()}`; }
@@ -2352,7 +2359,7 @@ function scrComprasMP() {
   const all = S.compras.filter(c => c.fam === 'MP' && c.estado === 'almacen');
   const cats = [...new Set(all.filter(c => c.sub === S.cmTab).map(c => c.cat))];
   return `${ph('Administración · compras', 'Compras de materia prima', 'Toda compra de materia prima nace de una recepción. Dos grupos: materia prima propia (papa) e insumos complementarios; cada uno a contado o a crédito.')}
-  ${card('Recepciones por validar', pend.length ? `<div class="stack">${pend.map(valCard).join('')}</div>` : emptyState('Bandeja al día', 'No hay recepciones esperando validación. Las nuevas aparecen aquí apenas Producción las guarda.', '<a class="btn sm" href="#recepcion">Ver Recepción</a>'), {})}
+  ${card('Recepciones por validar', pend.length ? `<div class="stack cp-gr2">${pend.map(valCard).join('')}</div>` : emptyState('Bandeja al día', 'No hay recepciones esperando validación. Las nuevas aparecen aquí apenas Producción las guarda.', '<a class="btn sm" href="#recepcion">Ver Recepción</a>'), {})}
   <div class="tiles">
     ${stat('Materia prima propia', money(sum(all.filter(c => c.sub === 'Propia'), total)), 'Papa cruda y papa seca')}
     ${stat('Insumos complementarios', money(sum(all.filter(c => c.sub === 'Insumo'), total)), 'Aceite, sal, químicos, azúcar, empaques')}
@@ -2701,7 +2708,7 @@ const pagoTxt = e => e.pago === 'hora' ? `${bs(+e.tarifa || 0)} por hora` : `${b
 /* ---------- Servicios de escritura ---------- */
 Object.assign(Svc, {
   async saveEmp(f) {
-    const d = {n: f.n.trim(), cedula: f.cedula.trim(), cargo: f.cargo.trim(), area: f.area, ingreso: f.ingreso, tel: f.tel.trim(), pago: f.pago, tarifa: +f.tarifa, estado: 'activo'};
+    const d = {n: f.n.trim(), cedula: f.cedula.trim(), cargo: f.cargo.trim(), area: f.area, ingreso: f.ingreso, tel: f.tel.trim(), pago: f.pago, tarifa: +f.tarifa, estado: 'activo', es_chofer: !!f.es_chofer};
     if (f.id) { await W.update('empleados', f.id, d); return f.id; }
     const id = await nextId('E', 2, 'E', ''); await W.set('empleados', id, {...d, antig: 0, orden: Date.now()}); return id;
   },
@@ -2725,7 +2732,7 @@ Object.assign(Svc, {
 });
 
 /* ---------- Personal ---------- */
-const pfNew = () => ({id: '', n: '', cedula: '', cargo: '', area: AREAS[0], ingreso: '', tel: '', pago: 'dia', tarifa: ''});
+const pfNew = () => ({id: '', n: '', cedula: '', cargo: '', area: AREAS[0], ingreso: '', tel: '', pago: 'dia', tarifa: '', es_chofer: false});
 const D_PER = [{tipo: 'Persona', valores: e => e.n, detalle: e => e.cargo || e.area}, {tipo: 'Cédula', valores: e => e.cedula, detalle: e => e.n}, {tipo: 'Cargo', valores: e => e.cargo, detalle: e => e.n}, {tipo: 'Teléfono', valores: e => e.tel, detalle: e => e.n}];
 function scrPersonal() {
   S.pf ||= pfNew(); S.pfErr ||= '';
@@ -2747,6 +2754,7 @@ function scrPersonal() {
       <div class="row2"><label class="fld">Área<select id="pf-area" data-k="pf.area">${AREAS.map(a => `<option ${a === f.area ? 'selected' : ''}>${a}</option>`).join('')}</select></label><label class="fld">Fecha de ingreso<input type="date" id="pf-ing" data-k="pf.ingreso" value="${esc(f.ingreso)}"></label></div>
       <div class="row2"><label class="fld">Teléfono<input type="tel" id="pf-tel" data-k="pf.tel" value="${esc(f.tel)}"></label><label class="fld">Se le paga por<select id="pf-pago" data-k="pf.pago" data-rerender="1" ${f.id && S.rol !== 'dueno' ? 'disabled' : ''}><option value="dia" ${f.pago === 'dia' ? 'selected' : ''}>Día</option><option value="hora" ${f.pago === 'hora' ? 'selected' : ''}>Hora</option></select></label></div>
       <label class="fld">Tarifa en Bs por ${f.pago === 'hora' ? 'hora' : 'día'}${f.id && S.rol !== 'dueno' ? ' (solo el Dueño la cambia)' : ''}<input type="number" id="pf-tar" ${f.id && S.rol !== 'dueno' ? 'disabled' : ''} inputmode="decimal" min="0" step="0.01" data-k="pf.tarifa" value="${esc(f.tarifa)}"></label>
+      <label class="toggle"><input id="pf-cho" type="checkbox" data-k="pf.es_chofer" ${f.es_chofer ? 'checked' : ''}>Es chofer (sale en la lista de despacho)</label>
       ${S.pfErr ? `<p class="err" role="alert">${ic('alert')}${S.pfErr}</p>` : ''}
       <div class="btnrow"><button type="button" class="btn pri" data-act="empGuardar">${ic('check', 16)}${f.id ? 'Guardar cambios' : 'Agregar persona'}</button>${f.id ? '<button type="button" class="btn" data-act="empCancelar">Cancelar</button>' : ''}</div></div>` : '<p class="hint">Tu rol puede ver el personal pero no editarlo.</p>')}
   </div>
@@ -2811,7 +2819,7 @@ function reciboPagoModal(empId) {
 }
 const PERS_ACT = {
   pFiltro: () => render(), aFiltro: () => render(),
-  empEditar: el => { const e = one('empleados', el.dataset.id); if (!e) return; S.pf = {id: e.id, n: e.n || '', cedula: e.cedula || '', cargo: e.cargo || '', area: AREA_MAP[e.area] || e.area || AREAS[0], ingreso: e.ingreso || '', tel: e.tel || '', pago: e.pago || 'dia', tarifa: e.tarifa ?? ''}; render(); window.scrollTo(0, 0); },
+  empEditar: el => { const e = one('empleados', el.dataset.id); if (!e) return; S.pf = {id: e.id, n: e.n || '', cedula: e.cedula || '', cargo: e.cargo || '', area: AREA_MAP[e.area] || e.area || AREAS[0], ingreso: e.ingreso || '', tel: e.tel || '', pago: e.pago || 'dia', tarifa: e.tarifa ?? '', es_chofer: !!e.es_chofer}; render(); window.scrollTo(0, 0); },
   empCancelar: () => { S.pf = pfNew(); render(); },
   empGuardar: () => { const f = S.pf; S.pfErr = ''; if (!f.n.trim()) S.pfErr = 'Escribe el nombre y apellido.'; else if (!(+f.tarifa > 0)) S.pfErr = 'Escribe la tarifa en Bs (mayor que 0).'; if (S.pfErr) return render(); run('emp', () => Svc.saveEmp(f), id => { S.pf = pfNew(); return `Persona ${id} guardada.`; }); },
   empArch: el => { if (S.prestamos.some(p => p.emp === el.dataset.id && p.pagadas < p.cuotas)) return toast('Esa persona tiene un préstamo activo: no se puede retirar todavía.', 'warn'); run('arch', () => Svc.archivar('empleados', el.dataset.id, true), 'Persona archivada. Su historial se conserva.'); },
@@ -3300,20 +3308,21 @@ const SCREENS = {
 const BOTTOM = {prod:['recepcion', 'alm-mp', 'produccion', 'despachos'], adm:['gestion', 'cxp', 'caja', 'analisis']};
 const HOME = {prod:['planta'], adm:['gestion']};
 /* ---------- Roles, módulos visibles y permisos (0 sin acceso · 1 ver · 2 registrar · 3 aprobar) ---------- */
-const ROLES = {dueno:'Dueño', adm:'Administración y compras', custodio:'Custodio de caja chica', recep:'Recepción', jefeprod:'Jefe de producción', empaque:'Empaque y despacho', ventas:'Ventas (vendedor)', cobranza:'Cobranza', rrhh:'Nómina y RRHH'};
+const ROLES = {dueno:'Dueño', adm:'Administración y compras', custodio:'Custodio de caja chica', recep:'Recepción', jefeprod:'Jefe de producción', produccion:'Producción', empaque:'Empaque y despacho', ventas:'Ventas (vendedor)', cobranza:'Cobranza', rrhh:'Nómina y RRHH'};
 const ROLE_DESC = {
   dueno:'Ve todo y aprueba todo, en los dos módulos. Es el único que ve el tablero consolidado y edita los roles.',
   adm:'Valida las recepciones y las convierte en compra efectiva, registra compras generales y pagos a proveedores.',
   custodio:'Maneja la caja chica: gastos menores, arqueo, reposición y préstamos a empleados.',
   recep:'Recibe la papa, los insumos y los aditivos en la puerta de la planta y los registra.',
   jefeprod:'Cierra los lotes del turno, controla el rendimiento y aprueba las reposiciones de empaque.',
+  produccion:'Lleva el turno: anota los kilos de cada etapa y los bultos empacados, y al cerrar suma al inventario.',
   empaque:'Empaca por presentación, pesa y etiqueta bultos y arma los despachos.',
   ventas:'Consulta la cartera y las ventas; en la versión completa registrará los pedidos.',
   cobranza:'Sigue las cuentas por cobrar, el precio B y FULL y los clientes vencidos.',
   rrhh:'Prepara la nómina en bolívares y ve los préstamos que se descuentan.'
 };
 /* Módulos visibles por rol (propuesta pendiente de confirmar; el Dueño la edita y se guarda con la matriz) */
-const MODS_DEF = {dueno:['prod', 'adm'], adm:['adm'], custodio:['adm'], recep:['prod'], jefeprod:['prod'], empaque:['prod'], ventas:['adm'], cobranza:['adm'], rrhh:['adm']};
+const MODS_DEF = {dueno:['prod', 'adm'], adm:['adm'], custodio:['adm'], recep:['prod'], jefeprod:['prod'], produccion:['prod'], empaque:['prod'], ventas:['adm'], cobranza:['adm'], rrhh:['adm']};
 const PERM_DEF = {
   'planta':'adm:1 jefeprod:3 empaque:1',
   'recepcion':'adm:1 recep:2 jefeprod:1',
@@ -3571,11 +3580,12 @@ function mrFormCard() {
   if (!fx) return card('Registrar merma', `<p class="hint">${ic('lock', 16)} Tu rol consulta las mermas pero no las registra. Quien las registra: Recepción (su etapa), Empaque y despacho (las suyas) y el Jefe de producción (todas).</p>`);
   const f = S.mrForm, {e, og} = fx, ets = mrEtapasMias(), cs = mrCausas();
   const apr = lvl('mermas') >= 3;
-  return card('Registrar merma', `<div class="form" id="mr-form">
+  return card('Registrar merma', `<div class="form cp-c2" id="mr-form"><div>
     <label class="fld">Etapa donde se perdió<select id="mr-et" class="big" data-k="mrForm.etapa" data-act-change="mrEtapa">${ets.map(x => `<option value="${x.k}" ${x.k === f.etapa ? 'selected' : ''}>${x.t}</option>`).join('')}</select><small>${e.hint}</small></label>
     <label class="fld">${og.l}${og.req ? '' : ' (opcional)'}<select id="mr-og" data-k="mrForm.og">${og.req ? '' : '<option value="">Sin origen</option>'}${og.opts.map(o => `<option value="${o.v}" ${o.v === f.og ? 'selected' : ''}>${o.t}</option>`).join('')}</select>${og.opts.length ? '' : '<small>Todavía no hay registros para elegir aquí.</small>'}</label>
     ${e.u.length > 1 ? `<div class="fld"><span>Cómo la cuentas</span><div class="seg" role="group" aria-label="Unidad">${e.u.map(u => `<button type="button" aria-pressed="${f.un === u}" data-act="mrUn" data-v="${u}">${u === 'kg' ? 'En kilos' : 'En unidades (bolsas)'}</button>`).join('')}</div></div>` : ''}
     ${f.un === 'und' ? `<label class="fld">Presentación<select id="mr-pres" data-k="mrForm.pres">${S.pres.filter(p => p.cod !== 'GRA').map(p => `<option value="${p.cod}" ${p.cod === f.pres ? 'selected' : ''}>${p.n}</option>`).join('')}</select></label>` : ''}
+    </div><div>
     <div class="row2"><label class="fld">${f.un === 'und' ? 'Unidades perdidas' : 'Kg perdidos'}<input id="mr-cant" class="big" type="number" inputmode="decimal" min="0" data-k="mrForm.cant" value="${f.cant}"></label>
     ${e.decl ? `<label class="fld">Kg que entraron a la etapa<input id="mr-ent" class="big" type="number" inputmode="decimal" min="0" data-k="mrForm.ent" value="${f.ent}"></label>` : ''}</div>
     <label class="fld">Causa<select id="mr-causa" data-k="mrForm.causa">${cs.map(c => `<option value="${esc(c)}" ${c === f.causa ? 'selected' : ''}>${esc(c)}</option>`).join('')}</select></label>
@@ -3583,7 +3593,7 @@ function mrFormCard() {
     <div id="mr-calc">${mrCalcHTML()}</div>
     ${S.mrErr ? `<p class="err" role="alert">${ic('alert')}${S.mrErr}</p>` : ''}
     <button type="button" class="btn pri xl" data-act="regMerma">${ic('check')}Registrar merma</button>
-    <p class="hint">${apr ? 'Como tu rol aprueba, el registro queda aprobado de una vez.' : 'Queda pendiente hasta que el Jefe de producción lo apruebe; mientras tanto ya cuenta en los reportes.'}</p></div>`, {sub: 'Quién, cuándo y en qué etapa quedan anotados solos', id: 'mr-reg'});
+    <p class="hint">${apr ? 'Como tu rol aprueba, el registro queda aprobado de una vez.' : 'Queda pendiente hasta que el Jefe de producción lo apruebe; mientras tanto ya cuenta en los reportes.'}</p></div></div>`, {sub: 'Quién, cuándo y en qué etapa quedan anotados solos', id: 'mr-reg'});
 }
 
 /* ---------- Tolerancias (se ven en Políticas y en la pantalla de mermas; las edita quien aprueba mermas) ---------- */
@@ -3864,7 +3874,7 @@ function cpCard(id, s, win) {
   if (!sp) body = emptyState('Sin datos para esta gráfica', c.mode === 'snap' || !s.any ? 'Aparecerá cuando se registre lo que ella mide.' : 'No hay movimientos en este periodo. Cambia el periodo con el control de arriba.');
   else {
     CP_SPEC[id] = sp;
-    const n = sp.labels.length, h = sp.vert ? 270 : Math.max(210, 70 + n * (sp.ds.length > 1 ? 44 : 30));
+    const n = sp.labels.length, h = sp.vert ? 280 : Math.max(210, 60 + n * (sp.ds.length > 1 ? 52 : 38));
     const aria = c.t + '. ' + sp.labels.slice(0, 6).map((l, i) => l + ' ' + sp.ds.map(d => d.k + ' ' + cpTxt(sp.u, d.v[i])).join(', ')).join('; ') + (n > 6 ? '; y más en la tabla' : '');
     body = `<div class="cp-box" style="height:${h}px"><canvas data-cid="${id}" role="img" aria-label="${esc(aria)}"></canvas></div>${cpTable(sp)}`;
   }
@@ -3917,7 +3927,7 @@ const Charts = {
               title: it => { const i = it[0].dataIndex; return sp.meta ? 'Actual ' + cpRng(sp.meta.cur[i]) + (sp.ds[1] && sp.ds[1].tone === 'prev' ? ' · Anterior ' + cpRng(sp.meta.prev[i]) : '') : it[0].label; },
               label: it => it.dataset.label + ': ' + cpTip(sp.u, it.parsed[val]),
               afterBody: it => sp.x && sp.x[it[0].dataIndex] ? [sp.x[it[0].dataIndex]] : []}}},
-          scales: {[cat]: {stacked: !!sp.stacked, grid: {display: false}, border: {color: line}, ticks: {color: mut, autoSkip: false, maxRotation: 0, callback(v) { return wrap(this.getLabelForValue(v), H ? 18 : 11); }}},
+          scales: {[cat]: {stacked: !!sp.stacked, grid: {display: false}, border: {color: line}, ticks: {color: mut, autoSkip: false, maxRotation: 0, callback(v) { return wrap(this.getLabelForValue(v), H ? 24 : 12); }}},
             [val]: {stacked: !!sp.stacked, beginAtZero: true, max: sp.max, grid: {color: line}, border: {display: false}, ticks: {color: mut, maxTicksLimit: 5, callback: v => cpTxt(sp.u === 'usd2' ? 'usd' : sp.u, v)}}}}});
       this.inst.push(Chart.getChart(cv));
     });
@@ -3960,8 +3970,8 @@ function renderTop() {
   document.body.classList.toggle('entry', !inn);
   if (inn) tasaCargar();
   const sub = Layer.modo() === 'ejemplo' ? 'Seguimiento productivo · datos de ejemplo' : Layer.modo() === 'limpio' ? 'Seguimiento productivo · datos propios' : 'Seguimiento productivo';
-  $('#top').innerHTML = `<a class="brand" href="#" data-act="inicio" aria-label="El Maná JL: volver a la pantalla de inicio"><span class="brand-mark">${logoImg("brand-logo")}</span><div><p class="brand-t">El Maná JL</p><p class="brand-s">${sub}</p></div></a>
-        ${inn ? `<div class="who" aria-label="Módulo y rol actual"><span class="who-t"><b>${typeof pantNombre === 'function' ? pantNombre() : modLabel(mod)}</b> · ${ROLES[S.rol]}</span><button type="button" class="btn sm ghost btn-menu" data-act="menuLat" aria-pressed="${menuOculto() ? 'false' : 'true'}" title="Mostrar u ocultar el menú de opciones">${menuOculto() ? 'Mostrar menú' : 'Ocultar menú'}</button><button type="button" class="btn sm ghost" data-act="cambiarRol">Cambiar rol</button><button type="button" class="btn sm ghost" data-act="inicio">Inicio</button></div>
+  $('#top').innerHTML = `${inn ? `<button type="button" class="btn-menu" data-act="menuLat" aria-pressed="${menuOculto() ? 'false' : 'true'}" aria-label="${menuOculto() ? 'Mostrar menú' : 'Ocultar menú'}" title="${menuOculto() ? 'Mostrar menú' : 'Ocultar menú'}">${ic('menu', 22)}</button>` : ''}<a class="brand" href="#" data-act="inicio" aria-label="El Maná JL: volver a la pantalla de inicio"><span class="brand-mark">${logoImg("brand-logo")}</span><div><p class="brand-t">El Maná JL</p><p class="brand-s">${sub}</p></div></a>
+        ${inn ? `<div class="who" aria-label="Módulo y rol actual"><span class="who-t"><b>${typeof pantNombre === 'function' ? pantNombre() : modLabel(mod)}</b> · ${ROLES[S.rol]}</span><button type="button" class="btn sm ghost" data-act="inicio">Inicio</button></div>
     <div class="hctl hctl-tasa" id="tasa-box" role="status" title="${esc(tasaTitulo())}"><span class="tl">Tasa BCV<br>USD → Bs</span><b class="tv">${S.tasa > 0 ? N2.format(S.tasa) : '—'}</b>${tasaPie()}</div>` : ''}`;
 }
 function navHTML() {
@@ -3976,7 +3986,7 @@ function navHTML() {
 }
 function renderNav() {
   const mod = S.mod, B = badges();
-  $('#side').innerHTML = `<p class="nav-gt" style="padding-top:2px">${modName(mod)} · ${ROLES[S.rol]}</p>` + navHTML();
+  $('#side').innerHTML = `<p class="nav-gt" style="padding-top:2px">${modName(mod)} · ${ROLES[S.rol]}</p>` + navHTML() + `<div class="nav-g ses"><p class="nav-gt">Sesión</p><a href="#" data-act="cambiarRol">${ic('users')}Cambiar rol</a></div>`;
   const cand = ['mapa', ...(BOTTOM[mod] || []), ...allowed(mod)];
   let ks = [...new Set(cand.filter(can))].slice(0, 4);
   if (S.route && can(S.route) && !ks.includes(S.route) && ks.length >= 4) ks[3] = S.route;
@@ -4030,6 +4040,7 @@ function renderMain() {
   }
   el.innerHTML = `<div class="wrap">${bannerHTML()}${body}${can(S.route) ? expBar(S.route) : ""}</div>`;
   applyPerms();
+  if (typeof cpCompactar === 'function' && can(S.route)) cpCompactar(el);
   Charts.mount();
 }
 function render() {
@@ -4042,13 +4053,19 @@ function renderAll() { renderTop(); render(); }
 /* Los cambios que llegan de otras personas no deben quitar el foco a quien está escribiendo */
 let softT = null;
 function softRender() { clearTimeout(softT); softT = setTimeout(doSoft, 120); }
+/* Mientras alguien elige un archivo no se redibuja la pantalla: el botón se destruiría y la foto elegida se perdería. */
+document.addEventListener('click', e => { const f = e.target.closest && e.target.closest('input[type=file]'); if (f) { S.filePick = Date.now(); } }, true);
+document.addEventListener('change', e => { if (e.target.type === 'file') setTimeout(() => { S.filePick = 0; }, 400); }, true);
 function doSoft() {
+  if (S.filePick && Date.now() - S.filePick < 120000) { S.pendingRender = true; setTimeout(softRender, 3000); return; }
   const a = document.activeElement;
   if (a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) && a.closest('#main, #top')) { S.pendingRender = true; return; }
   S.pendingRender = false; renderAll();
 }
 document.addEventListener('focusout', () => { if (S.pendingRender) setTimeout(() => { const a = document.activeElement; if (!(a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName))) doSoft(); }, 80); });
 
+function medirTop() { const t = document.querySelector('.top'); if (t) document.documentElement.style.setProperty('--toph', t.offsetHeight + 'px'); }
+window.addEventListener('resize', medirTop); setInterval(medirTop, 2000);
 function go(route) {
   if (S.entry !== 'in' || Boot.state !== 'ready') return;
   if (!SCREENS[route]) route = 'mapa';
@@ -4083,13 +4100,16 @@ function toast(t, kind) {
 function openDrawer() {
   const d = $('#drawer'), mods = modsOf(S.rol);
   d.innerHTML = `<div class="drawer-p nav" role="dialog" aria-modal="true" aria-label="Menú"><div class="drawer-h"><b>${typeof pantNombre === 'function' ? pantNombre() : modLabel(S.mod)} · ${ROLES[S.rol]}</b><button type="button" class="iconbtn" data-act="closeDrawer" aria-label="Cerrar menú">${ic('x')}</button></div>${navHTML()}
-    <div class="nav-g"><p class="nav-gt">Sesión</p><a href="#" data-act="cambiarRol">${ic('users')}Cambiar de puesto</a><a href="#" data-act="inicio">${ic('map')}Inicio</a></div>
+    <div class="nav-g ses"><p class="nav-gt">Sesión</p><a href="#" data-act="cambiarRol">${ic('users')}Cambiar de puesto</a><a href="#" data-act="inicio">${ic('map')}Inicio</a></div>
     </div>`;
   d.hidden = false;
 }
 function closeDrawer() { $('#drawer').hidden = true; $('#drawer').innerHTML = ''; }
-$('#drawer').addEventListener('click', e => { if (e.target.id === 'drawer') closeDrawer(); });
-$('#modal').addEventListener('click', e => { if (e.target.id === 'modal') closeModal(); });
+/* Un clic sobre la barra de desplazamiento del fondo NO debe cerrar la ventana: solo cierra el clic fuera, en la zona sin barra */
+const clicEnBarra = (e, el) => e.clientX >= el.getBoundingClientRect().left + el.clientWidth || e.clientY >= el.getBoundingClientRect().top + el.clientHeight;
+$('#drawer').addEventListener('click', e => { if (e.target.id === 'drawer' && !clicEnBarra(e, e.target)) closeDrawer(); });
+$('#modal').addEventListener('click', e => { if (e.target.id === 'modal' && !clicEnBarra(e, e.target)) closeModal(); });
+
 document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModal(); closeDrawer(); } });
 
 /* ---------- Clientes, proveedores, insumos y productos: altas, edición y archivo, con historial de cambios ---------- */
@@ -4101,16 +4121,18 @@ const ENT = {
   sal: {col: 'productos', scr: 'catprod', t: 'salsa'},
   emp: {col: 'empleados', scr: 'personal', t: 'persona'}
 };
-const ENT_LBL = {nombre: 'Nombre', rif: 'RIF', tel: 'Teléfono', vend: 'Vendedor', precio: 'Tipo de precio', credito: 'Crédito (días)', estado: 'Estado', rubro: 'Rubro', tipo: 'Qué vende',
+const ENT_LBL = {nombre: 'Nombre', rif: 'RIF', tel: 'Teléfono', vend: 'Vendedor', precio: 'Tipo de precio', credito: 'Crédito (días)', ubic: 'Estado donde está', estado: 'Situación', rubro: 'Rubro', tipo: 'Qué vende',
   contacto: 'Contacto', entrega: 'Plazo de entrega (días)', cond: 'Condición', dias: 'Días de plazo', n: 'Nombre', kgSaco: 'Kg por saco', min: 'Mínimo', g: 'Gramos', ventaDia: 'Venta diaria', cedula: 'Cédula', cargo: 'Cargo', area: 'Área', pago: 'Pago', tarifa: 'Tarifa'};
 const entKind = (col, id) => col === 'proveedores' ? 'prov' : col === 'clientes' ? 'cli' : col === 'empleados' ? 'emp' : /^INS-/.test(id) || /^MP-/.test(id) ? 'ins' : /^PRES-/.test(id) ? 'pres' : 'sal';
 const entNom = d => d ? (d.nombre || d.n || d.k || d.cod || '') : '';
+const ESTADOS_VE = ['Amazonas', 'Anzoátegui', 'Apure', 'Aragua', 'Barinas', 'Bolívar', 'Carabobo', 'Cojedes', 'Delta Amacuro', 'Distrito Capital', 'Falcón', 'Guárico', 'Lara', 'Mérida', 'Miranda', 'Monagas', 'Nueva Esparta', 'Portuguesa', 'Sucre', 'Táchira', 'Trujillo', 'Vargas', 'Yaracuy', 'Zulia'];
 const entFields = kind => {
   const vend = (DATA.vendedores || []).map(v => v[0]);
   if (kind === 'cli') return [
     {k: 'nombre', l: 'Nombre del cliente', req: 1}, {k: 'rif', l: 'RIF', req: 1, ph: 'J-00000000-0'}, {k: 'tel', l: 'Teléfono (WhatsApp)', t: 'tel', ph: '0414-0000000'},
     {k: 'vend', l: 'Vendedor asignado', sel: ['', ...vend]}, {k: 'precio', l: 'Tipo de precio', sel: ['B', 'FULL'], sens: 1}, {k: 'credito', l: 'Crédito (días)', t: 'number', sens: 1},
-    {k: 'estado', l: 'Estado', sel: ['activo', 'inactivo']}];
+    {k: 'ubic', l: 'Estado donde está (ubicación)', sel: [['', 'Elige el estado'], ...ESTADOS_VE]},
+    {k: 'estado', l: 'Situación del cliente', sel: ['activo', 'inactivo']}];
   if (kind === 'prov') return [
     {k: 'nombre', l: 'Nombre', req: 1}, {k: 'rif', l: 'RIF', req: 1, ph: 'J-00000000-0'}, {k: 'rubro', l: 'Rubro o categoría'},
     {k: 'tipo', l: 'Qué vende', sel: [['papa', 'Papa (materia prima)'], ['insumo', 'Insumos'], ['general', 'Compras generales']]}, {k: 'contacto', l: 'Contacto (persona o teléfono)'}, {k: 'entrega', l: 'Plazo de entrega (días)', t: 'number'},
@@ -4121,13 +4143,13 @@ const entFields = kind => {
 };
 const entLoad = (kind, id) => {
   const d = one(ENT[kind].col, id) || {};
-  if (kind === 'cli') return {nombre: d.nombre || '', rif: d.rif || '', tel: d.tel || '', vend: d.vend || '', precio: d.precio || 'B', credito: d.credito ?? 30, estado: d.estado || 'activo'};
+  if (kind === 'cli') return {nombre: d.nombre || '', rif: d.rif || '', tel: d.tel || '', vend: d.vend || '', precio: d.precio || 'B', credito: d.credito ?? 30, ubic: d.ubic || '', estado: d.estado || 'activo'};
   if (kind === 'prov') return {nombre: d.nombre || '', rif: d.rif || '', rubro: d.rubro || '', tipo: d.tipo || 'insumo', contacto: d.contacto || '', entrega: d.entrega ?? 3, cond: d.cond || 'Contado', dias: d.dias || 30};
   if (kind === 'ins') { const par = rows('productos').find(p => p.tipo === 'mp' && p.k === d.sk) || {}; return {n: d.n || '', kgSaco: d.kgSaco ?? 0, min: par.min ?? 0}; }
   if (kind === 'pres') return {n: d.n || '', g: d.g ?? 0, min: d.min ?? 0, ventaDia: d.ventaDia ?? 0};
   return {n: d.n || '', min: d.min ?? 0};
 };
-const entNew = kind => kind === 'cli' ? {nombre: '', rif: '', tel: '', vend: '', precio: 'B', credito: 30, estado: 'activo'} : kind === 'prov' ? {nombre: '', rif: '', rubro: '', tipo: 'insumo', contacto: '', entrega: 3, cond: 'Contado', dias: 30} : {};
+const entNew = kind => kind === 'cli' ? {nombre: '', rif: '', tel: '', vend: '', precio: 'B', credito: 30, ubic: '', estado: 'activo'} : kind === 'prov' ? {nombre: '', rif: '', rubro: '', tipo: 'insumo', contacto: '', entrega: 3, cond: 'Contado', dias: 30} : {};
 
 /* Registro de cambios: quién (rol), qué y cuándo */
 Object.assign(Svc, {
@@ -4212,7 +4234,7 @@ function entEditCard(kinds) {
 }
 
 /* ---------- Pantalla de clientes ---------- */
-function scrClientes() {
+function scrClientesViejo() {   // lista vieja de Administración: ya no se muestra (los clientes pasaron a la lista única de Ventas)
   const l = lvl('clientes'), ed = l >= 2, own = l >= 3;
   if (ed && (!S.ef || S.ef.kind !== 'cli')) S.ef = {kind: 'cli', id: '', f: entNew('cli'), err: ''};
   const all = rows('clientes').sort((a, b) => (a.nombre || '').localeCompare(b.nombre || '')), act = all.filter(c => !c.arch), arch = all.filter(c => c.arch);
@@ -4230,7 +4252,7 @@ function scrClientes() {
   ${own ? card('Clientes archivados', table([{h: 'Cliente', f: c => `<b>${esc(c.nombre)}</b><br><span class="mono muted">${esc(c.id)}</span>`}, {h: '', f: c => `<button type="button" class="btn sm" data-act="cliRest" data-id="${c.id}">Restaurar</button>`}], arch, {empty: 'No hay clientes archivados.'}), {sub: 'Solo el Dueño los ve y restaura'}) : ''}
   ${entHist(['cli'])}`;
 }
-SCREENS.clientes = {mod: 'adm', g: 'Ventas y personal', t: 'Clientes', s: 'Clientes', ic: 'users', r: scrClientes};
+SCREENS.clientes = {mod: 'adm', g: 'Ventas y personal', t: 'Clientes', s: 'Clientes', ic: 'users', r: () => ''};   // se reemplaza en front/ventas/v-registro.js: UNA sola lista de clientes, la de Ventas
 PERM_DEF.clientes = 'ventas:2 cobranza:2 adm:1 rrhh:0';
 PERM_DEF.catalogos = 'adm:2';
 S.perm = permInit();
@@ -4422,7 +4444,7 @@ async function run(key, fn, ok) {
 }
 const waitFor = async (test, ms = 4000) => { const t0 = Date.now(); while (Date.now() - t0 < ms) { if (test()) return true; await wait(100); } return false; };
 const enter = r => { if (location.hash.slice(1) === r) go(r); else location.hash = r; };
-const ROLE_HOME = {adm:'compras-mp', custodio:'caja', recep:'recepcion', jefeprod:'planta', empaque:'empaque', ventas:'ventas', cobranza:'ventas', rrhh:'nomina'};
+const ROLE_HOME = {adm:'compras-mp', custodio:'caja', recep:'recepcion', jefeprod:'planta', produccion:'pr-turno', empaque:'empaque', ventas:'ventas', cobranza:'ventas', rrhh:'nomina'};
 function homeRoute() {
   const m = S.mod, last = S.last[m], rh = ROLE_HOME[S.rol];
   if (!last && rh && SCREENS[rh] && SCREENS[rh].mod === m && can(rh)) return rh;
@@ -4436,8 +4458,8 @@ async function saveMatriz() {
   finally { S.matDirty = Math.max(0, (S.matDirty || 1) - 1); }
 }
 /* ---------- Tasa BCV (solo lectura): la consulta el servidor una vez al día; aquí solo se muestra ---------- */
-const tasaTitulo = () => { const t = S.tasaInfo; return !t ? 'Tasa BCV: sin dato todavía' : 'Tasa BCV del ' + fdl(t.fecha) + (t.respaldo ? '. La consulta de hoy falló: se usa la última guardada.' : ''); };
-const tasaPie = () => { const t = S.tasaInfo; if (!t) return S.tasaEstado === 'cargando' ? '' : '<span class="tf warn">Sin tasa guardada</span>'; return `<span class="tf${t.respaldo ? ' warn' : ''}">${t.respaldo ? 'Respaldo · ' : ''}${fdl(t.fecha)}</span>`; };
+const tasaTitulo = () => { const t = S.tasaInfo; return !t ? 'Tasa BCV: sin dato todavía' : 'Tasa BCV que rige para el ' + fdl(t.fecha) + (t.respaldo ? '. La consulta de hoy falló: se usa la última guardada.' : ''); };
+const tasaPie = () => { const t = S.tasaInfo; if (!t) return S.tasaEstado === 'cargando' ? '' : '<span class="tf warn">Sin tasa guardada</span>'; return `<span class="tf${t.respaldo ? ' warn' : ''}">${t.respaldo ? 'Respaldo · ' : ''}${t.fecha > new Date(Date.now() - 4 * 36e5).toISOString().slice(0, 10) ? 'Rige ' : ''}${fdl(t.fecha)}</span>`; };
 async function tasaCargar(forzar) {
   if (!window.__EM_HTTP || !S.rol || S.tasaEstado === 'cargando') return;
   if (!forzar && S.tasaRol === S.rol && (S.tasaEstado === 'ok' || (S.tasaEstado === 'error' && Date.now() - S.tasaT < 60000))) return;
@@ -4446,7 +4468,7 @@ async function tasaCargar(forzar) {
     const r = await fetch('/api/v/tasa', {headers: {'x-rol': S.rol}}); if (!r.ok) throw new Error('tasa ' + r.status);
     const j = await r.json(); S.tasaInfo = j.tasa || null; S.tasaEstado = 'ok';
   } catch (e) { S.tasaEstado = 'error'; S.tasaT = Date.now(); S.tasaInfo = null; console.warn('No se pudo leer la tasa BCV', e); }
-  S.tasa = (S.tasaInfo && S.tasaInfo.valor > 0) ? S.tasaInfo.valor : S.tasa;
+  S.tasa = (S.tasaInfo && S.tasaInfo.valor > 0) ? S.tasaInfo.valor : S.tasa; if (S.tasaInfo && S.tasaInfo.valor > 0) S.tasaVista = true;
   try { renderAll(); } catch (e) { /* aún no hay pantalla */ }
 }
 const ETAPAS = ['Lavado y pelado', 'Corte', 'Freído', 'Enfriado y reposo'];
@@ -4457,8 +4479,8 @@ const ACT = {
   inicio: () => { closeDrawer(); S.entry = 'doors'; savePref(); renderAll(); window.scrollTo(0, 0); },
   puerta: el => { S.mod = el.dataset.v; S.entry = 'roles'; renderAll(); window.scrollTo(0, 0); },
   cambiarRol: () => { closeDrawer(); S.entry = 'roles'; savePref(); renderAll(); window.scrollTo(0, 0); },
-  elegirRol: el => { S.rol = el.dataset.v; S.entry = 'in'; S.last = {prod: null, adm: null}; if (!modsOf(S.rol).includes(S.mod)) S.mod = modsOf(S.rol)[0]; savePref(); toast('Entraste como ' + ROLES[S.rol] + ' en ' + modLabel(S.mod) + '.'); enter(homeRoute()); },
-  setRol: el => { S.rol = el.dataset.v; S.last = {prod: null, adm: null}; if (!modsOf(S.rol).includes(S.mod)) S.mod = modsOf(S.rol)[0]; savePref(); toast('Entraste como ' + ROLES[S.rol] + '.'); enter(homeRoute()); },
+  elegirRol: el => { S.rol = el.dataset.v; if (B && B.refresh) B.refresh(); S.entry = 'in'; S.last = {prod: null, adm: null}; if (!modsOf(S.rol).includes(S.mod)) S.mod = modsOf(S.rol)[0]; savePref(); toast('Entraste como ' + ROLES[S.rol] + ' en ' + modLabel(S.mod) + '.'); enter(homeRoute()); },
+  setRol: el => { S.rol = el.dataset.v; if (B && B.refresh) B.refresh(); S.last = {prod: null, adm: null}; if (!modsOf(S.rol).includes(S.mod)) S.mod = modsOf(S.rol)[0]; savePref(); toast('Entraste como ' + ROLES[S.rol] + '.'); enter(homeRoute()); },
   mod: el => { closeDrawer(); const m = el.dataset.v; if (!modsOf(S.rol).includes(m)) return; const t = S.last[m] && can(S.last[m]) ? S.last[m] : [...(HOME[m] || []), ...allowed(m)].find(can); S.mod = m; if (t) enter(t); },
   drawer: () => openDrawer(), closeDrawer: () => closeDrawer(), closeModal: () => closeModal(),
   /* recepción */
@@ -4473,6 +4495,7 @@ const ACT = {
     if (!f.prod || !f.prov) { S.recErr = 'Falta el producto o el proveedor. Se registran en Catálogos.'; return render(); }
     if (!f.recibe) { S.recErr = 'Indica quién recibe (se agrega en Equipo y flota).'; return render(); }
     if (!f.sacos || !f.kgFact) { S.recErr = 'Indica la cantidad de sacos y los kg facturados.'; return render(); }
+    if (!(+f.kgFact > 0) || !(+f.sacos > 0)) { S.recErr = 'Los sacos y los kg facturados deben ser mayores que cero.'; toast(S.recErr, 'warn'); return render(); }
     if (f.tipo === 'papa' && !f.kgRec) { S.recErr = 'Indica los kg recibidos en la balanza.'; return render(); }
     if (f.tipo === 'insumo' && r.n < 3) { S.recErr = 'Pesa al menos 3 sacos para estimar el promedio.'; return render(); }
     const p = [...DATA.productosPapa, ...DATA.insumos].find(x => x.n === f.prod);
@@ -4563,7 +4586,8 @@ const ACT = {
     else S.empErr = '';
     if (S.empErr) return render();
     const mk = (+f.merma || 0) * mrKgUnd(f.pres), body = {...f, mermaUsd: mk * mrCostoKg('empaque', {lote: f.lote})};
-    run('emp', () => Svc.empaque(body), id => { S.empForm.und = ''; S.empForm.kg = ''; S.empForm.merma = 0; return `Empaque ${id} registrado: +${N0.format(f.und)} unidades al producto terminado.`; });
+    const undReg = +f.und; /* se guarda antes de limpiar el formulario, si no el mensaje dice «+0» */
+    run('emp', () => Svc.empaque(body), id => { S.empForm.und = ''; S.empForm.kg = ''; S.empForm.merma = 0; return `Empaque ${id} registrado: +${N0.format(undReg)} unidades al producto terminado.`; });
   },
   notaTipo: el => { S.notaForm.tipo = el.dataset.v; render(); },
   regNota: () => {
@@ -4688,7 +4712,7 @@ document.addEventListener('pointerout', e => { if (e.target.closest('[data-tip]'
 /* ---------- Inicio: carga de datos con estados de cargando, error y vacío ---------- */
 function finishBoot() {
   if (Boot.state === 'ready') return;
-  Boot.state = 'ready'; hydrate(); fixForms(); restorePref();
+  Boot.state = 'ready'; hydrate(); fixForms(); restorePref(); try { if (window.Borrador) Borrador.sesion(); } catch (e) { /* sin borrador */ }
   if (S.entry === 'in') { const h = location.hash.slice(1); S.route = SCREENS[h] && can(h) ? h : homeRoute(); if (location.hash.slice(1) !== S.route) history.replaceState(null, '', '#' + S.route); S.last[S.mod] = S.route; }
   renderAll();
 }

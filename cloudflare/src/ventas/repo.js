@@ -57,8 +57,9 @@ export const listarListas = db => all(db, 'SELECT * FROM listas_precio ORDER BY 
 const COLS_CLI = 'c.*, v.nombre AS vendedor_nombre';
 export function buscarClientes(db, {q = '', limite = 50, vendedor = null} = {}) {
   const t = '%' + q.trim().toUpperCase() + '%';
-  const filtros = [], a = [];
-  if (q.trim()) { a.push(t, t); filtros.push(`(c.razon_norm LIKE ?${a.length - 1} OR UPPER(COALESCE(c.rif_id,'')) LIKE ?${a.length})`); }
+  const tn = '%' + q.normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase().replace(/[.,;:()\-_/\'"]/g, ' ').replace(/\s+/g, ' ').trim() + '%'; // igual que razon_norm: el guion cuenta como espacio
+  const filtros = ["c.estado_cliente <> 'archivado'"], a = [];
+  if (q.trim()) { a.push(tn, t); filtros.push(`(c.razon_norm LIKE ?${a.length - 1} OR UPPER(COALESCE(c.rif_id,'')) LIKE ?${a.length} OR UPPER(c.razon_social) LIKE ?${a.length})`); }
   if (vendedor) { a.push(vendedor); filtros.push(`c.id_vendedor = ?${a.length}`); }
   a.push(limite);
   return all(db, `SELECT ${COLS_CLI}, ${SQL_DEUDA_CLIENTE} AS deuda_cents FROM clientes c LEFT JOIN vendedores v ON v.id = c.id_vendedor ${filtros.length ? 'WHERE ' + filtros.join(' AND ') : ''} ORDER BY c.razon_social LIMIT ?${a.length}`, a);
@@ -97,8 +98,10 @@ export function listarDocumentos(db, {cliente, estado, tipo, desde, hasta, limit
 }
 export const stInsertarDocumento = (db, d) => bind(db, `INSERT INTO documentos_venta (id_documento, nro_control_interno, nro_factura_fiscal, numero_externo, tipo_origen, estado, fecha_emision, fecha_vencimiento, id_cliente, id_vendedor, subtotal_base_cents, descuento_pct, descuento_cents, iva_cents, total_cents, metodo_pago, observaciones, afecta_inventario, id_ne_origen, sin_lineas, caso_liquidacion, fecha_liquidacion, origen, creado_rol, creado_ts, ejemplo, envio_zona, envio_direccion, lista_precios) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16,?17,?18,?19,?20,?21,?22,?23,?24,?25,?26,?27,?28,?29)`,
   [d.id_documento, d.nro_control_interno, d.nro_factura_fiscal ?? null, d.numero_externo ?? null, d.tipo_origen, d.estado || 'PENDIENTE', d.fecha_emision, d.fecha_vencimiento ?? null, d.id_cliente, d.id_vendedor ?? null, d.subtotal_base_cents, d.descuento_pct ?? null, d.descuento_cents || 0, d.iva_cents || 0, d.total_cents, d.metodo_pago ?? null, d.observaciones ?? null, d.afecta_inventario ?? 1, d.id_ne_origen ?? null, d.sin_lineas ? 1 : 0, d.caso_liquidacion ?? null, d.fecha_liquidacion ?? null, d.origen || 'manual', d.creado_rol ?? null, Date.now(), d.ejemplo ? 1 : 0, d.envio_zona ?? null, d.envio_direccion ?? null, d.lista_precios ?? null]);
-export const stInsertarLinea = (db, idDoc, l, ejemplo) => bind(db, 'INSERT INTO documento_lineas (id_documento, id_producto, sku, nombre, cantidad, precio_base_cents, precio_pp_cents, precio_mora_cents, alicuota, ejemplo) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10)',
-  [idDoc, l.id_producto, l.sku, l.nombre, l.cantidad, l.precio_base_cents, l.precio_pp_cents, l.precio_mora_cents, l.alicuota, ejemplo ? 1 : 0]);
+export const stInsertarLinea = (db, idDoc, l, ejemplo) => bind(db, 'INSERT INTO documento_lineas (id_documento, id_producto, sku, nombre, cantidad, precio_base_cents, precio_pp_cents, precio_mora_cents, alicuota, ejemplo, kg_por_bulto) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11)',
+  [idDoc, l.id_producto, l.sku, l.nombre, l.cantidad, l.precio_base_cents, l.precio_pp_cents, l.precio_mora_cents, l.alicuota, ejemplo ? 1 : 0, l.kg_por_bulto ?? null]);
+export const stDocPedido = (db, idDoc, idPedido, idSalida) => bind(db, 'UPDATE documentos_venta SET id_pedido = ?2, id_salida = ?3 WHERE id_documento = ?1', [idDoc, idPedido, idSalida]);
+export const disponiblePorProducto = db => all(db, 'SELECT id_producto, stock_entero, stock_apartado FROM productos');
 export const stEstadoDocumento = (db, id, estado, caso, fecha) => bind(db, 'UPDATE documentos_venta SET estado = ?2, caso_liquidacion = ?3, fecha_liquidacion = ?4 WHERE id_documento = ?1', [id, estado, caso ?? null, fecha ?? null]);
 export const stInsertarNotaAjuste = (db, n) => bind(db, 'INSERT INTO notas_ajuste_fiscal (id_nota_ajuste, id_factura_origen, tipo_nota, nro_fiscal_nota, fecha_emision, motivo_ajuste, base_imponible_ajuste_cents, iva_ajuste_cents, total_ajuste_cents, id_pago, ejemplo) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11)',
   [n.id_nota_ajuste, n.id_factura_origen, n.tipo_nota, n.nro_fiscal_nota, n.fecha_emision, n.motivo_ajuste, n.base, n.iva, n.total, n.id_pago ?? null, n.ejemplo ? 1 : 0]);

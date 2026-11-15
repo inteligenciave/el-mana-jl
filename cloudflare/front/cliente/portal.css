@@ -61,7 +61,7 @@ main{max-width:980px;margin:0 auto;padding:16px}
 .kv dt{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--gris);font-weight:700}
 .kv dd{margin:0;font-weight:700;font-size:17px}
 /* navegación */
-.tabs{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--linea);display:grid;grid-template-columns:repeat(4,1fr);padding-bottom:env(safe-area-inset-bottom,0px);z-index:30}
+.tabs{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--linea);display:grid;grid-template-columns:repeat(5,1fr);padding-bottom:env(safe-area-inset-bottom,0px);z-index:30}
 .tabs button{border:0;background:none;min-height:64px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:12.5px;font-weight:600;color:var(--gris);position:relative}
 .tabs button svg{width:24px;height:24px}
 .tabs button[aria-current="page"]{color:var(--rojo);box-shadow:inset 0 3px 0 var(--rojo)}
@@ -140,3 +140,18 @@ td.r,th.r{text-align:right}
 @media print{.tabs,.cab .salir,.resumen{display:none}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 @media (max-width:640px){.seg{display:grid;grid-template-columns:1fr 1fr;overflow:visible}.seg button{flex:none;padding:0 8px;font-size:14px}}
+
+.comp-prev{display:flex;gap:12px;align-items:center;margin-top:8px}.comp-prev img{width:96px;max-height:120px;object-fit:cover;border-radius:8px;border:1px solid var(--linea)}.comp-prev>div{display:grid;gap:6px;justify-items:start}
+/* COMPACTO (pedido del dueño): en computador, menos espacio en blanco. El celular queda igual. */
+@media (min-width:900px){
+body{font-size:14px;line-height:1.4;padding-bottom:16px}
+.cab-i{padding:5px 16px}.cab img{width:34px;height:34px}.cab b{font-size:16px}.cab small{font-size:12.5px}
+.cab .salir{min-height:34px;padding:0 12px}
+main{padding:10px 16px}
+.card{padding:10px 14px;margin-bottom:8px;border-radius:12px}
+.card h2{font-size:16px;margin-bottom:6px}
+.grande{font-size:28px}
+.btn{min-height:38px;padding:0 14px;font-size:14px}
+.btn.sm{min-height:34px;padding:0 12px;font-size:14px}
+.acciones{gap:8px}.form{gap:8px}
+}

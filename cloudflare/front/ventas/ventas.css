@@ -220,3 +220,20 @@
 .v-lista-t{margin:0 0 6px;font-size:13px}
 .v-lista .v-ub::before{content:' · '}.v-lista .v-prod-p .v-sub{display:none}.v-lista .v-prod-p .v-pv{white-space:nowrap}
 @media (min-width:1000px){.v-3{grid-template-columns:minmax(0,17fr) minmax(0,55fr) minmax(0,28fr)}}
+
+/* Panel de cliente más ancho y legible: filas "dato … valor", sin recortes ni scroll a 1366x768 */
+@media (min-width:1000px){
+  .v-3{grid-template-columns:minmax(250px,30fr) minmax(0,38fr) minmax(250px,32fr)}
+  .v-p1 .v-dl{grid-template-columns:1fr;gap:0}
+  .v-p1 .v-dl>div{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:3px 0;border-bottom:1px solid var(--line)}
+  .v-p1 .v-dl dt{font-size:11.5px;margin:0;flex:none}
+  .v-p1 .v-dl dd{margin:0;font-size:13px;text-align:right;font-weight:600}
+  .v-p1 .v-cli-n{font-size:16px;word-break:normal;overflow-wrap:anywhere}
+  .v-p1 .v-cred{margin:2px 0;font-size:13px}
+  .v-p1 .hint{font-size:12px;margin:2px 0}
+  .v-p1>.card-b{padding:10px 12px}
+}
+/* Buscador del catálogo: si no caben los filtros, bajan a otra fila y el buscador conserva su tamaño */
+.v-barra1{flex-wrap:wrap}
+.v-barra1 .v-bq{flex:1 1 150px;min-width:140px}
+select.v-falta{outline:2px solid var(--red,#C92121);outline-offset:1px}

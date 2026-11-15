@@ -29,3 +29,5 @@
 .cp-sel{display:grid;gap:2px;font-size:12px;color:var(--muted)}
 .cp-sel select,.cp-sel input{min-height:36px;max-width:150px}
 @media (max-width:900px){.cp-cols{grid-template-columns:1fr}.cp-tarjs,.cp-dos{grid-template-columns:1fr}.cp-kv{grid-template-columns:1fr 1fr}}
+
+.cp-comp{text-align:center}.cp-comp img{max-width:100%;max-height:60vh;border-radius:8px;border:1px solid var(--line,#ddd)}

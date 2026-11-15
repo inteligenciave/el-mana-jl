@@ -1,7 +1,7 @@
 /* Entregas con foto · núcleo de las pantallas del equipo: cliente HTTP, estado, formatos y compresión de la foto en el navegador.
    Todo lo que toca al servidor pasa por eApi(); ninguna pantalla hace fetch por su cuenta. */
 const EN = {
-  tab: 'SUBIDA', q: '', pag: 0, lista: null, sin: null, minis: {}, fotos: {}, cargando: false, err: null,
+  tab: 'SUBIDA', q: '', pag: 0, lista: null, sin: null, lleg: null, minis: {}, fotos: {}, cargando: false, err: null,
   up: {doc: null, q: '', foto: null, mini: null, antes: 0, despues: 0, aviso: '', vista: '', hora: '', ocupado: false, lado: 0, calidad: 0},
   pl: {data: null, tab: 'plazos', q: '', f: 'TODOS', pag: 0, disputas: null}, aj: {data: null, err: null}, busy: {}
 };
@@ -51,9 +51,9 @@ function eDibujar(img, ladoMax, calidad) {
 }
 /* Devuelve {foto, mini, antes, despues, lado, calidad}. Si tras comprimir pasa del tope, baja la calidad (hasta 0.3) y luego el tamaño (hasta 640 px). */
 async function eComprimir(file) {
-  if (!file || !/^image\//i.test(file.type || '')) throw new Error('Ese archivo no es una imagen. Elige una foto (JPG, PNG o similar).');
+  if (!file || (file.type && !/^image\//i.test(file.type))) throw new Error(/pdf/i.test(file.type) ? 'Los PDF no se pueden subir. Elige una foto o una captura de pantalla.' : 'Ese archivo no es una imagen. Elige una foto (JPG, PNG o similar).');
   if (file.size > E_MAX_ORIGINAL) throw new Error('La foto original pesa demasiado (' + eBytes(file.size) + '). Elige una de menos de 40 MB.');
-  let img; try { img = await eAbrirImagen(file); } catch (e) { throw new Error('No se pudo leer esa imagen. Prueba con una foto JPG o PNG.'); }
+  let img; try { img = await eAbrirImagen(file); } catch (e) { throw new Error(/hei[cf]/i.test(file.type + ' ' + file.name) ? 'Esa foto está en formato HEIC y este navegador no la puede abrir. Guárdala como JPG o toma una captura de pantalla.' : 'No se pudo leer esa imagen. Prueba con una foto JPG o PNG.'); }
   let lado = 1024, q = 0.6, foto = eDibujar(img, lado, q);
   while (eBytesB64(foto) > E_TOPE_BYTES && q > 0.31) { q = Math.round((q - 0.1) * 10) / 10; foto = eDibujar(img, lado, q); }
   while (eBytesB64(foto) > E_TOPE_BYTES && lado > 640) { lado -= 128; foto = eDibujar(img, lado, q); }

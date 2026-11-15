@@ -3,10 +3,12 @@
 import * as D from '../ventas/dominio.js';
 import * as VR from '../ventas/repo.js';
 import * as VS from '../ventas/servicio.js';
+import * as PRD from '../produccion/repo.js';
 import {puede, ROL_TXT} from '../ventas/permisos.js';
 import * as T from '../tasa/servicio.js';
 import * as BS from '../bancos/servicio.js';
 import * as C from './dominio.js';
+import * as ED from '../entregas/dominio.js';
 import * as R from './repo.js';
 import {tasaReferencia} from './tasa-acceso.js';
 
@@ -55,7 +57,7 @@ export async function catalogo(ctx) {
   for (const p of prods) {
     const pr = VS.precioDe(p, rm.get(p.id_producto), cx).pr; if (!pr) continue; // sin precio cargado: no se ofrece
     out.push({id_producto: p.id_producto, sku: p.codigo_sku, nombre: p.nombre, gramaje: p.gramaje, categoria: p.categoria, imagen: p.imagen_blanca_url || null,
-      precio: dol(pr.base), precio_pronto_pago: pr.pp < pr.base ? dol(pr.pp) : null, iva: p.alicuota_iva, disponible: Math.max(0, p.stock_entero), sin_inventario: p.stock_entero <= 0, ...C.extraProducto(p)});
+      precio: dol(pr.base), precio_pronto_pago: pr.pp < pr.base ? dol(pr.pp) : null, iva: p.alicuota_iva, disponible: Math.max(0, p.stock_entero - (p.stock_apartado || 0)), sin_inventario: p.stock_entero - (p.stock_apartado || 0) <= 0, ...C.extraProducto(p)});
   }
   return out;
 }
@@ -72,8 +74,9 @@ export async function crearPedido(ctx, b) {
     const p = pm.get(l.id_producto); if (!p || !p.activo) throw err(400, 'Uno de los productos ya no está disponible.');
     const pd = VS.precioDe(p, rm.get(p.id_producto), cx); if (pd.sinLista) throw err(409, 'Todavía no tenemos tu lista de precios: avisa a quien te atiende para que complete tu zona.', {codigo: 'SIN_LISTA'}); const pr = pd.pr; if (!pr) throw err(400, `«${p.nombre} ${p.gramaje || ''}» no está disponible para pedir.`);
     const nom = `${p.nombre} ${p.gramaje || ''}`.trim();
-    if (p.stock_entero <= 0) { sin.push({id_producto: p.id_producto, nombre: nom, disponible: 0}); continue; }
-    if (l.cantidad > p.stock_entero) { sin.push({id_producto: p.id_producto, nombre: nom, disponible: p.stock_entero}); continue; }
+    const libre = Math.max(0, p.stock_entero - (p.stock_apartado || 0));   // disponible = existencias − apartado por pedidos
+    if (libre <= 0) { sin.push({id_producto: p.id_producto, nombre: nom, disponible: 0}); continue; }
+    if (l.cantidad > libre) { sin.push({id_producto: p.id_producto, nombre: nom, disponible: libre}); continue; }
     lineas.push({id_producto: p.id_producto, sku: p.codigo_sku, nombre: nom, cantidad: l.cantidad, precio_cents: pr.base, precio_base_cents: pr.base, alicuota: p.alicuota_iva});
   }
   if (sin.length) throw err(409, sin.map(s => s.disponible ? `«${s.nombre}»: solo hay ${s.disponible}.` : `«${s.nombre}»: Sin inventario.`).join(' '), {codigo: 'SIN_STOCK', productos: sin});
@@ -107,7 +110,21 @@ export async function cuenta(ctx) {
       total: dol(d.total_cents), pagado: dol(d.pagado_cents), saldo: d.estado === 'PENDIENTE' ? dol(d.saldo_cents) : 0, estado: d.estado, vencido: d.estado === 'PENDIENTE' && !!d.fecha_vencimiento && d.fecha_vencimiento < hoy, dias: D.diasEntre(d.fecha_emision, hoy)})),
     notas: notas.map(n => ({tipo: n.tipo_nota === 'NOTA_CREDITO' ? 'Nota de crédito' : 'Nota de débito', numero: n.nro_fiscal_nota, fecha: n.fecha_emision, motivo: n.motivo_ajuste, total: dol(n.total_ajuste_cents), sobre: n.nro_factura_fiscal || n.nro_control_interno})),
     pagos: pagos.map(p => ({recibo: C.recibo(p.id_pago), fecha: p.fecha_pago, banco: p.banco, referencia: p.referencia, monto_bs: dol(p.monto_bs_cents), usd: dol(p.usd_cents), aplicado_a: aplic.filter(a => a.id_pago === p.id_pago).map(a => a.numero_externo || a.nro_control_interno)})),
-    pedidos, reportes: reportes.map(formatoReporte)};
+    pedidos, pedidos_venta: await pedidosVentaDe(db, c.id_cliente), reportes: reportes.map(formatoReporte)};
+}
+/* PDF para el cliente: solo SUS documentos y pedidos (ajeno = no existe) */
+export async function pdfDocumento(ctx, id) {
+  const d = await VR.getDocumento(ctx.db, id);
+  if (!d || d.id_cliente !== ctx.cliente.id_cliente) throw err(404, 'No encontramos ese documento.');
+  return VS.datosPdfDocumento(ctx.db, id);
+}
+export async function pdfPedidoVenta(ctx, id) {
+  const p = await PRD.getPedido(ctx.db, id);
+  if (!p || p.id_cliente !== ctx.cliente.id_cliente || p.estado === 'ANULADO') throw err(404, 'No encontramos ese pedido.');
+  return VS.datosPdfPedido(ctx.db, id);
+}
+export async function pedidosVentaDe(db, idCliente) {
+  return (await PRD.listarPedidos(db, {cliente: idCliente, limite: 50})).filter(p => p.estado !== 'ANULADO').map(p => ({id: p.id_pedido, numero: p.nro, tipo: p.tipo === 'FACTURA' ? 'Factura' : 'Nota de entrega', fecha: p.fecha, estado: p.estado, bultos: p.bultos}));
 }
 export async function detalleDocumento(ctx, id) {
   const d = await VR.getDocumento(ctx.db, id);
@@ -118,12 +135,18 @@ export async function detalleDocumento(ctx, id) {
     lineas: ls.map(l => ({nombre: l.nombre, cantidad: l.cantidad, precio: dol(l.precio_base_cents)}))};
 }
 const formatoReporte = r => ({id: r.id, codigo: C.codigoReporte(r.id), estado: r.estado, estado_texto: C.ESTADOS_PAGO[r.estado], fecha_pago: r.fecha_pago, banco: r.banco, referencia: r.referencia, monto_bs: dol(r.monto_bs_cents), nota: r.nota, creado: r.creado_ts, motivo_rechazo: r.motivo_rechazo || null,
-  recibo: r.id_pago ? C.recibo(r.id_pago) : null});
+  recibo: r.id_pago ? C.recibo(r.id_pago) : null, tiene_comprobante: !!r.tiene_comprobante});
 
 export async function reportarPago(ctx, b) {
   const {db, cliente: cli} = ctx, hoy = D.hoyVE();
   const bl = await BS.elegido(db, b && b.id_banco); if (bl) b = {...b, banco: bl.nombre}; // banco elegido de la lista: su nombre manda
   const v = C.validarPagoReportado(b, hoy); if (v.error) throw err(400, v.error);
+  let comprobante = null, comprobante_bytes = null;
+  if (b.comprobante != null && b.comprobante !== '') {   // foto o captura del comprobante: JPEG ya comprimido en el navegador
+    if (typeof b.comprobante === 'string' && b.comprobante.length > ED.MAX_FOTO_CHARS) throw err(413, 'La imagen del comprobante es demasiado grande. Toma otra foto o una captura más pequeña.');
+    const m = ED.validarFoto(b.comprobante, null); if (m) throw err(400, 'La imagen del comprobante no es válida. Elige otra foto o captura.');
+    comprobante = b.comprobante; comprobante_bytes = ED.bytesDeB64(comprobante);
+  }
   const x = v.ok, cfg = await VR.leerConfig(db), max = +cfg.ref_corta_max || 6, bco = D.normBanco(x.banco), refN = D.normRef(x.referencia);
   if (await R.abiertosPagos(db, cli.id_cliente) >= C.MAX_PAGOS_ABIERTOS) throw err(409, 'Ya tienes varios pagos esperando verificación. Espera a que Cobranza los revise.', {codigo: 'MUCHOS_ABIERTOS'});
   // El mensaje es el mismo si la referencia es de otro cliente o tuya: no se cuenta nada de nadie.
@@ -131,8 +154,8 @@ export async function reportarPago(ctx, b) {
   for (const ex of await VR.posiblesDuplicados(db, bco, refN)) if (D.compararDuplicado({banco: bco, referencia: refN, monto_bs_cents: x.monto_bs_cents}, ex, max) === 'bloquea') throw dup();
   const key = D.dupKey(bco, refN, x.monto_bs_cents, max), id = await R.siguiente(db, 'pago_reportado');
   try {
-    await R.lote(db, [R.stPagoReportado(db, {id, id_cliente: cli.id_cliente, fecha_pago: x.fecha_pago, banco: x.banco, id_banco: bl ? bl.id : null, referencia: x.referencia, ref_norm: refN, dup_key: key, monto_bs_cents: x.monto_bs_cents, nota: x.nota, id_enlace: ctx.enlace.id, ejemplo: cli.ejemplo}),
-      ...auditP(ctx, C.codigoReporte(id), 'reportó un pago', {monto_bs: dol(x.monto_bs_cents), banco: bco, referencia: refN, fecha_pago: x.fecha_pago})]);
+    await R.lote(db, [R.stPagoReportado(db, {id, id_cliente: cli.id_cliente, fecha_pago: x.fecha_pago, banco: x.banco, id_banco: bl ? bl.id : null, referencia: x.referencia, ref_norm: refN, dup_key: key, monto_bs_cents: x.monto_bs_cents, nota: x.nota, id_enlace: ctx.enlace.id, ejemplo: cli.ejemplo, comprobante, comprobante_bytes}),
+      ...auditP(ctx, C.codigoReporte(id), 'reportó un pago', {monto_bs: dol(x.monto_bs_cents), banco: bco, referencia: refN, fecha_pago: x.fecha_pago, con_comprobante: !!comprobante})]);
   } catch (e) { if (/UNIQUE/i.test(String((e && e.message) || e))) throw dup(); throw e; }
   return {id, codigo: C.codigoReporte(id), estado: 'POR_VERIFICAR', mensaje: 'Recibimos tu reporte. Queda por verificar: Cobranza lo revisa y recién entonces se aplica a tus facturas.'};
 }
@@ -176,7 +199,7 @@ export async function revocarEnlace(ctx, id) {
 export async function pedidosEquipo(ctx, estado) {
   exigir(ctx, 'ver', 'Tu rol no ve pedidos.');
   const filas = await R.pedidosEquipo(ctx.db, estado === 'TODOS' ? null : (estado || 'POR_CONFIRMAR'));
-  const ps = await armarPedidos(ctx.db, filas), prods = await VR.listarProductos(ctx.db), st = new Map(prods.map(p => [p.id_producto, p.stock_entero]));
+  const ps = await armarPedidos(ctx.db, filas), prods = await VR.listarProductos(ctx.db), st = new Map(prods.map(p => [p.id_producto, Math.max(0, p.stock_entero - (p.stock_apartado || 0))]));
   const lin = await R.lineasDePedidos(ctx.db, filas.map(p => p.id));
   return ps.map(p => { const f = filas.find(x => x.id === p.id); return {...p, id_cliente: f.id_cliente, cliente: f.razon_social, rif_id: f.rif_id, zona: f.zona, tipo_sugerido: f.modalidad_despacho_pref === 'FACTURA_DIRECTA' ? 'FACTURA' : 'NOTA_ENTREGA', id_documento: f.id_documento,
     resuelto_rol: f.resuelto_rol, alcanza: lin.filter(l => l.id_pedido === p.id).every(l => (st.get(l.id_producto) || 0) >= l.cantidad)}; });
@@ -188,7 +211,7 @@ export async function aprobarPedido(ctx, id, b = {}) {
   const lineas = (await R.lineasDePedidos(ctx.db, [id])).map(l => ({id_producto: l.id_producto, cantidad: l.cantidad}));
   if (!await R.moverPedido(ctx.db, id, 'POR_CONFIRMAR', 'APROBANDO')) throw err(409, 'Este pedido ya fue atendido por otra persona.');
   let v;
-  try { v = await VS.vender(ctx, {id_cliente: p.id_cliente, tipo, lineas, observaciones: 'Pedido del portal ' + C.codigoPedido(id) + (p.nota ? ' · ' + p.nota : '')}); }
+  try { v = await VS.vender(ctx, {id_cliente: p.id_cliente, tipo, lineas, metodo_pago: txt(b.metodo_pago, 40) || undefined, observaciones: 'Pedido del portal ' + C.codigoPedido(id) + (p.nota ? ' · ' + p.nota : '')}); }
   catch (e) { await R.moverPedido(ctx.db, id, 'APROBANDO', 'POR_CONFIRMAR'); throw e; }   // sigue por confirmar: el equipo ve el motivo y decide
   await R.moverPedido(ctx.db, id, 'APROBANDO', 'APROBADO', {ts: Date.now(), rol: ROL_TXT[ctx.rol] || ctx.rol, id_documento: v.id_documento});
   await VR.lote(ctx.db, auditE(ctx, 'portal', C.codigoPedido(id), p.razon_social, 'aprobó el pedido del portal', {documento: v.nro_control_interno, total_usd: v.totales && v.totales.total}));
@@ -207,6 +230,13 @@ export async function pagosEquipo(ctx, estado) {
   exigir(ctx, 'verPagos', 'Tu rol no ve pagos.');
   const filas = await R.pagosReportadosEquipo(ctx.db, estado === 'TODOS' ? null : (estado || 'POR_VERIFICAR'));
   return filas.map(r => ({...formatoReporte(r), id_cliente: r.id_cliente, cliente: r.razon_social, rif_id: r.rif_id, zona: r.zona, resuelto_rol: r.resuelto_rol}));
+}
+/* Comprobante de un pago reportado: lo ve el equipo que verifica pagos (Cobranza, Administración, Dueño…) */
+export async function comprobantePago(ctx, id) {
+  exigir(ctx, 'verPagos', 'Tu rol no ve pagos.');
+  const r = await R.comprobanteDe(ctx.db, id); if (!r) throw err(404, 'Pago reportado no encontrado.');
+  if (!r.comprobante) throw err(404, 'Este pago no trae comprobante.');
+  return {comprobante: r.comprobante};
 }
 export async function confirmarPago(ctx, id, b = {}) {
   exigir(ctx, 'cobrar', 'Tu rol no registra pagos.');

@@ -23,7 +23,7 @@ function vDocHTML(det) {
   const hija = det.factura_resultante ? `<p class="hint">Al cobrarse se emitió la factura <b>${vtxt(det.factura_resultante.nro_factura_fiscal || det.factura_resultante.nro_control_interno)}</b>; esta nota no volvió a descontar inventario.</p>` : '';
   return `<div class="doc">${vMembrete(cfg, vTipoDoc(d), nums)}
     <div class="meta"><div><b>Cliente</b>${vtxt(d.razon_social)}</div><div><b>RIF</b>${vtxt(d.rif_id || '—')}</div><div><b>Vendedor</b>${vtxt(d.vendedor_nombre || '—')}</div><div><b>Estado</b>${vtxt(d.estado.replace(/_/g, ' ').toLowerCase())}</div>
-    ${nuevo ? `<div><b>Ubicación de envío</b>${(d.envio_zona && d.envio_direccion) ? vtxt(d.envio_zona) + ' · ' + vtxt(d.envio_direccion) : '<span class="v-alerta-i">Falta zona/dirección de entrega</span>' + (d.envio_zona || d.envio_direccion ? ' (' + vtxt(d.envio_zona || d.envio_direccion) + ')' : '')}</div>` : ''}${d.fecha_vencimiento ? `<div><b>Crédito hasta</b>${vfecha(d.fecha_vencimiento)}</div>` : ''}${d.metodo_pago ? `<div><b>Método de pago</b>${vtxt(d.metodo_pago)}</div>` : ''}</div>
+    ${nuevo ? `<div><b>Ubicación de envío</b>${(d.envio_zona && d.envio_direccion) ? vtxt(d.envio_zona) + ' · ' + vtxt(d.envio_direccion) : '<span class="v-alerta-i">Falta zona/dirección de entrega</span>' + (d.envio_zona || d.envio_direccion ? ' (' + vtxt(d.envio_zona || d.envio_direccion) + ')' : '')}</div>` : ''}${d.fecha_vencimiento ? `<div><b>Crédito hasta</b>${vfecha(d.fecha_vencimiento)}</div>` : ''}${d.metodo_pago ? `<div><b>Banco</b>${vtxt(d.metodo_pago)}${det.banco && det.banco.cuenta_numero ? '<br><span class="mono">Cuenta ' + vtxt(det.banco.cuenta_numero) + '</span>' : ''}${det.banco && det.banco.cuenta_titular ? '<br>' + vtxt(det.banco.cuenta_titular) : ''}</div>` : ''}${det.kg_total != null ? `<div><b>Kilos totales</b>${N2.format(det.kg_total)} kg</div>` : ''}${det.tasa ? `<div><b>Tasa BCV</b>${N2.format(det.tasa.valor)} Bs por US$ 1<br><span class="muted">Total en Bs: ${vbs(d.total_cents / 100 * det.tasa.valor)}</span></div>` : ''}</div>
     ${lineas}${tot}
     ${ne ? '' : ''}
     ${d.observaciones ? `<p class="hint">${vtxt(d.observaciones)}</p>` : ''}${hija}
@@ -42,7 +42,7 @@ async function vDocModal(id) {
     const asi = det.asientos.length ? `<details class="noprint v-det"><summary>Asientos contables automáticos (${det.asientos.length})</summary>${det.asientos.map(a => `<p class="hint"><b>${vfecha(a.fecha)}</b> · ${vtxt(a.concepto)}</p>${table([{h: 'Cuenta', f: l => vtxt(l.cuenta)}, {h: 'Debe', r: 1, f: l => l.debe ? vc2(l.debe) : ''}, {h: 'Haber', r: 1, f: l => l.haber ? vc2(l.haber) : ''}], a.lineas)}`).join('')}</details>` : '';
     const mov = det.movimientos.length ? `<p class="hint noprint">Movimientos de inventario de este documento: ${det.movimientos.map(m => (m.cantidad > 0 ? '+' : '') + m.cantidad + ' (' + vtxt(m.tipo.toLowerCase().replace(/_/g, ' ')) + ')').join(', ')}.</p>` : '<p class="hint noprint">Este documento no movió inventario (la salida ya se registró en la nota de entrega, o viene del Excel).</p>';
     const pago = `<p class="hint noprint">Abonado ${vc2(d.pagado_cents)} · saldo ${vc2(d.saldo_cents)}.</p>`;
-    modal(vTipoDoc(d) + ' ' + vtxt(d.nro_control_interno), vDocHTML(det) + pago + mov + asi + docBar(vTipoDoc(d) + ' ' + d.nro_control_interno));
+    modal(vTipoDoc(d) + ' ' + vtxt(d.nro_control_interno), vPdfBoton('vPdfDoc', id, 'Descargar PDF de ' + (d.tipo_origen === 'NOTA_ENTREGA' ? 'la nota de entrega' : 'la factura')) + vDocHTML(det) + pago + mov + asi + docBar(vTipoDoc(d) + ' ' + d.nro_control_interno));
   } catch (e) { vErr(e); }
 }
 
@@ -62,4 +62,14 @@ function vReciboHTML(det) {
 async function vReciboModal(id) {
   try { const det = await vApi('GET', '/pagos/' + id); modal('Recibo ' + vtxt(det.recibo), vReciboHTML(det) + docBar('Recibo ' + det.recibo)); }
   catch (e) { vErr(e); }
+}
+
+/* ---------- PDF real (archivo .pdf) de la nota de entrega / factura, también al vender (pedido) ---------- */
+const vPdfBoton = (act, id, texto) => `<div class="docbar noprint"><button type="button" class="btn acc" data-act="${act}" data-id="${id}">${ic('download', 16)}${texto}</button></div>`;
+async function vPdfBajar(ruta) {
+  try {
+    const d = await vApi('GET', '/pdf/' + ruta);
+    await ElManaPDF.descargar(d, typeof LOGO_SRC === 'string' ? LOGO_SRC : '/icon-192.png');
+    toast('Se descargó el PDF ' + esc(d.archivo) + '.', 'ok');
+  } catch (e) { vErr(e); }
 }

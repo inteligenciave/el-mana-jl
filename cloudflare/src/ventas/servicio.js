@@ -6,6 +6,7 @@ import * as T from '../tasa/servicio.js';
 import * as PR from '../precios/repo.js';
 import * as PD from '../precios/dominio.js';
 import * as BS from '../bancos/servicio.js';
+import * as PRD from '../produccion/repo.js';
 
 export const err = (status, message, extra = {}) => Object.assign(new Error(message), {status, message, extra});
 const pad = (n, w = 6) => String(n).padStart(w, '0');
@@ -14,11 +15,12 @@ const numOrNull = v => (v === '' || v == null) ? null : (Number.isFinite(+v) ? +
 const pctOk = v => v == null || (Number.isFinite(v) && v >= 0 && v <= 100);
 const centsOrNull = v => { const n = numOrNull(v); return n == null ? null : (Number.isNaN(n) || n < 0 ? NaN : D.aCents(n)); };
 const exigir = (ctx, accion, msg) => { if (!puede(ctx.rol, accion, ctx.matriz)) throw err(403, msg || 'Tu rol no puede hacer esto.'); };
-const audit = (ctx, ent, ref, nom, accion, detalle) => R.stAuditoria(ctx.db, {rol: ctx.rol, rolTxt: ROL_TXT[ctx.rol] || ctx.rol, ent, ref, nom, accion, detalle});
-const enLote = async (db, stmts) => {
+export const audit = (ctx, ent, ref, nom, accion, detalle) => R.stAuditoria(ctx.db, {rol: ctx.rol, rolTxt: ROL_TXT[ctx.rol] || ctx.rol, ent, ref, nom, accion, detalle});
+export const enLote = async (db, stmts) => {
   try { return await R.lote(db, stmts); }
   catch (e) {
     const m = String((e && e.message) || e);
+    if (/SIN_STOCK_DISPONIBLE/.test(m)) throw err(409, 'Sin inventario: alguien más acaba de apartar esos bultos. Revisa lo disponible e inténtalo de nuevo.', {codigo: 'SIN_STOCK'});
     if (/CHECK constraint/i.test(m) && /stock/i.test(m)) throw err(409, 'No hay existencias suficientes para algún producto del pedido.', {codigo: 'SIN_STOCK'});
     if (/UNIQUE/i.test(m) && /dup_key|pagos_dup/i.test(m)) throw err(409, 'Esa referencia ya fue registrada por otra persona hace un instante.', {codigo: 'DUPLICADO'});
     if (/UNIQUE/i.test(m) && /rif_id/i.test(m)) throw err(409, 'Ya existe un cliente con ese RIF.', {codigo: 'RIF_REPETIDO'});
@@ -33,6 +35,8 @@ export async function arranque(db) {
   const estadosLista = await cargarMapaListas(db);
   const [productos, vendedores, listas, cfg, ej] = await Promise.all([R.listarProductos(db), R.listarVendedores(db), R.listarListas(db), R.leerConfig(db), R.contarEjemplo(db)]);
   const {pin_hash, pin_sal, ...cfgPublica} = cfg;
+  /* Inventario único: stock_entero = bultos en bodega; disponible = lo que se puede vender (sin lo apartado por pedidos) */
+  for (const p of productos) p.disponible = Math.max(0, (p.stock_entero || 0) - (p.stock_apartado || 0));
   return {hoy: D.hoyVE(), estados_lista: estadosLista, productos, vendedores, listas, config: cfgPublica, pinConfigurado: !!pin_hash, ejemplo: ej,
     secuencias: {factura: await R.leerSecuencia(db, 'factura_fiscal'), nc: await R.leerSecuencia(db, 'nc_fiscal'), nd: await R.leerSecuencia(db, 'nd_fiscal')}};
 }
@@ -62,9 +66,11 @@ export async function guardarPesoBulto(ctx, id, b) {
   await enLote(ctx.db, [R.stPesoBulto(ctx.db, id, kg.valor, un.valor), ...audit(ctx, 'producto', p.codigo_sku, p.nombre, 'cargó peso por bulto', {antes: {kg_por_bulto: p.kg_por_bulto ?? null, unidades_por_bulto: p.unidades_por_bulto ?? null}, despues: {kg_por_bulto: kg.valor, unidades_por_bulto: un.valor}})]);
   return R.getProducto(ctx.db, id);
 }
+/* Entrada manual de inventario: solo el Dueño y con motivo. La producción entra sola al cerrar el turno. */
 export async function entradaStock(ctx, idProducto, cantidad, nota) {
-  exigir(ctx, 'entradaStock', 'Tu rol no registra entradas de inventario.');
+  if (ctx.rol !== 'dueno') throw err(403, 'Solo el Dueño suma bultos a mano. La producción entra sola al cerrar el turno.');
   if (!D.entero(cantidad)) throw err(400, 'La cantidad debe ser un número entero mayor que cero.');
+  if (txt(nota, 100).length < 3) throw err(400, 'Escribe el motivo de la entrada.');
   const p = await R.getProducto(ctx.db, idProducto); if (!p) throw err(404, 'Producto no encontrado.');
   await enLote(ctx.db, [R.stStock(ctx.db, idProducto, cantidad), R.stMovimiento(ctx.db, {id_producto: idProducto, cantidad, tipo: 'ENTRADA', fecha: D.hoyVE()}), ...audit(ctx, 'inventario', p.codigo_sku, p.nombre, 'entrada de inventario', {cantidad, nota: txt(nota, 100)})]);
   return R.getProducto(ctx.db, idProducto);
@@ -89,6 +95,7 @@ function leerCliente(b, prev, permitidoCondiciones) {
   if (!c.zona) throw err(400, D.MSG_ELEGIR_ZONA);
   c.lista_regional = D.listaRegional(c.zona);   // solo referencia: la lista que rige sale siempre del estado
   if (!c.razon_social) throw err(400, 'La razón social es obligatoria.');
+  if (String(b.razon_social).trim().length > 150) throw err(400, 'El nombre del cliente es muy largo: usa 150 letras o menos.');
   c.razon_norm = D.normNombre(c.razon_social);
   const cond = {id_lista_base: b.id_lista_base ? +b.id_lista_base : null, descuento_fijo_pct: numOrNull(b.descuento_fijo_pct), dias_pronto_pago: numOrNull(b.dias_pronto_pago), dias_credito_normal: numOrNull(b.dias_credito_normal), limite_credito_cents: centsOrNull(b.limite_credito_usd)};
   if (permitidoCondiciones) {
@@ -130,7 +137,8 @@ export async function preciosCliente(db, idCliente) {
   const cli = await R.getCliente(db, idCliente); if (!cli) throw err(404, 'Cliente no encontrado.');
   const [prods, reglas, cx] = await Promise.all([R.listarProductos(db), R.reglasDeCliente(db, idCliente), contextoPrecios(db, cli)]);
   const rm = new Map(reglas.map(r => [r.id_producto, r]));
-  return {cliente: cli, lista: cx.lista, sin_lista: !cx.lista && prods.some(p => cx.conLista.has(p.id_producto)), mensaje_sin_lista: !cx.lista ? D.mensajeSinLista(cli) : null, reglas, precios: prods.map(p => { const x = precioDe(p, rm.get(p.id_producto), cx).pr || {}; return {id_producto: p.id_producto, regla: rm.has(p.id_producto), base: dol(x.base ?? null), pp: dol(x.pp ?? null), mora: dol(x.mora ?? null)}; })};
+  const compC = (await PRD.comprometidoCliente(db, idCliente)).reduce((a, f) => a + D.totalesLineas([{cantidad: f.pend, precio_base_cents: f.precio_base_cents, precio_pp_cents: f.precio_base_cents, precio_mora_cents: f.precio_base_cents, alicuota: f.alicuota}], 0, f.descuento_pct).total, 0);
+  return {comprometido: dol(compC), cliente: cli, lista: cx.lista, sin_lista: !cx.lista && prods.some(p => cx.conLista.has(p.id_producto)), mensaje_sin_lista: !cx.lista ? D.mensajeSinLista(cli) : null, reglas, precios: prods.map(p => { const x = precioDe(p, rm.get(p.id_producto), cx).pr || {}; return {id_producto: p.id_producto, regla: rm.has(p.id_producto), base: dol(x.base ?? null), pp: dol(x.pp ?? null), mora: dol(x.mora ?? null)}; })};
 }
 
 /* ---------- Fase 1: vender ---------- */
@@ -145,7 +153,7 @@ export async function crearVenta(ctx, b, o = {}) {
     const p = pm.get(l.id_producto); if (!p || !p.activo) throw err(400, 'Producto no disponible.');
     const pd = precioDe(p, rm.get(p.id_producto), cx); if (pd.sinLista) throw err(409, D.mensajeSinLista(cli), {codigo: 'SIN_LISTA'}); const pr = pd.pr; if (!pr) throw err(400, `«${p.nombre} ${p.gramaje || ''}» no tiene precio cargado.`);
     if (!o.ejemplo && !D.bultoCompleto(p)) throw err(409, D.MSG_SIN_PESO(`${p.nombre} ${p.gramaje || ''}`.trim(), D.faltaBulto(p)), {codigo: 'SIN_PESO_BULTO', falta: D.faltaBulto(p), id_producto: p.id_producto});
-    if (l.cantidad > p.stock_entero) throw err(409, `Existencias insuficientes de «${p.nombre} ${p.gramaje || ''}»: hay ${p.stock_entero} bultos.`, {codigo: 'SIN_STOCK'});
+    if (l.cantidad > p.stock_entero - (p.stock_apartado || 0)) throw err(409, `Sin inventario de «${p.nombre} ${p.gramaje || ''}»: hay ${Math.max(0, p.stock_entero - (p.stock_apartado || 0))} bultos disponibles.`, {codigo: 'SIN_STOCK'});
     return {id_producto: p.id_producto, sku: p.codigo_sku, nombre: `${p.nombre} ${p.gramaje || ''}`.trim(), cantidad: l.cantidad, precio_base_cents: pr.base, precio_pp_cents: pr.pp, precio_mora_cents: pr.mora, alicuota: p.alicuota_iva};
   });
   const tot = D.totalesLineas(lineas, 0, cli.descuento_fijo_pct);
@@ -170,6 +178,14 @@ export async function crearVenta(ctx, b, o = {}) {
 export async function vender(ctx, b) {
   exigir(ctx, 'vender', 'Tu rol no puede generar notas de entrega ni facturas.');
   const pg = b.pago && typeof b.pago === 'object' ? b.pago : null;
+  { /* el banco es obligatorio (crédito y contado) cuando la empresa ya cargó bancos */
+    const activos = (await BS.listaParaCliente(ctx.db)).bancos;
+    if (activos.length) {
+      const bp = pg && pg.id_banco != null && pg.id_banco !== '' ? await BS.elegido(ctx.db, pg.id_banco) : null;
+      if (bp && !txt(b.metodo_pago, 40)) b = {...b, metodo_pago: bp.nombre};
+      if (!txt(b.metodo_pago, 40)) throw err(400, 'Elige el banco en «Método de pago» antes de generar el documento.', {codigo: 'FALTA_BANCO'});
+    }
+  }
   if (pg) {
     exigir(ctx, 'cobrar', 'Tu rol no registra pagos: genera la venta a crédito.');
     const bl = await BS.elegido(ctx.db, pg.id_banco); if (bl) pg.banco = bl.nombre;
@@ -178,26 +194,132 @@ export async function vender(ctx, b) {
     const max = +(await R.leerConfig(ctx.db)).ref_corta_max || 6, bco = D.normBanco(pg.banco), rf = D.normRef(pg.referencia);
     for (const ex of await R.posiblesDuplicados(ctx.db, bco, rf)) if (D.compararDuplicado({banco: bco, referencia: rf, monto_bs_cents: 0}, ex, max) === 'bloquea') throw err(409, 'Esa referencia ya está registrada para ese banco. No se generó la venta: revisa la referencia.', {codigo: 'DUPLICADO', existente: formatoPago(ex)});
   }
-  const v = await crearVenta(ctx, b);
-  if (!pg) return {...v, condicion: 'CREDITO'};
-  // Pagó ahora: se cobra de una vez lo que corresponde hoy (pronto pago), con el mismo motor de liquidación.
+  /* La venta ahora es un PEDIDO: aparta los bultos y espera su zona. La nota o factura se emite al despachar. */
+  return crearPedido(ctx, b, {pago: pg ? {id_banco: pg.id_banco ?? null, banco: pg.banco, referencia: pg.referencia} : null});
+}
+
+/* Cobro de una venta «Pagó ahora»: se hace al emitir el primer documento del pedido (pronto pago), con el mismo motor de liquidación. */
+export async function cobrarContado(ctx, idCliente, idDocumento, nroDoc, pg) {
   try {
-    const hoy = D.hoyVE(), pre = await previsualizar(ctx.db, {id_cliente: b.id_cliente, fecha: hoy, docs: [v.id_documento]}), d = pre.documentos[0];
+    const hoy = D.hoyVE(), tasa = (await T.tasaPara(ctx.db, hoy)).valor, pre = await previsualizar(ctx.db, {id_cliente: idCliente, fecha: hoy, docs: [idDocumento]}), d = pre.documentos[0];
     if (!d || d.error || !(d.restante_cents > 0)) throw err(400, (d && d.error) || 'No hay saldo por cobrar.');
-    const tasa = pg.tasaBCV, bs = Math.ceil(d.restante_cents / 100 * tasa * 100) / 100;
-    const c = await cobrar(ctx, {id_cliente: b.id_cliente, fecha_pago: hoy, monto_bs: bs, tasa, banco: pg.banco, id_banco: pg.id_banco, referencia: pg.referencia, observacion: 'Cobrado al generar ' + v.nro_control_interno, aplicaciones: [{id_documento: v.id_documento, usd: d.restante}]});
-    return {...v, condicion: 'CONTADO', pago: {recibo: c.recibo, usd: c.usd, monto_bs: bs, avisos: c.avisos, liquidaciones: c.liquidaciones}};
-  } catch (e) {
-    return {...v, condicion: 'CREDITO', pago_error: e.message || 'No se pudo registrar el pago.'};
-  }
+    const bs = Math.ceil(d.restante_cents / 100 * tasa * 100) / 100;
+    const c = await cobrar(ctx, {id_cliente: idCliente, fecha_pago: hoy, monto_bs: bs, tasa, banco: pg.banco, id_banco: pg.id_banco, referencia: pg.referencia, observacion: 'Cobrado al despachar ' + nroDoc, aplicaciones: [{id_documento: idDocumento, usd: d.restante}]});
+    return {ok: true, recibo: c.recibo, usd: c.usd, monto_bs: bs};
+  } catch (e) { return {ok: false, error: e.message || 'No se pudo registrar el pago.'}; }
+}
+
+/* Pedido de venta: congela precios, kilos y zona; aparta los bultos (inventario único). Sin inventario disponible no se vende. */
+export async function crearPedido(ctx, b, o = {}) {
+  const {db} = ctx;
+  if (!['NOTA_ENTREGA', 'FACTURA'].includes(b.tipo)) throw err(400, 'Elige generar nota de entrega o factura.');
+  const ev = D.validarPedido(b.lineas); if (ev) throw err(400, ev);
+  const cli = await R.getCliente(db, +b.id_cliente); if (!cli) throw err(404, 'Elige un cliente.');
+  const prods = await R.productosPorIds(db, b.lineas.map(l => l.id_producto)), pm = new Map(prods.map(p => [p.id_producto, p]));
+  const rm = new Map((await R.reglasDeCliente(db, cli.id_cliente)).map(r => [r.id_producto, r])), cx = await contextoPrecios(db, cli);
+  const lineas = b.lineas.map(l => {
+    const p = pm.get(l.id_producto); if (!p || !p.activo) throw err(400, 'Producto no disponible.');
+    const nom = `${p.nombre} ${p.gramaje || ''}`.trim();
+    const pd = precioDe(p, rm.get(p.id_producto), cx); if (pd.sinLista) throw err(409, D.mensajeSinLista(cli), {codigo: 'SIN_LISTA'}); const pr = pd.pr; if (!pr) throw err(400, `«${nom}» no tiene precio cargado.`);
+    if (!D.bultoCompleto(p)) throw err(409, D.MSG_SIN_PESO(nom, D.faltaBulto(p)), {codigo: 'SIN_PESO_BULTO', falta: D.faltaBulto(p), id_producto: p.id_producto});
+    const disp = Math.max(0, p.stock_entero - (p.stock_apartado || 0));
+    if (l.cantidad > disp) throw err(409, `Sin inventario de «${nom}»: hay ${disp} bultos disponibles.`, {codigo: 'SIN_STOCK', id_producto: p.id_producto, disponible: disp});
+    return {id_producto: p.id_producto, sku: p.codigo_sku, nombre: nom, cantidad: l.cantidad, kg_por_bulto: p.kg_por_bulto, precio_base_cents: pr.base, precio_pp_cents: pr.pp, precio_mora_cents: pr.mora, alicuota: p.alicuota_iva};
+  });
+  const tot = D.totalesLineas(lineas, 0, cli.descuento_fijo_pct);
+  const comprometido = await PRD.comprometidoCliente(db, cli.id_cliente);   // lo ya pedido y sin despachar también cuenta contra el crédito
+  const compC = comprometido.reduce((a, f) => a + D.totalesLineas([{cantidad: f.pend, precio_base_cents: f.precio_base_cents, precio_pp_cents: f.precio_base_cents, precio_mora_cents: f.precio_base_cents, alicuota: f.alicuota}], 0, f.descuento_pct).total, 0);
+  const lim = D.revisarLimite(cli, (cli.deuda_cents || 0) + compC, tot.total);
+  if (!lim.ok) throw err(409, `El pedido (US$ ${(tot.total / 100).toFixed(2)}) supera el crédito disponible (US$ ${(Math.max(0, lim.disponible) / 100).toFixed(2)}).`, {codigo: 'LIMITE_CREDITO', disponible: dol(lim.disponible), total: dol(tot.total)});
+  const fecha = o.fecha || D.hoyVE(), ej = cli.ejemplo ? 1 : 0, zona = D.zonaDeEstado(cli.zona) || 'Sin zona';
+  const id = await R.siguiente(db, 'pedido_venta'), nro = 'PED-' + pad(id);
+  const kilos = Math.round(lineas.reduce((a, l) => a + l.cantidad * l.kg_por_bulto, 0) * 1000) / 1000;
+  const st = [PRD.stInsertarPedido(db, {id_pedido: id, nro, id_cliente: cli.id_cliente, estado_ve: D.estadoReal(cli.zona), zona, tipo: b.tipo, fecha, creado_rol: ROL_TXT[ctx.rol] || ctx.rol, creado_rol_cod: ctx.rol, id_vendedor: cli.id_vendedor, descuento_pct: cli.descuento_fijo_pct, metodo_pago: txt(b.metodo_pago, 40) || null, observaciones: txt(b.observaciones, 300) || null, lista_precios: cx.lista, pago_json: o.pago ? JSON.stringify(o.pago) : null, ejemplo: ej}),
+    ...lineas.map(l => PRD.stInsertarPedidoLinea(db, id, l)), ...lineas.map(l => PRD.stApartado(db, l.id_producto, l.cantidad)),
+    ...audit(ctx, 'venta', nro, cli.razon_social, 'registró pedido', {total_usd: dol(tot.total), bultos: lineas.reduce((a, l) => a + l.cantidad, 0), kilos, zona})];
+  await enLote(db, st);
+  const envio = D.ubicacionEnvio(cli);
+  return {id_documento: null, id_pedido: id, nro_pedido: nro, nro_control_interno: nro, tipo_origen: b.tipo, fecha_emision: fecha, pedido: true, zona, kilos, condicion: o.pago ? 'CONTADO' : 'CREDITO',
+    aviso_envio: envio.completa ? null : D.MSG_FALTA_ENVIO + ': completa la ficha del cliente (zona y dirección de entrega) para que la entrega salga bien.',
+    totales: {subtotal: dol(tot.subtotal), descuento: dol(tot.descuento), iva: dol(tot.iva), total: dol(tot.total)}};
+}
+
+/* Emite la nota o factura de lo que SALE en un despacho. Devuelve las sentencias (van en el mismo lote que la salida) y el resumen.
+   Precios, kilos y descuento son los congelados en el pedido; baja el apartado y las existencias a la vez. */
+export async function documentoDeDespacho(ctx, pedido, lineas, idSalida, fecha) {
+  const {db} = ctx, cli = await R.getCliente(db, pedido.id_cliente), esNE = pedido.tipo === 'NOTA_ENTREGA', ej = pedido.ejemplo ? 1 : 0;
+  const tot = D.totalesLineas(lineas, 0, pedido.descuento_pct), cfg = await R.leerConfig(db), envio = D.ubicacionEnvio(cli);
+  const id = await R.siguiente(db, 'documento'), ctl = (esNE ? 'NE-' : 'FA-') + pad(await R.siguiente(db, esNE ? 'ne' : 'factura_ctl'));
+  const fiscal = esNE ? null : (cfg.fiscal_prefijo_factura || '') + pad(await R.siguiente(db, 'factura_fiscal'), 8);
+  const doc = {id_documento: id, nro_control_interno: ctl, nro_factura_fiscal: fiscal, tipo_origen: pedido.tipo, estado: 'PENDIENTE', fecha_emision: fecha, fecha_vencimiento: cli.dias_credito_normal != null ? D.sumarDias(fecha, cli.dias_credito_normal) : null,
+    id_cliente: cli.id_cliente, id_vendedor: pedido.id_vendedor, subtotal_base_cents: tot.subtotal, descuento_pct: pedido.descuento_pct, descuento_cents: tot.descuento, iva_cents: tot.iva, total_cents: tot.total,
+    metodo_pago: pedido.metodo_pago, observaciones: pedido.observaciones, envio_zona: envio.zona, envio_direccion: envio.direccion, lista_precios: pedido.lista_precios, afecta_inventario: 1, origen: 'manual', creado_rol: pedido.creado_rol, ejemplo: ej};
+  const asi = esNE ? D.asientoEmisionNE({total: tot.total}) : D.asientoEmisionFactura(tot);
+  const st = [R.stInsertarDocumento(db, doc), R.stDocPedido(db, id, pedido.id_pedido, idSalida), ...lineas.map(l => R.stInsertarLinea(db, id, l, ej)),
+    ...lineas.flatMap(l => [PRD.stApartado(db, l.id_producto, -l.cantidad), R.stStock(db, l.id_producto, -l.cantidad), R.stMovimiento(db, {id_producto: l.id_producto, cantidad: -l.cantidad, tipo: esNE ? 'SALIDA_NOTA_ENTREGA' : 'SALIDA_FACTURA', id_documento: id, fecha, ejemplo: ej})]),
+    R.stAsiento(db, {fecha, id_documento: id, concepto: asi.concepto, lineas: asi.lineas, ejemplo: ej}), R.stSaldoCliente(db, cli.id_cliente)];
+  return {id_documento: id, nro: ctl, tipo: pedido.tipo, total: dol(tot.total), st};
 }
 
 export async function detalleDocumento(db, id) {
   const d = await R.getDocumento(db, id); if (!d) throw err(404, 'Documento no encontrado.');
   const [lineas, notas, asientos, movs, hija] = await Promise.all([R.lineasDe(db, id), R.notasDe(db, id), R.listarAsientos(db, {limite: 500}).then(a => a.filter(x => x.id_documento === id)), R.movimientosDe(db, id), R.facturaDeNE(db, id)]);
   const cfg = await R.leerConfig(db); const {pin_hash, pin_sal, ...pub} = cfg;
-  return {documento: d, lineas, notas, asientos: asientos.map(a => ({...a, lineas: JSON.parse(a.lineas)})), movimientos: movs, factura_resultante: hija || null, membrete: pub};
+  /* Datos para imprimir: kg totales, cuenta del banco elegido y la tasa BCV del día de emisión */
+  const prs = new Map((await R.productosPorIds(db, [...new Set(lineas.map(l => l.id_producto))])).map(p => [p.id_producto, p]));
+  const lineasKg = lineas.map(l => { const kb = l.kg_por_bulto > 0 ? l.kg_por_bulto : (prs.get(l.id_producto) && prs.get(l.id_producto).kg_por_bulto); return {...l, kg_total: kb > 0 ? Math.round(l.cantidad * kb * 1000) / 1000 : null}; });
+  const kgTotal = lineasKg.length && lineasKg.every(l => l.kg_total != null) ? Math.round(lineasKg.reduce((a, l) => a + l.kg_total, 0) * 1000) / 1000 : null;
+  const bk = d.metodo_pago ? await R.one(db, 'SELECT nombre, moneda, cuenta_numero, cuenta_titular FROM bancos WHERE nombre = ?1 COLLATE NOCASE ORDER BY activo DESC LIMIT 1', [d.metodo_pago]) : null;
+  let tasa = null; try { const t = await T.vigente(db, d.fecha_emision); tasa = t ? {valor: t.valor, fecha: t.fecha} : null; } catch (e) { tasa = null; }
+  return {documento: d, lineas: lineasKg, kg_total: kgTotal, banco: bk || null, tasa, notas, asientos: asientos.map(a => ({...a, lineas: JSON.parse(a.lineas)})), movimientos: movs, factura_resultante: hija || null, membrete: pub};
 }
+
+/* ---------- PDF de la nota de entrega / factura ----------
+   Datos ya listos para que el navegador arme el archivo PDF (ventas y portal del cliente usan el MISMO armado).
+   · Al VENDER solo existe el pedido (PED-): se entrega un PDF rotulado «Pedido / Nota de entrega» (o «Pedido / Factura»), sin numeración fiscal nueva.
+   · Al DESPACHAR nacen la nota (NE-) o factura (FA-) definitivas: ese PDF lleva su número real. */
+const r2 = n => Math.round(n * 100) / 100;
+async function _datosPdfBase(db, cli, fechaTasa) {
+  const cfg = await R.leerConfig(db); let tasa = null;
+  try { const t = await T.vigente(db, fechaTasa); tasa = t ? {valor: t.valor, fecha: t.fecha} : null; } catch (e) { tasa = null; }
+  return {cfg, tasa, empresa: {razon: cfg.membrete_razon || 'El Maná JL', rif: cfg.membrete_rif || '', direccion: cfg.membrete_direccion || '', telefono: cfg.membrete_telefono || ''}};
+}
+async function _bancoPdf(db, nombre) {
+  const bk = nombre ? await R.one(db, 'SELECT nombre, moneda, cuenta_numero, cuenta_titular FROM bancos WHERE nombre = ?1 COLLATE NOCASE ORDER BY activo DESC LIMIT 1', [nombre]) : null;
+  return nombre ? {nombre: (bk && bk.nombre) || nombre, cuenta: (bk && bk.cuenta_numero) || '', titular: (bk && bk.cuenta_titular) || ''} : null;
+}
+const _plazoTxt = cli => cli && cli.dias_credito_normal != null ? `Crédito normal hasta ${cli.dias_credito_normal} días` + (cli.dias_pronto_pago != null ? ` · pronto pago hasta ${cli.dias_pronto_pago} días` : '') : (cli && cli.dias_pronto_pago != null ? `Pronto pago hasta ${cli.dias_pronto_pago} días` : '');
+export async function datosPdfPedido(db, id) {
+  const p = await PRD.getPedido(db, id); if (!p) throw err(404, 'Pedido no encontrado.');
+  const [ls, cli] = [await PRD.lineasDePedido(db, id), await R.getCliente(db, p.id_cliente)];
+  const {tasa, empresa} = await _datosPdfBase(db, cli, p.fecha), ne = p.tipo === 'NOTA_ENTREGA';
+  const lineas = ls.map(l => ({nombre: l.nombre, sku: l.sku, bultos: l.bultos, kg_bulto: l.kg_por_bulto, kg: Math.round(l.bultos * l.kg_por_bulto * 1000) / 1000, precio_bulto: dol(l.precio_base_cents), total: dol(l.bultos * l.precio_base_cents)}));
+  const tot = D.totalesLineas(ls.map(l => ({cantidad: l.bultos, precio_base_cents: l.precio_base_cents, alicuota: l.alicuota})), 0, p.descuento_pct);
+  const envio = D.ubicacionEnvio(cli), contado = !!p.pago_json;
+  return {kind: 'pedido', tipo: ne ? 'NOTA_ENTREGA' : 'FACTURA', titulo: ne ? 'NOTA DE ENTREGA' : 'FACTURA', rotulo: 'PEDIDO / ' + (ne ? 'NOTA DE ENTREGA' : 'FACTURA') + ' (por despachar)', definitivo: false, numero: p.nro, fecha: p.fecha, estado: p.estado,
+    archivo: (ne ? 'Nota-' : 'Factura-') + p.nro + '.pdf', aviso: `Este es el pedido ${p.nro}: se entregó al vender. La ${ne ? 'nota de entrega' : 'factura'} con su número definitivo se emite al despachar.`,
+    empresa, cliente: {razon: cli.razon_social, rif: cli.rif_id || '', vendedor: cli.vendedor_nombre || ''}, tasa, lineas,
+    totales: {subtotal: dol(tot.subtotal), descuento: dol(tot.descuento), descuento_pct: p.descuento_pct || 0, iva: dol(tot.iva), total: dol(tot.total), total_bs: tasa ? r2(tot.total / 100 * tasa.valor) : null, bultos: ls.reduce((a, l) => a + l.bultos, 0), kilos: Math.round(ls.reduce((a, l) => a + l.bultos * l.kg_por_bulto, 0) * 1000) / 1000},
+    condicion: contado ? 'De contado (pronto pago)' : 'A crédito', plazo: _plazoTxt(cli), vence: null, banco: await _bancoPdf(db, p.metodo_pago),
+    envio: {estado: p.estado_ve || D.estadoReal(cli.zona) || '', zona: p.zona || '', direccion: envio.direccion}, observaciones: p.observaciones || ''};
+}
+export async function datosPdfDocumento(db, id) {
+  const d = await R.getDocumento(db, id); if (!d) throw err(404, 'Documento no encontrado.');
+  const [ls, cli] = [await R.lineasDe(db, id), await R.getCliente(db, d.id_cliente)];
+  const {tasa, empresa} = await _datosPdfBase(db, cli, d.fecha_emision), ne = d.tipo_origen === 'NOTA_ENTREGA';
+  const prs = new Map((await R.productosPorIds(db, [...new Set(ls.map(l => l.id_producto))])).map(p => [p.id_producto, p]));
+  const lineas = ls.map(l => { const kb = l.kg_por_bulto > 0 ? l.kg_por_bulto : ((prs.get(l.id_producto) || {}).kg_por_bulto || null); return {nombre: l.nombre, sku: l.sku, bultos: l.cantidad, kg_bulto: kb, kg: kb ? Math.round(l.cantidad * kb * 1000) / 1000 : null, precio_bulto: dol(l.precio_base_cents), total: dol(l.cantidad * l.precio_base_cents)}; });
+  const kilos = lineas.length && lineas.every(l => l.kg != null) ? Math.round(lineas.reduce((a, l) => a + l.kg, 0) * 1000) / 1000 : null;
+  const zonaEnv = d.envio_zona || (cli.zona || ''), numero = d.numero_externo || d.nro_control_interno;
+  return {kind: 'documento', tipo: d.tipo_origen, titulo: ne ? 'NOTA DE ENTREGA' : 'FACTURA', rotulo: '', definitivo: true, numero, nro_fiscal: d.nro_factura_fiscal || '', fecha: d.fecha_emision, estado: d.estado,
+    archivo: (ne ? 'Nota-' : 'Factura-') + d.nro_control_interno + '.pdf', aviso: '',
+    empresa, cliente: {razon: d.razon_social, rif: d.rif_id || '', vendedor: d.vendedor_nombre || ''}, tasa, lineas,
+    totales: {subtotal: dol(d.subtotal_base_cents), descuento: dol(d.descuento_cents), descuento_pct: d.descuento_pct || 0, iva: dol(d.iva_cents), total: dol(d.total_cents), total_bs: tasa ? r2(d.total_cents / 100 * tasa.valor) : null, bultos: lineas.reduce((a, l) => a + l.bultos, 0), kilos},
+    condicion: d.fecha_vencimiento ? 'A crédito' : (d.estado === 'PAGADO' ? 'Pagada' : 'A crédito'), plazo: _plazoTxt(cli), vence: d.fecha_vencimiento || null, banco: await _bancoPdf(db, d.metodo_pago),
+    envio: {estado: D.estadoReal(zonaEnv) || '', zona: D.zonaDeEstado(zonaEnv) || '', direccion: d.envio_direccion || cli.direccion_entrega || ''}, observaciones: d.observaciones || '', sin_detalle: !lineas.length};
+}
+/* Pedidos de venta recientes (para bajar su PDF desde ventas) */
+export const pedidosRecientes = db => PRD.listarPedidos(db, {limite: 60}).then(rs => rs.map(p => ({id_pedido: p.id_pedido, nro: p.nro, fecha: p.fecha, razon_social: p.razon_social, tipo: p.tipo, estado: p.estado, bultos: p.bultos, kilos: Math.round(p.kilos * 1000) / 1000, zona: p.zona})));
 
 /* ---------- Fase 2: liquidación ---------- */
 const CAMPO_CASO = {1: 'precio_pp_cents', 2: 'precio_base_cents', 3: 'precio_mora_cents'};
@@ -213,7 +335,7 @@ export async function previsualizar(db, {id_cliente, fecha, docs, exonerar}) {
   const pend = await R.documentosPendientesDe(db, cli.id_cliente), out = [];
   for (const d of pend) {
     if (docs && !docs.includes(d.id_documento)) continue;
-    if (D.diasEntre(d.fecha_emision, f) < 0) { out.push({id_documento: d.id_documento, error: 'La fecha de pago es anterior a la emisión.'}); continue; }
+    if (D.diasEntre(d.fecha_emision, f) < 0) { out.push({id_documento: d.id_documento, nro: d.numero_externo || d.nro_control_interno, tipo_origen: d.tipo_origen, fecha_emision: d.fecha_emision, restante: dol(d.saldo_cents), error: 'Esta nota se emitió después de la fecha del pago: no se puede aplicar.'}); continue; }
     const {liq, restante} = await liquidar(db, d, cli, f, !!exonerar);
     out.push({id_documento: d.id_documento, nro: d.numero_externo || d.nro_control_interno, tipo_origen: d.tipo_origen, fecha_emision: d.fecha_emision, sin_lineas: !!d.sin_lineas, total: dol(d.total_cents), pagado: dol(d.pagado_cents),
       dias: liq.dias, caso: liq.caso, caso_texto: D.CASO_TXT[liq.caso], ruta: liq.ruta, neto: dol(liq.neto_cents), restante: dol(restante), restante_cents: restante, nota: liq.nota ? {tipo: liq.nota.tipo, base: dol(liq.nota.base), iva: dol(liq.nota.iva), total: dol(liq.nota.total)} : null,

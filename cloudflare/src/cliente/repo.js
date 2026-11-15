@@ -19,7 +19,7 @@ export async function sumarIntento(db, ip, ventana) {
 }
 
 /* ---------- Pedidos del portal ---------- */
-export const stPedido = (db, p) => bind(db, "INSERT INTO pedidos_portal (id, id_cliente, estado, total_cents, nota, creado_ts, id_enlace, ejemplo) VALUES (?1,?2,'POR_CONFIRMAR',?3,?4,?5,?6,?7)", [p.id, p.id_cliente, p.total_cents, p.nota ?? null, Date.now(), p.id_enlace ?? null, p.ejemplo ? 1 : 0, p.id_banco ?? null]);
+export const stPedido = (db, p) => bind(db, "INSERT INTO pedidos_portal (id, id_cliente, estado, total_cents, nota, creado_ts, id_enlace, ejemplo) VALUES (?1,?2,'POR_CONFIRMAR',?3,?4,?5,?6,?7)", [p.id, p.id_cliente, p.total_cents, p.nota ?? null, Date.now(), p.id_enlace ?? null, p.ejemplo ? 1 : 0]);
 export const stPedidoLinea = (db, idPedido, l) => bind(db, 'INSERT INTO pedido_portal_lineas (id_pedido, id_producto, sku, nombre, cantidad, precio_cents, alicuota) VALUES (?1,?2,?3,?4,?5,?6,?7)', [idPedido, l.id_producto, l.sku, l.nombre, l.cantidad, l.precio_cents, l.alicuota]);
 export const pedidosDeCliente = (db, idCliente) => all(db, 'SELECT * FROM pedidos_portal WHERE id_cliente = ?1 ORDER BY id DESC LIMIT 50', [idCliente]);
 export const getPedido = (db, id) => one(db, 'SELECT p.*, c.razon_social, c.rif_id, c.modalidad_despacho_pref FROM pedidos_portal p JOIN clientes c ON c.id_cliente = p.id_cliente WHERE p.id = ?1', [id]);
@@ -34,11 +34,14 @@ export async function moverPedido(db, id, de, a, campos = {}) {
 }
 
 /* ---------- Pagos reportados ---------- */
-export const stPagoReportado = (db, p) => bind(db, "INSERT INTO pagos_reportados (id, id_cliente, fecha_pago, banco, referencia, ref_norm, dup_key, monto_bs_cents, nota, estado, creado_ts, id_enlace, ejemplo, id_banco) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,'POR_VERIFICAR',?10,?11,?12,?13)",
-  [p.id, p.id_cliente, p.fecha_pago, p.banco, p.referencia, p.ref_norm, p.dup_key ?? null, p.monto_bs_cents, p.nota ?? null, Date.now(), p.id_enlace ?? null, p.ejemplo ? 1 : 0]);
-export const pagosReportadosDe = (db, idCliente) => all(db, 'SELECT * FROM pagos_reportados WHERE id_cliente = ?1 ORDER BY id DESC LIMIT 50', [idCliente]);
-export const getPagoReportado = (db, id) => one(db, 'SELECT p.*, c.razon_social, c.rif_id FROM pagos_reportados p JOIN clientes c ON c.id_cliente = p.id_cliente WHERE p.id = ?1', [id]);
-export const pagosReportadosEquipo = (db, estado) => all(db, 'SELECT p.*, c.razon_social, c.rif_id, c.zona FROM pagos_reportados p JOIN clientes c ON c.id_cliente = p.id_cliente WHERE (?1 IS NULL OR p.estado = ?1) ORDER BY p.id DESC LIMIT 200', [estado || null]);
+/* El comprobante (imagen en base64) NUNCA viaja en las listas: solo un aviso de que existe. Se pide aparte, de uno en uno. */
+const COLS_PAGO = 'p.id, p.id_cliente, p.fecha_pago, p.banco, p.referencia, p.ref_norm, p.dup_key, p.monto_bs_cents, p.nota, p.estado, p.creado_ts, p.id_enlace, p.resuelto_ts, p.resuelto_rol, p.motivo_rechazo, p.id_pago, p.ejemplo, p.id_banco, (p.comprobante IS NOT NULL) AS tiene_comprobante';
+export const comprobanteDe = (db, id) => one(db, 'SELECT comprobante, id_cliente FROM pagos_reportados WHERE id = ?1', [id]);
+export const stPagoReportado = (db, p) => bind(db, "INSERT INTO pagos_reportados (id, id_cliente, fecha_pago, banco, referencia, ref_norm, dup_key, monto_bs_cents, nota, estado, creado_ts, id_enlace, ejemplo, id_banco, comprobante, comprobante_bytes) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,'POR_VERIFICAR',?10,?11,?12,?13,?14,?15)",
+  [p.id, p.id_cliente, p.fecha_pago, p.banco, p.referencia, p.ref_norm, p.dup_key ?? null, p.monto_bs_cents, p.nota ?? null, Date.now(), p.id_enlace ?? null, p.ejemplo ? 1 : 0, p.id_banco ?? null, p.comprobante ?? null, p.comprobante_bytes ?? null]);
+export const pagosReportadosDe = (db, idCliente) => all(db, `SELECT ${COLS_PAGO} FROM pagos_reportados p WHERE p.id_cliente = ?1 ORDER BY p.id DESC LIMIT 50`, [idCliente]);
+export const getPagoReportado = (db, id) => one(db, `SELECT ${COLS_PAGO}, c.razon_social, c.rif_id FROM pagos_reportados p JOIN clientes c ON c.id_cliente = p.id_cliente WHERE p.id = ?1`, [id]);
+export const pagosReportadosEquipo = (db, estado) => all(db, `SELECT ${COLS_PAGO}, c.razon_social, c.rif_id, c.zona FROM pagos_reportados p JOIN clientes c ON c.id_cliente = p.id_cliente WHERE (?1 IS NULL OR p.estado = ?1) ORDER BY p.id DESC LIMIT 200`, [estado || null]);
 export async function abiertosPagos(db, idCliente) { return (await one(db, "SELECT COUNT(*) AS n FROM pagos_reportados WHERE id_cliente = ?1 AND estado IN ('POR_VERIFICAR','VERIFICANDO')", [idCliente])).n; }
 export async function moverPagoReportado(db, id, de, a, campos = {}) {
   const r = await run(db, 'UPDATE pagos_reportados SET estado = ?3, resuelto_ts = COALESCE(?4, resuelto_ts), resuelto_rol = COALESCE(?5, resuelto_rol), motivo_rechazo = COALESCE(?6, motivo_rechazo), id_pago = COALESCE(?7, id_pago) WHERE id = ?1 AND estado = ?2',

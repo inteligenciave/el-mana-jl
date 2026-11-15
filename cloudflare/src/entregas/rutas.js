@@ -32,6 +32,9 @@ export async function rutasEntregas(req, env, url) {
       if (p === '/sin-verificar') return json(await S.sinVerificar(ctx));
       if (p === '/minis') return json(await S.minis(ctx, (q.get('ids') || '').split(',').map(x => entero(x)).filter(x => x != null)));
       if (p === '/plazos') return json(await S.plazos(ctx));
+      if (p === '/llegadas') return json(await S.listarLlegadas(ctx));
+      if (p === '/llegadas/minis') return json(await S.minisLlegada(ctx, (q.get('ids') || '').split(',').map(x => entero(x)).filter(x => x != null)));
+      if ((r = p.match(/^\/llegadas\/(\d{1,12})\/foto$/))) return json(await S.fotoLlegada(ctx, +r[1]));
       if (p === '/disputas') return json(await S.listarDisputas(ctx, q.get('estado') || undefined));
       if ((r = p.match(/^\/documento\/(\d{1,12})\/liquidacion$/))) return json(await S.previsualizarLiquidacion(ctx, +r[1], q.get('fecha') || undefined));
       if ((r = p.match(/^\/(\d{1,12})\/foto$/))) return json(await S.fotoCompleta(ctx, +r[1]));
@@ -51,6 +54,7 @@ export async function rutasEntregasCliente(req, env, url) {
   try {
     const ctx = await autenticar(db, req.headers.get('x-token'), ip);
     if (m === 'GET' && p === '/estado') return json(await S.estadoPortal(ctx));
+    if (m === 'POST' && p === '/llegada') { const b = await cuerpo(req, 700 * 1024); return json(await S.registrarLlegada(ctx, b), 201); }
     if (m === 'POST' && p === '/no-recibi') { const b = await cuerpo(req, 20 * 1024); return json(await S.noRecibi(ctx, b.id_documento, b.nota), 201); }
     return json({error: 'Ruta no encontrada.'}, 404);
   } catch (e) { return falla(e, url); }

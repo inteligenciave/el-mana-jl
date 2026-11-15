@@ -31,7 +31,7 @@ export const listarEntregas = (db, {estado}) => all(db, `SELECT ${COLS_ENT}, ${C
 export const entregaPorId = (db, id) => one(db, `SELECT ${COLS_ENT}, ${COLS_DOC} FROM entregas e JOIN documentos_venta d ON d.id_documento = e.id_documento JOIN clientes c ON c.id_cliente = d.id_cliente WHERE e.id = ?1`, [id]);
 export const fotoDe = (db, id) => one(db, 'SELECT foto FROM entregas WHERE id = ?1', [id]);
 export const minisDe = (db, ids) => ids.length ? all(db, `SELECT id, mini FROM entregas WHERE id IN (${marcas(ids)})`, ids) : Promise.resolve([]);
-export const entregaVigente = (db, idDoc) => one(db, `SELECT e.id, e.estado, e.foto_ts, e.fecha_hora FROM entregas e WHERE e.id_documento = ?1 AND ${VIGENTE}`, [idDoc]);
+export const entregaVigente = (db, idDoc) => one(db, `SELECT e.id, e.estado, e.foto_ts, e.fecha_hora, e.subido_rol FROM entregas e WHERE e.id_documento = ?1 AND ${VIGENTE}`, [idDoc]);
 export const stReemplazar = (db, id) => bind(db, "UPDATE entregas SET estado = 'REEMPLAZADA' WHERE id = ?1 AND estado = 'SUBIDA'", [id]);
 export const stInsertarEntrega = (db, e) => bind(db, "INSERT INTO entregas (id_documento, fecha_hora, foto_ts, subido_ts, subido_rol, foto, mini, foto_bytes, estado, ejemplo) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,'SUBIDA',?9)",
   [e.id_documento, e.fecha_hora, e.foto_ts, Date.now(), e.subido_rol, e.foto, e.mini || null, e.foto_bytes, e.ejemplo ? 1 : 0]);
@@ -54,5 +54,17 @@ export const stNuevaDisputa = (db, d) => bind(db, 'INSERT INTO disputas_entrega 
 export const stResolverDisputa = (db, id, resolucion, rol, nota, ts) => bind(db, "UPDATE disputas_entrega SET estado = 'RESUELTA', resolucion = ?2, resuelto_rol = ?3, nota_resolucion = ?4, resuelto_ts = ?5 WHERE id = ?1 AND estado = 'ABIERTA'", [id, resolucion, rol, nota || null, ts]);
 export const disputasDeCliente = (db, idCliente) => all(db, 'SELECT id, id_documento, estado, creado_ts, resuelto_ts, resolucion FROM disputas_entrega WHERE id_cliente = ?1 ORDER BY id DESC LIMIT 100', [idCliente]);
 /* Documentos pendientes de UN cliente (el portal nunca recibe un id: viene del código) */
-export const docsPendientesCliente = (db, idCliente) => all(db, `SELECT ${COLS_DOC}, d.origen, ${PAGADO} AS pagado_cents, (SELECT e.foto_ts FROM entregas e WHERE e.id_documento = d.id_documento AND ${VIGENTE}) AS foto_ts, (SELECT e.fecha_hora FROM entregas e WHERE e.id_documento = d.id_documento AND ${VIGENTE}) AS fecha_hora
+export const docsPendientesCliente = (db, idCliente) => all(db, `SELECT ${COLS_DOC}, d.origen, ${PAGADO} AS pagado_cents, (SELECT e.foto_ts FROM entregas e WHERE e.id_documento = d.id_documento AND ${VIGENTE}) AS foto_ts, (SELECT e.fecha_hora FROM entregas e WHERE e.id_documento = d.id_documento AND ${VIGENTE}) AS fecha_hora, (SELECT e.subido_rol FROM entregas e WHERE e.id_documento = d.id_documento AND ${VIGENTE}) AS subido_rol
   FROM documentos_venta d JOIN clientes c ON c.id_cliente = d.id_cliente WHERE d.id_cliente = ?1 AND d.estado = 'PENDIENTE' ORDER BY d.fecha_emision, d.id_documento`, [idCliente]);
+
+/* ---------- Llegada del despacho avisada por el cliente (la foto NO viaja en las listas) ---------- */
+const COLS_LLEG = 'l.id, l.id_documento, l.id_cliente, l.foto_ts, l.foto_bytes, l.subido_por, l.bultos_recibidos, l.bultos_despachados, l.coincide, l.arranco_reloj';
+export const bultosDe = (db, ids) => ids.length ? all(db, `SELECT id_documento, SUM(cantidad) AS n FROM documento_lineas WHERE id_documento IN (${marcas(ids)}) GROUP BY id_documento`, ids) : Promise.resolve([]);
+export const llegadaDeDoc = (db, idDoc) => one(db, 'SELECT id FROM llegadas_cliente WHERE id_documento = ?1', [idDoc]);
+export const llegadasDe = (db, ids) => ids.length ? all(db, `SELECT ${COLS_LLEG} FROM llegadas_cliente l WHERE l.id_documento IN (${marcas(ids)})`, ids) : Promise.resolve([]);
+export const listarLlegadas = db => all(db, `SELECT ${COLS_LLEG}, ${COLS_DOC} FROM llegadas_cliente l JOIN documentos_venta d ON d.id_documento = l.id_documento JOIN clientes c ON c.id_cliente = l.id_cliente ORDER BY l.foto_ts DESC LIMIT 200`);
+export const llegadaPorId = (db, id) => one(db, `SELECT ${COLS_LLEG}, ${COLS_DOC} FROM llegadas_cliente l JOIN documentos_venta d ON d.id_documento = l.id_documento JOIN clientes c ON c.id_cliente = l.id_cliente WHERE l.id = ?1`, [id]);
+export const fotoLlegada = (db, id) => one(db, 'SELECT foto FROM llegadas_cliente WHERE id = ?1', [id]);
+export const minisLlegada = (db, ids) => ids.length ? all(db, `SELECT id, mini FROM llegadas_cliente WHERE id IN (${marcas(ids)})`, ids) : Promise.resolve([]);
+export const stInsertarLlegada = (db, l) => bind(db, 'INSERT INTO llegadas_cliente (id_documento, id_cliente, foto, mini, foto_bytes, foto_ts, subido_por, bultos_recibidos, bultos_despachados, coincide, arranco_reloj, ejemplo) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12)',
+  [l.id_documento, l.id_cliente, l.foto, l.mini || null, l.foto_bytes, l.foto_ts, 'Cliente', l.bultos_recibidos, l.bultos_despachados ?? null, l.coincide == null ? null : (l.coincide ? 1 : 0), l.arranco_reloj ? 1 : 0, l.ejemplo ? 1 : 0]);

@@ -49,7 +49,7 @@ function vAnular(id) {
   $('#v-motivo').focus();
   $('#v-an-ok').addEventListener('click', async () => {
     const e = $('#v-an-e'); e.hidden = true;
-    try { await vApi('POST', '/pagos/' + id + '/anular', {motivo: $('#v-motivo').value}); closeModal(); toast('Pago anulado.'); V.clientes = null; await vPagosCargar(); }
+    try { await vApi('POST', '/pagos/' + id + '/anular', {motivo: $('#v-motivo').value}); closeModal(); toast('Pago anulado.'); V.clientes = null; V.deuda.data = null; V.deuda.base = null; await vPagosCargar(); }
     catch (er) { e.textContent = er.message; e.hidden = false; }
   });
 }
@@ -57,13 +57,13 @@ function vAnular(id) {
 /* ---------- Quién debe y desde cuándo ---------- */
 async function vDeudaCargar() {
   const f = V.deuda.f, n = V.deuda.n = (V.deuda.n || 0) + 1; /* si llega una respuesta vieja mientras se sigue escribiendo, se descarta */
-  try { const r = await vApi('GET', '/deuda' + vQS({vendedor: f.vendedor, q: f.q})); if (n !== V.deuda.n) return; V.deuda.data = r; if (!f.q) V.deuda.base = r; } catch (e) { vErr(e); V.deuda.data = {clientes: [], total: 0}; }
+  try { const r = await vApi('GET', '/deuda' + vQS({vendedor: f.vendedor, q: f.q})); if (n !== V.deuda.n) return; V.deuda.data = r; V.deuda.ts = Date.now(); if (!f.q) V.deuda.base = r; } catch (e) { vErr(e); V.deuda.data = {clientes: [], total: 0}; V.deuda.ts = Date.now(); }
   render();
 }
 const V_DEF_DEUDA = [{tipo: 'Cliente', valores: c => c.razon_social, detalle: c => 'debe ' + vusd(c.saldo)}, {tipo: 'RIF', valores: c => c.rif, detalle: c => c.razon_social}, {tipo: 'Nota o factura', valores: c => c.notas.map(n => n.nro), detalle: c => c.razon_social}];
 function scrDeuda() {
   return vPantalla(() => {
-    const f = V.deuda.f, d = V.deuda.data; if (!d) vDeudaCargar();
+    const f = V.deuda.f, d = V.deuda.data; if (!d || Date.now() - (V.deuda.ts || 0) > 5000) vDeudaCargar(); /* se actualiza al volver a esta pantalla */
     const alerta = +V.cfg.dias_alerta_deuda || null;
     const lista = !d ? '<p class="hint">Cargando…</p>' : !d.clientes.length ? emptyState('Nadie debe nada con este filtro', 'Cuando haya notas o facturas pendientes aparecerán aquí, de la deuda más antigua a la más reciente.')
       : d.clientes.map(c => `<details class="v-deu"><summary><span class="v-deu-n">${vtxt(c.razon_social)}</span><span class="v-deu-v">${vtxt(c.vendedor || '—')}</span><b>${vusd(c.saldo)}</b>
@@ -75,7 +75,7 @@ function scrDeuda() {
     ${card('Filtros', `<div class="form"><div class="row2">${vVendSel('vendedor', f.vendedor, 'vDeudaFiltro')}<label class="fld">Buscar<input type="search" aria-label="Buscar en la deuda" ${Busca.atr('v-deuda')} value="${esc(f.q)}" placeholder="Cliente, RIF o número de nota o factura"></label></div>
       ${alerta ? '' : '<p class="hint">Los días de alerta no están definidos: el Dueño puede fijarlos en Clientes, catálogo y ajustes. Mientras tanto no se marca ninguna deuda como urgente.</p>'}</div>`)}
     ${d ? `<div class="v-stats">${stat('Deuda total', vusd(d.total), d.clientes.length + ' cliente(s)')}</div>` : ''}
-    ${d && d.clientes.length ? `<div class="v-2c">${card('Por vendedor', table([{h: 'Vendedor', f: g => vtxt(g.nombre)}, {h: 'Clientes', r: 1, f: g => g.clientes}, {h: 'Debe', r: 1, f: g => `<b>${vusd(g.saldo)}</b>`}, {h: 'Más antigua', r: 1, f: g => g.dias_desde + ' días'}], d.por_vendedor || []))}${card('Por zona', table([{h: 'Zona', f: g => vtxt(g.nombre)}, {h: 'Clientes', r: 1, f: g => g.clientes}, {h: 'Debe', r: 1, f: g => `<b>${vusd(g.saldo)}</b>`}, {h: 'Más antigua', r: 1, f: g => g.dias_desde + ' días'}], d.por_zona || []))}</div>` : ''}${lista}`;
+    ${d && d.clientes.length ? `<div class="v-2c">${card('Por vendedor', table([{h: 'Vendedor', f: g => vtxt(g.nombre)}, {h: 'Clientes', r: 1, f: g => g.clientes}, {h: 'Debe', r: 1, f: g => `<b>${vusd(g.saldo)}</b>`}, {h: 'Más antigua', r: 1, f: g => g.dias_desde + ' días'}], d.por_vendedor || []))}${card('Por zona', table([{h: 'Zona', f: g => vtxt(g.nombre)}, {h: 'Clientes', r: 1, f: g => g.clientes}, {h: 'Debe', r: 1, f: g => `<b>${vusd(g.saldo)}</b>`}, {h: 'Más antigua', r: 1, f: g => g.dias_desde + ' días'}], d.por_zona || []))}</div>` : ''}${d && d.clientes.length ? '<div class="v-lista-sc">' + lista + '</div>' : lista}`;
   });
 }
 async function vDeudaCSV() {
@@ -113,6 +113,36 @@ function scrReportes() {
     const filtros = R.tab === 'comisiones' || R.tab === 'asientos' ? `<div class="row3"><label class="fld">Desde<input type="date" data-act-change="vRepFiltro" data-vf="desde" value="${esc(R.f.desde)}"></label><label class="fld">Hasta<input type="date" data-act-change="vRepFiltro" data-vf="hasta" value="${esc(R.f.hasta)}"></label>${R.tab === 'comisiones' ? vVendSel('vendedor', R.f.vendedor, 'vRepFiltro') : ''}</div>` : '';
     V.rep.csv = csv;
     return `${vph('Ventas y liquidación', 'Comisiones, asientos e inventario', 'Lo que el sistema calcula solo al vender y cobrar.', csv ? `<button type="button" class="btn" data-act="vRepCSV">${ic('download', 16)}Descargar CSV</button>` : '')}
-    <div class="v-tabs" role="tablist">${tabs.map(([k, t]) => `<button type="button" role="tab" aria-selected="${R.tab === k}" class="v-tab" data-act="vRepTab" data-v="${k}">${t}</button>`).join('')}</div>${filtros ? card('Filtros', `<div class="form">${filtros}</div>`) : ''}${card('', cuerpo)}`;
+    <div class="v-tabs" role="tablist">${tabs.map(([k, t]) => `<button type="button" role="tab" aria-selected="${R.tab === k}" class="v-tab" data-act="vRepTab" data-v="${k}">${t}</button>`).join('')}</div>${filtros ? card('Filtros', `<div class="form">${filtros}</div>`) : ''}${card('', '<div class="v-cuerpo-sc">' + cuerpo + '</div>')}`;
+  });
+}
+
+/* ---------- Registro de ventas: lo que de verdad se vendió (datos reales de la base) ---------- */
+async function vRegVCargar() {
+  const R = V.regv ||= {docs: null, deuda: null, ts: 0, cargando: false}; if (R.cargando) return; R.cargando = true;
+  try {
+    const [docs, deu, peds] = await Promise.all([vApi('GET', '/documentos' + vQS({desde: vRestar(vHoy(), 29), limite: 1000})), vApi('GET', '/deuda'), vApi('GET', '/pedidos-recientes').catch(() => [])]);
+    R.docs = docs; R.deuda = deu; R.peds = peds; R.err = null;
+  } catch (e) { R.err = e; R.docs = R.docs || []; }
+  R.ts = Date.now(); R.cargando = false; render();
+}
+function scrRegVentas() {
+  return vPantalla(() => {
+    const R = V.regv ||= {docs: null, deuda: null, ts: 0, cargando: false};
+    if (!R.cargando && (!R.docs || Date.now() - R.ts > 5000)) vRegVCargar(); /* se actualiza al volver a entrar */
+    if (!R.docs) return card('', emptyState('Cargando…', 'Un momento.'));
+    /* una nota que ya se facturó cuenta una sola vez (como factura); las anuladas no cuentan */
+    const docs = R.docs.filter(d => !/^ANULAD/.test(d.estado || '') && d.estado !== 'FACTURADO_DESDE_NE');
+    const hoy = vHoy(), lunes = vLunes(hoy), suma = f => docs.filter(f).reduce((a, d) => a + d.total_cents, 0) / 100;
+    const por = {}; docs.forEach(d => { const k = d.vendedor_nombre || 'Sin vendedor', o = por[k] ||= {n: k, dia: 0, sem: 0, mes: 0, cli: new Set()}; const u = d.total_cents / 100; o.mes += u; o.cli.add(d.id_cliente); if (d.fecha_emision >= lunes) o.sem += u; if (d.fecha_emision === hoy) o.dia += u; });
+    const vend = Object.values(por).sort((a, b) => b.mes - a.mes).slice(0, 5);
+    const ult = docs.slice(0, 5), deu = R.deuda || {clientes: [], total: 0};
+    const peds = (R.peds || []).slice(0, 8);
+    return `${vph('Ventas y liquidación', 'Registro de ventas', 'Lo vendido en los últimos 30 días, con los datos reales del sistema.')}
+    ${R.err ? `<p class="v-alerta">${ic('alert', 16)}No se pudo leer todo. Vuelve a entrar en un momento.</p>` : ''}
+    <div class="v-stats">${stat('Ventas de hoy', vusd(suma(d => d.fecha_emision === hoy)), 'Total del día')}${stat('Ventas de la semana', vusd(suma(d => d.fecha_emision >= lunes)), 'Desde el lunes')}${stat('Ventas de 30 días', vusd(suma(() => true)), docs.length + (docs.length === 1 ? ' venta' : ' ventas'))}${stat('Por cobrar', vusd(deu.total || 0), (deu.clientes || []).length + ' cliente(s)')}</div>
+    <div class="v-2c">${card('Por vendedor', table([{h: 'Vendedor', f: v => `<b>${vtxt(v.n)}</b>`}, {h: 'Hoy', r: 1, f: v => vusd(v.dia)}, {h: 'Semana', r: 1, f: v => vusd(v.sem)}, {h: '30 días', r: 1, f: v => vusd(v.mes)}, {h: 'Clientes', r: 1, f: v => v.cli.size}], vend, {empty: 'Todavía no hay ventas en estos días.'}))}
+    ${card('Últimas ventas', table([{h: 'Fecha', f: d => vfecha(d.fecha_emision)}, {h: 'Documento', f: d => `<button type="button" class="btn sm ghost" data-act="vVerDoc" data-id="${d.id_documento}">${vtxt(d.numero_externo || d.nro_control_interno)}</button>`}, {h: 'Cliente', f: d => vtxt(d.razon_social)}, {h: 'Total', r: 1, f: d => `<b>${vusd(d.total_cents / 100)}</b>`}], ult, {empty: 'Todavía no hay ventas en estos días.'}))}</div>
+    ${card('Pedidos recientes (PDF al vender)', table([{h: 'Pedido', f: p => `<b>${vtxt(p.nro)}</b>`}, {h: 'Fecha', f: p => vfecha(p.fecha)}, {h: 'Cliente', f: p => vtxt(p.razon_social)}, {h: 'Bultos', r: 1, f: p => N0.format(p.bultos)}, {h: 'Estado', f: p => vtxt(p.estado.toLowerCase())}, {h: '', f: p => `<button type="button" class="btn sm acc" data-act="vPdfPed" data-id="${p.id_pedido}">${ic('download', 14)}PDF de la ${p.tipo === 'FACTURA' ? 'factura' : 'nota'}</button>`}], peds, {empty: 'Todavía no hay pedidos.'}))}`;
   });
 }

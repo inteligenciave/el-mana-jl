@@ -80,8 +80,8 @@ async function vPesoGuardar(id) {
   catch (er) { e.textContent = er.message; e.hidden = false; }
 }
 function vEntradaModal(p) {
-  modal('Entrada de inventario: ' + vtxt(p.nombre) + ' ' + vtxt(p.gramaje || ''), `<div class="form"><p>Existencias actuales: <b>${N0.format(p.stock_entero)}</b> bultos.</p>
-    <label class="fld">Bultos que entran (número entero)<input type="text" inputmode="numeric" class="v-int" id="ve-q" maxlength="7"></label>${vFld('ve-n', 'Nota', '', {max: 100, ph: 'Opcional'})}<p class="err" id="ve-e" role="alert" hidden></p>
+  modal('Entrada de inventario: ' + vtxt(p.nombre) + ' ' + vtxt(p.gramaje || ''), `<div class="form"><p>Existencias actuales: <b>${N0.format(p.stock_entero)}</b> bultos. La producción entra sola al cerrar el turno; esto es solo para correcciones del Dueño.</p>
+    <label class="fld">Bultos que entran (número entero)<input type="text" inputmode="numeric" class="v-int" id="ve-q" maxlength="7"></label>${vFld('ve-n', 'Motivo (obligatorio)', '', {max: 100, ph: 'Por qué se suman estos bultos'})}<p class="err" id="ve-e" role="alert" hidden></p>
     <div class="btnrow"><button type="button" class="btn pri" data-act="vEntradaGuardar" data-id="${p.id_producto}">Registrar entrada</button><button type="button" class="btn" data-act="closeModal">Cancelar</button></div></div>`);
   $('#ve-q').focus();
 }
@@ -129,7 +129,7 @@ async function vEjemploBorrar() {
 
 /* ---------- Pantalla ---------- */
 const V_DEF_CLI = [{tipo: 'Cliente', valores: c => c.razon_social, detalle: c => c.rif_id || 'sin RIF'}, {tipo: 'RIF', valores: c => c.rif_id, detalle: c => c.razon_social}];
-function scrClientes() {
+function scrClientesVentas() {
   return vPantalla(() => {
     const A = V.adm, dueno = lvl('v-clientes') >= 3, reg = lvl('v-clientes') >= 2;
     const tabs = [['clientes', 'Clientes'], ['productos', 'Productos e inventario'], ['vendedores', 'Vendedores y comisiones'], ['ajustes', 'Ajustes']];
@@ -138,14 +138,14 @@ function scrClientes() {
       if (!A.clientes) vAdmClientes();
       const lista = Busca.filtrar(A.clientes || [], A.q, Busca.textosDe(V_DEF_CLI));
       cuerpo = `<div class="v-bar2"><label class="fld">Buscar<input type="search" aria-label="Buscar cliente" ${Busca.atr('adm-cli')} value="${esc(A.q)}" placeholder="Nombre o RIF del cliente"></label>${reg ? `<button type="button" class="btn pri" data-act="vNuevoCliente">${ic('plus', 16)}Cliente nuevo</button>` : ''}</div>
-        ${A.clientes ? table([{h: 'Cliente', f: c => `<b>${vtxt(c.razon_social)}</b>${c.ejemplo ? ' <span class="chip c-warn">EJEMPLO</span>' : ''}${VD.listaDeCliente(c) ? ' <span class="chip">Lista ' + esc(VD.listaDeCliente(c)) + '</span>' : VD.estadoReal(c.zona) ? ' <span class="chip c-crit">Sin precios</span>' : ' <span class="chip c-crit">Falta estado</span>'}<br><span class="muted mono">${vtxt(c.rif_id || 'sin RIF')}</span>`}, {h: 'Vendedor', f: c => vtxt(c.vendedor_nombre || '—')}, {h: 'Modalidad', f: c => vModTxt(c.modalidad_despacho_pref)},
+        ${A.clientes ? table([{h: 'Cliente', f: c => `<b>${vtxt(c.razon_social)}</b>${c.ejemplo ? ' <span class="chip c-warn">EJEMPLO</span>' : ''}${c.estado_cliente === 'inactivo' ? ' <span class="chip">Inactivo</span>' : ''}${VD.listaDeCliente(c) ? ' <span class="chip">Lista ' + esc(VD.listaDeCliente(c)) + '</span>' : VD.estadoReal(c.zona) ? ' <span class="chip c-crit">Sin precios</span>' : ' <span class="chip c-crit">Falta estado</span>'}<br><span class="muted mono">${vtxt(c.rif_id || 'sin RIF')}</span>`}, {h: 'Vendedor', f: c => vtxt(c.vendedor_nombre || '—')}, {h: 'Modalidad', f: c => vModTxt(c.modalidad_despacho_pref)},
           {h: 'Pronto pago · crédito', f: c => (c.dias_pronto_pago ?? '—') + ' · ' + (c.dias_credito_normal ?? '—') + ' días'}, {h: 'Límite', r: 1, f: c => c.limite_credito_usd == null ? 'sin límite' : vusd(c.limite_credito_usd)}, {h: 'Debe', r: 1, f: c => vusd(c.deuda)},
           {h: '', f: c => `<div class="btnrow">${reg ? `<button type="button" class="btn sm" data-act="vEditarCliente" data-id="${c.id_cliente}">Editar</button>` : ''}${dueno ? `<button type="button" class="btn sm" data-act="vReglas" data-id="${c.id_cliente}">Precios</button>` : ''}</div>`}], lista, {empty: 'No hay clientes todavía. Crea uno o importa el Excel de cobranza.'}) : '<p class="hint">Cargando…</p>'}`;
     } else if (A.tab === 'productos') {
       const lp = Busca.filtrar(V.productos, A.qp, Busca.textosDe(V_DEF_PROD));
       cuerpo = `<div class="v-bar2"><label class="fld">Buscar<input type="search" aria-label="Buscar producto" ${Busca.atr('adm-prod')} value="${esc(A.qp || '')}" placeholder="Nombre, gramaje o código SKU"></label>${dueno ? `<button type="button" class="btn pri" data-act="vNuevoProducto">${ic('plus', 16)}Producto nuevo</button>` : ''}</div>
         ${table([{h: 'SKU', f: p => `<span class="mono">${vtxt(p.codigo_sku)}</span>`}, {h: 'Producto', f: p => vtxt(p.nombre) + (p.ejemplo ? ' <span class="chip c-warn">EJEMPLO</span>' : '')}, {h: 'Gramaje', f: p => vtxt(p.gramaje || '')}, {h: 'Categoría', f: p => p.categoria === 'SALSAS' ? 'Salsas' : 'Papas'}, {h: 'IVA', r: 1, f: p => N2.format(p.alicuota_iva) + ' %'}, {h: 'Bultos', r: 1, f: p => `<b>${N0.format(p.stock_entero)}</b>`}, {h: 'Kg por bulto', r: 1, f: p => VD.tienePesoBulto(p) ? N2.format(p.kg_por_bulto) : '<span class="chip c-warn">falta kg por bulto</span>'}, {h: 'Unid. por bulto', r: 1, f: p => VD.tieneUnidadesBulto(p) ? N0.format(p.unidades_por_bulto) : '<span class="chip c-warn">falta unidades</span>'}, {h: 'Kilos', r: 1, f: p => VD.tienePesoBulto(p) ? '<b>' + N2.format(VD.kilosDeBultos(p.stock_entero, p.kg_por_bulto)) + '</b>' : '<span class="muted">sin peso</span>'},
-          {h: '', f: p => `<div class="btnrow">${dueno ? `<button type="button" class="btn sm" data-act="vEditarProducto" data-id="${p.id_producto}">Editar</button>` : ''}${VP.puedePesoBulto(S.rol) ? `<button type="button" class="btn sm" data-act="vPeso" data-id="${p.id_producto}">Peso de bulto</button>` : ''}${reg ? `<button type="button" class="btn sm" data-act="vEntrada" data-id="${p.id_producto}">Entrada</button>` : ''}</div>`}], lp, {empty: 'Ningún producto coincide con la búsqueda.'})}
+          {h: '', f: p => `<div class="btnrow">${dueno ? `<button type="button" class="btn sm" data-act="vEditarProducto" data-id="${p.id_producto}">Editar</button>` : ''}${VP.puedePesoBulto(S.rol) ? `<button type="button" class="btn sm" data-act="vPeso" data-id="${p.id_producto}">Peso de bulto</button>` : ''}${dueno ? `<button type="button" class="btn sm" data-act="vEntrada" data-id="${p.id_producto}">Entrada</button>` : ''}</div>`}], lp, {empty: 'Ningún producto coincide con la búsqueda.'})}
         ${vTotalKilos(lp)}
         `;
     } else if (A.tab === 'vendedores') {

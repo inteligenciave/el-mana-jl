@@ -24,6 +24,9 @@ export async function rutasVentas(req, env, url) {
     let r;
     if (m === 'GET') {
       if (p === '/arranque') { ver('ver'); return json(await S.arranque(db)); }
+      if (p === '/pedidos-recientes') { ver('ver'); return json(await S.pedidosRecientes(db)); }
+      if ((r = p.match(/^\/pdf\/pedido\/(\d+)$/))) { ver('ver'); return json(await S.datosPdfPedido(db, +r[1])); }
+      if ((r = p.match(/^\/pdf\/documento\/(\d+)$/))) { ver('verDeuda'); return json(await S.datosPdfDocumento(db, +r[1])); }
       if (p === '/clientes') { ver('verClientes'); return json((await R.buscarClientes(db, {q: q.get('q') || '', limite: Math.min(+q.get('limite') || 50, 500), vendedor: entero(q.get('vendedor'))})).map(c => ({...c, deuda: c.deuda_cents / 100, limite_credito_usd: c.limite_credito_cents == null ? null : c.limite_credito_cents / 100}))); }
       if ((r = p.match(/^\/clientes\/(\d+)\/precios$/))) { ver('ver'); return json(await S.preciosCliente(db, +r[1])); }
       if ((r = p.match(/^\/clientes\/(\d+)\/pendientes$/))) { ver('verDeuda'); return json(await S.previsualizar(db, {id_cliente: +r[1], fecha: q.get('fecha') || undefined, exonerar: q.get('exonerar') === '1'})); }

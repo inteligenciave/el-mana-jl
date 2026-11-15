@@ -74,7 +74,7 @@ function scrCPedidos() {
     const cuerpo = l.slice(P.pag * tam, P.pag * tam + tam).map(p => `<article class="cp-tarj"><div class="cp-t1"><div><b>${esc(p.codigo)}</b> · ${esc(p.cliente)}<div class="mini">${esc(p.rif_id || '')} · ${esc(p.zona || 'sin zona')} · ${cfec(p.creado)}</div></div><div class="cp-monto">${cusd(p.total)}</div></div>
       <p class="cp-lin">${p.lineas.map(x => esc(x.cantidad + ' × ' + x.nombre)).join(' · ')}</p>${p.nota ? `<p class="mini"><b>Nota del cliente:</b> ${esc(p.nota)}</p>` : ''}
       <div class="cp-t2">${p.alcanza ? '<span class="chip c-ok">Hay inventario</span>' : '<span class="chip c-crit">Falta inventario</span>'}
-      ${puede ? `<label class="cp-sel">Generar como<select id="cp-tipo-${p.id}"><option value="NOTA_ENTREGA" ${p.tipo_sugerido === 'NOTA_ENTREGA' ? 'selected' : ''}>Nota de entrega</option><option value="FACTURA" ${p.tipo_sugerido === 'FACTURA' ? 'selected' : ''}>Factura</option></select></label>
+      ${puede ? `${(() => { const L = vBancos(); return L && L.bancos && L.bancos.length ? `<label class="cp-sel">Banco<select id="cp-banco-${p.id}"><option value="">Elige el banco…</option>${L.bancos.map(b => `<option value="${esc(b.nombre)}">${esc(b.nombre)}</option>`).join('')}</select></label>` : ''; })()}<label class="cp-sel">Generar como<select id="cp-tipo-${p.id}"><option value="NOTA_ENTREGA" ${p.tipo_sugerido === 'NOTA_ENTREGA' ? 'selected' : ''}>Nota de entrega</option><option value="FACTURA" ${p.tipo_sugerido === 'FACTURA' ? 'selected' : ''}>Factura</option></select></label>
       <button type="button" class="btn pri sm" data-act="cPedAprobar" data-id="${p.id}" ${CP.busy['p' + p.id] ? 'disabled' : ''}>Aprobar</button><button type="button" class="btn sm" data-act="cPedRechazar" data-id="${p.id}">Rechazar</button>` : ''}</div></article>`).join('');
     return `${ph('Portal de clientes', 'Pedidos por confirmar', '', '')}${card('', `<label class="fld">Buscar pedido<input type="search" aria-label="Buscar pedido" ${Busca.atr('c-ped')} value="${esc(P.q)}" placeholder="Cliente, RIF, zona o código PP-"></label>
       <p class="hint">Al aprobar se genera la nota de entrega o factura normal y baja el inventario. Si algo falla (por ejemplo falta inventario), el pedido sigue aquí y se ve el motivo.</p>
@@ -93,7 +93,7 @@ function scrCPagos() {
     const puede = lvl('c-pagos') >= 2, hoy = new Date().toISOString().slice(0, 10);
     const cuerpo = l.slice(P.pag * tam, P.pag * tam + tam).map(p => `<article class="cp-tarj"><div class="cp-t1"><div><b>${esc(p.codigo)}</b> · ${esc(p.cliente)}<div class="mini">${esc(p.rif_id || '')} · ${esc(p.banco)} · ref. <span class="mono">${esc(p.referencia)}</span> · pagó el ${fdl(p.fecha_pago)}</div></div><div class="cp-monto">${cbs(p.monto_bs)}</div></div>
       ${p.nota ? `<p class="mini"><b>Nota del cliente:</b> ${esc(p.nota)}</p>` : ''}
-      <div class="cp-t2">${p.fecha_pago < hoy ? '<span class="chip c-warn">Fecha pasada: pide el PIN de gerencia</span>' : '<span class="chip c-n">Del día</span>'}
+      <div class="cp-t2">${p.tiene_comprobante ? `<button type="button" class="btn sm" data-act="cPagComprobante" data-id="${p.id}">Ver comprobante</button>` : '<span class="chip c-n">Sin comprobante</span>'}${p.fecha_pago < hoy ? '<span class="chip c-warn">Fecha pasada: pide el PIN de gerencia</span>' : '<span class="chip c-n">Del día</span>'}
       ${puede ? `${p.fecha_pago < hoy ? `<label class="cp-sel">PIN<input type="password" id="cp-pin-${p.id}" autocomplete="off" inputmode="numeric" maxlength="12" placeholder="PIN"></label>` : ''}<button type="button" class="btn pri sm" data-act="cPagConfirmar" data-id="${p.id}" ${CP.busy['g' + p.id] ? 'disabled' : ''}>Confirmar y aplicar</button><button type="button" class="btn sm" data-act="cPagRechazar" data-id="${p.id}">Rechazar</button>` : ''}</div></article>`).join('');
     return `${ph('Portal de clientes', 'Pagos por verificar', '', '')}${card('', `<label class="fld">Buscar pago<input type="search" aria-label="Buscar pago" ${Busca.atr('c-pag')} value="${esc(P.q)}" placeholder="Cliente, RIF, banco, referencia o código PR-"></label>
       <p class="hint">Revisa en el banco que el pago exista. Al confirmar se registra el pago y se aplica a las facturas más antiguas primero.</p>
@@ -134,11 +134,17 @@ Object.assign(ACT, {
   cEnlaceRev: () => { const id = CP.fich.sel; modal('Revocar el enlace', `<div class="form"><p>El cliente no podrá entrar con su código actual. Podrás generar uno nuevo cuando quieras.</p><div class="btnrow"><button type="button" class="btn pri" id="cp-rev-ok">Sí, revocar</button><button type="button" class="btn" data-act="closeModal">Cancelar</button></div></div>`);
     $('#cp-rev-ok').addEventListener('click', async () => { closeModal(); const r = await cRun('enl', () => cApi('POST', '/clientes/' + id + '/enlace/revocar', {}), 'Enlace revocado.'); if (r) { CP.fich.lista = null; CP.fich.codigo = null; cCargarFicha(id); } }); },
   cPedAprobar: async el => {
-    const id = cId(el), t = ($('#cp-tipo-' + id) || {}).value;
-    const r = await cRun('p' + id, () => cApi('POST', '/pedidos/' + id + '/aprobar', {tipo: t}), r => 'Pedido aprobado: se generó ' + r.documento + '.');
+    const id = cId(el), t = ($('#cp-tipo-' + id) || {}).value, bs = $('#cp-banco-' + id), banco = bs ? bs.value : '';
+    if (bs && !banco) return toast('Elige el banco antes de aprobar.', 'warn');
+    const r = await cRun('p' + id, () => cApi('POST', '/pedidos/' + id + '/aprobar', {tipo: t, metodo_pago: banco || undefined}), r => 'Pedido aprobado: se generó ' + r.documento + '.');
     if (r) { CP.ped.filas = null; CP.fich.lista = null; }
   },
   cPedRechazar: el => { const id = cId(el); cMotivo('Rechazar el pedido', 'El pedido no se borra: queda como rechazado y el cliente ve el motivo.', 'Rechazar pedido', async m => { await cApi('POST', '/pedidos/' + id + '/rechazar', {motivo: m}); toast('Pedido rechazado.'); CP.ped.filas = null; CP.fich.lista = null; render(); }); },
+  cPagComprobante: async el => {
+    const id = cId(el), p = (CP.pag.filas || []).find(x => x.id === id); modal('Comprobante de ' + esc(p ? p.codigo : ''), '<div class="cp-comp" id="cp-comp"><p class="mini">Cargando la imagen…</p></div>');
+    try { const r = await cApi('GET', '/pagos/' + id + '/comprobante'); const b = $('#cp-comp'); if (b) b.innerHTML = '<img alt="Comprobante de pago del cliente" src="data:image/jpeg;base64,' + r.comprobante + '">' + (p ? '<p class="mini">' + esc(p.cliente) + ' · ' + cbs(p.monto_bs) + ' · ref. ' + esc(p.referencia) + '</p>' : ''); }
+    catch (e) { const b = $('#cp-comp'); if (b) b.innerHTML = '<p class="err">' + esc(e.message) + '</p>'; }
+  },
   cPagConfirmar: async el => {
     const id = cId(el), pin = ($('#cp-pin-' + id) || {}).value || undefined;
     const r = await cRun('g' + id, () => cApi('POST', '/pagos/' + id + '/confirmar', {pin}), r => 'Pago confirmado. Recibo ' + r.recibo + ' por ' + cusd(r.usd) + '.');

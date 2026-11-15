@@ -28,3 +28,9 @@ node_modules/
 ~$*
 .DS_Store
 Thumbs.db
+
+# Respaldos locales de la base y copias de estado
+respaldo-*/
+wrangler-dev.log
+*.sqlite-wal
+*.sqlite-shm

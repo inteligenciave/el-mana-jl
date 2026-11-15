@@ -1,18 +1,18 @@
 /* Pantalla «Entregas con foto» (Despachos): subir la foto que manda el transporte, ver miniaturas, ampliar, confirmar o rechazar,
    y la lista de facturas y notas con «entrega sin verificar». */
-const E_TABS = [['SUBIDA', 'Por confirmar'], ['SIN', 'Sin verificar'], ['CONFIRMADA', 'Confirmadas'], ['RECHAZADA', 'Rechazadas']];
+const E_TABS = [['SUBIDA', 'Por confirmar'], ['SIN', 'Sin verificar'], ['CONFIRMADA', 'Confirmadas'], ['RECHAZADA', 'Rechazadas'], ['LLEG', 'Del cliente']];
 const E_CHIP = {SUBIDA: ['warn', 'Por confirmar'], CONFIRMADA: ['ok', 'Confirmada'], RECHAZADA: ['crit', 'Rechazada']};
 
 async function eCargar() {
   if (EN.cargando) return; EN.cargando = true;
-  try { [EN.lista, EN.sin] = await Promise.all([eApi('GET', '/'), eApi('GET', '/sin-verificar')]); EN.err = null; }
-  catch (e) { EN.err = e; EN.lista = EN.lista || []; EN.sin = EN.sin || []; }
+  try { [EN.lista, EN.sin, EN.lleg] = await Promise.all([eApi('GET', '/'), eApi('GET', '/sin-verificar'), eApi('GET', '/llegadas')]); EN.err = null; }
+  catch (e) { EN.err = e; EN.lista = EN.lista || []; EN.sin = EN.sin || []; EN.lleg = EN.lleg || []; }
   finally { EN.cargando = false; }
   render();
 }
-const eConteo = k => k === 'SIN' ? (EN.sin || []).length : (EN.lista || []).filter(x => x.estado === k).length;
+const eConteo = k => k === 'LLEG' ? (EN.lleg || []).length : k === 'SIN' ? (EN.sin || []).length : (EN.lista || []).filter(x => x.estado === k).length;
 const E_DEF_ENT = [{tipo: 'Documento', valores: x => x.nro, detalle: x => x.cliente}, {tipo: 'Cliente', valores: x => x.cliente, detalle: x => x.nro}, {tipo: 'RIF', valores: x => x.rif, detalle: x => x.cliente}];
-const eFilas = () => Busca.filtrar(EN.tab === 'SIN' ? (EN.sin || []) : (EN.lista || []).filter(x => x.estado === EN.tab), EN.q, Busca.textosDe(E_DEF_ENT));
+const eFilas = () => Busca.filtrar(EN.tab === 'LLEG' ? (EN.lleg || []) : EN.tab === 'SIN' ? (EN.sin || []) : (EN.lista || []).filter(x => x.estado === EN.tab), EN.q, Busca.textosDe(E_DEF_ENT));
 const ePorPagina = () => innerWidth >= 1000 ? Math.max(3, Math.min(8, Math.floor((innerHeight - 360) / 70))) : 5;
 
 /* Miniaturas: solo las de la página visible, en una petición liviana (~5 KB cada una) */
@@ -24,9 +24,15 @@ async function eMinis(ids) {
 }
 const eThumb = x => `<button type="button" class="e-th" data-act="eVerFoto" data-id="${x.id}" data-mini="${x.id}" aria-label="Ampliar la foto de ${etxt(x.nro)}">${EN.minis[x.id] ? `<img alt="Miniatura de la entrega" src="data:image/jpeg;base64,${EN.minis[x.id]}">` : ic('camera', 22)}</button>`;
 
+const eTextoLlegada = l => 'El cliente recibió <b>' + l.recibidos + '</b>' + (l.despachados != null ? ' de ' + l.despachados : '') + ' bultos' + (l.coincide === false ? ' · <b>no coincide</b>' : '');
+function eFilaLleg(x) {
+  return `<li class="e-row"><button type="button" class="e-th" data-act="eVerLlegada" data-id="${x.id}" aria-label="Ver la foto que subió el cliente de ${etxt(x.nro)}">${ic('camera', 22)}</button><div class="e-b"><p class="e-n"><b>${etxt(x.nro)}</b> <span class="muted">${x.tipo === 'NOTA_ENTREGA' ? 'Nota de entrega' : 'Factura'}</span></p><p class="e-s">${etxt(x.cliente)}</p>
+    <p class="e-s">${eTextoLlegada(x)} · ${eTs(x.foto_ts)}${x.arranco_reloj ? ' · su foto arrancó el plazo' : ''}</p></div>
+    <div class="e-a">${x.coincide === false ? chip('No coincide', 'crit') : x.coincide ? chip('Coincide', 'ok') : chip('Sin comparar', 'warn')}<button type="button" class="btn sm" data-act="eVerLlegada" data-id="${x.id}">Ver foto</button></div></li>`;
+}
 function eFilaEntrega(x) {
   const [tono, txt] = E_CHIP[x.estado], puedeConf = lvl('e-entregas') >= 3;
-  return `<li class="e-row">${eThumb(x)}<div class="e-b"><p class="e-n"><b>${etxt(x.nro)}</b> <span class="muted">${x.tipo === 'NOTA_ENTREGA' ? 'Nota de entrega' : 'Factura'}</span></p><p class="e-s">${etxt(x.cliente)}</p><p class="e-s">Entrega ${eFechaHora(x.fecha_hora)} · subió ${etxt(x.subido_rol)} · ${x.kb} KB</p></div>
+  return `<li class="e-row">${eThumb(x)}<div class="e-b"><p class="e-n"><b>${etxt(x.nro)}</b> <span class="muted">${x.tipo === 'NOTA_ENTREGA' ? 'Nota de entrega' : 'Factura'}</span></p><p class="e-s">${etxt(x.cliente)}</p><p class="e-s">Entrega ${eFechaHora(x.fecha_hora)} · subió ${etxt(x.subido_rol)} · ${x.kb} KB</p>${x.llegada ? `<p class="e-s">${eTextoLlegada(x.llegada)}</p>` : ''}</div>
     <div class="e-a">${chip(txt, tono)}${x.estado === 'SUBIDA' && puedeConf ? `<button type="button" class="btn sm pri" data-act="eConfirmar" data-id="${x.id}">Confirmar</button>` : ''}<button type="button" class="btn sm" data-act="eVerFoto" data-id="${x.id}">Ver</button></div></li>`;
 }
 function eFilaSin(x) {
@@ -64,10 +70,10 @@ function scrEntregas() {
     if (EN.err && !EN.lista.length && !EN.sin.length) return card('', emptyState('No se pudo cargar', etxt(EN.err.message), '<button type="button" class="btn pri" data-act="eRecargar">Reintentar</button>'));
     const filas = eFilas(), n = ePorPagina(), pags = Math.max(1, Math.ceil(filas.length / n)); EN.pag = Math.min(EN.pag, pags - 1);
     const vis = filas.slice(EN.pag * n, EN.pag * n + n), sin = (EN.sin || []).length;
-    setTimeout(() => eMinis(EN.tab === 'SIN' ? [] : vis.map(x => x.id)), 0);
+    setTimeout(() => eMinis(EN.tab === 'SIN' || EN.tab === 'LLEG' ? [] : vis.map(x => x.id)), 0);
     const aviso = sin ? `<div class="v-alerta v-aviso" role="status">${ic('alert', 18)}<span><b>${sin} factura(s) o nota(s) con entrega sin verificar.</b> Sin la foto de entrega, el plazo de crédito del cliente no arranca. Despachos: pídele la foto al transporte.</span></div>` : '';
     const tabs = E_TABS.map(([k, t]) => `<button type="button" class="v-cat" data-act="eTab" data-v="${k}" aria-pressed="${EN.tab === k}">${t} (${eConteo(k)})</button>`).join('');
-    const lista = vis.length ? `<ul class="e-lista">${vis.map(x => EN.tab === 'SIN' ? eFilaSin(x) : eFilaEntrega(x)).join('')}</ul>` : emptyState(EN.q ? 'Nada coincide' : EN.tab === 'SIN' ? 'Todo verificado' : 'Sin entregas aquí', EN.q ? 'Prueba con otro texto.' : EN.tab === 'SIN' ? 'No hay facturas ni notas esperando foto.' : 'Cuando suban fotos, aparecerán en esta lista.');
+    const lista = vis.length ? `<ul class="e-lista">${vis.map(x => EN.tab === 'LLEG' ? eFilaLleg(x) : EN.tab === 'SIN' ? eFilaSin(x) : eFilaEntrega(x)).join('')}</ul>` : emptyState(EN.q ? 'Nada coincide' : EN.tab === 'SIN' ? 'Todo verificado' : EN.tab === 'LLEG' ? 'Sin avisos de clientes' : 'Sin entregas aquí', EN.q ? 'Prueba con otro texto.' : EN.tab === 'SIN' ? 'No hay facturas ni notas esperando foto.' : EN.tab === 'LLEG' ? 'Cuando un cliente avise que le llegó el pedido, verás aquí su foto y el total de bultos.' : 'Cuando suban fotos, aparecerán en esta lista.');
     const pie = filas.length > n ? `<div class="e-pag"><button type="button" class="btn sm" data-act="ePag" data-d="-1" ${EN.pag === 0 ? 'disabled' : ''}>Anterior</button><span>Página ${EN.pag + 1} de ${pags} · ${filas.length} en total</span><button type="button" class="btn sm" data-act="ePag" data-d="1" ${EN.pag >= pags - 1 ? 'disabled' : ''}>Siguiente</button></div>` : '';
     return `${ph('Planta · salida', 'Entregas con foto', '', '')}${aviso}
     <div class="e-2c">${eSubirCard()}${card('Entregas', `<div class="e-tabs">${tabs}</div><label class="fld bq-f">Buscar<input type="search" aria-label="Buscar entregas" ${Busca.atr('e-ent')} value="${esc(EN.q)}" placeholder="Número, cliente o RIF"></label>${lista}${pie}`)}</div>`;
@@ -75,6 +81,12 @@ function scrEntregas() {
 }
 
 /* ---------- Ampliación ---------- */
+async function eVerLlegada(id) {
+  const x = (EN.lleg || []).find(e => e.id === id); if (!x) return;
+  modal('Llegada de ' + etxt(x.nro), `<div class="e-big"><div class="e-bigi" id="e-bigi"><p class="hint">Cargando la foto…</p></div>
+    <dl class="v-dl"><div><dt>Cliente</dt><dd>${etxt(x.cliente)}</dd></div><div><dt>Bultos que dice haber recibido</dt><dd>${x.recibidos}${x.despachados != null ? ' de ' + x.despachados + ' despachados' : ''}</dd></div><div><dt>Foto subida por</dt><dd>${etxt(x.subido_por)} · ${eTs(x.foto_ts)}</dd></div></dl></div>`);
+  try { const r = await eApi('GET', '/llegadas/' + id + '/foto'); const box = $('#e-bigi'); if (box) box.innerHTML = `<img alt="Foto de la llegada de ${etxt(x.nro)}" src="data:image/jpeg;base64,${r.foto}">`; } catch (e) { eErr(e); }
+}
 async function eVerFoto(id) {
   const x = (EN.lista || []).find(e => e.id === id); if (!x) return;
   const cab = f => `<div class="e-big"><div class="e-bigi" id="e-bigi">${EN.fotos[id] ? `<img alt="Foto de la entrega de ${etxt(x.nro)}" src="data:image/jpeg;base64,${EN.fotos[id]}">` : (EN.minis[id] ? `<img class="e-borr" alt="Cargando foto" src="data:image/jpeg;base64,${EN.minis[id]}"><p class="hint e-carg">Cargando la foto…</p>` : '<p class="hint">Cargando la foto…</p>')}</div>

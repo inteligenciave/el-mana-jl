@@ -127,4 +127,10 @@ export function validarFoto(foto, mini) {
   if (mini != null && mini !== '' && (!b64(mini) || mini.length > MAX_MINI_CHARS)) return 'La miniatura no es válida.';
   return null;
 }
+/* Total de bultos recibidos: entero de 0 en adelante (llega como número o como texto) */
+export function validarBultos(v) {
+  const s = String(v == null ? '' : v).trim();
+  if (!/^\d{1,6}$/.test(s)) return {error: 'Escribe cuántos bultos recibiste en total (un número entero, 0 o más).'};
+  return {n: +s};
+}
 export const bytesDeB64 = s => Math.floor(String(s).length * 3 / 4) - (String(s).endsWith('==') ? 2 : String(s).endsWith('=') ? 1 : 0);

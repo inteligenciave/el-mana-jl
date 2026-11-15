@@ -11,7 +11,7 @@ export const PERM_VENTAS = {
   'v-importar': 'adm:2'
 };
 export const MODS_ADM = ['adm', 'custodio', 'ventas', 'cobranza', 'rrhh']; // roles con el módulo Administración por defecto
-export const ROL_TXT = {dueno: 'Dueño', adm: 'Administración y compras', custodio: 'Custodio de caja chica', recep: 'Recepción', jefeprod: 'Jefe de producción', empaque: 'Empaque y despacho', ventas: 'Ventas (vendedor)', cobranza: 'Cobranza', rrhh: 'Nómina y RRHH'};
+export const ROL_TXT = {dueno: 'Dueño', adm: 'Administración y compras', custodio: 'Custodio de caja chica', recep: 'Recepción', jefeprod: 'Jefe de producción', empaque: 'Empaque y despacho', produccion: 'Producción', ventas: 'Ventas (vendedor)', cobranza: 'Cobranza', rrhh: 'Nómina y RRHH'};
 
 /* Peso por bulto: solo el Dueño y Administración lo cargan o corrigen (el servidor lo comprueba con el rol). */
 export const ROLES_PESO_BULTO = ['dueno', 'adm'];

@@ -67,8 +67,9 @@ const vCliFiltrar = (q, max) => Busca.filtrar(V.clientes || [], q, c => [c.razon
 const vPickerItems = (clave, lista) => lista.length ? lista.map(c => `<li><button type="button" class="v-pk-b" data-act="vElegirCliente" data-pk="${clave}" data-id="${c.id_cliente}"><b>${vtxt(c.razon_social)}</b><span>${vtxt(c.rif_id || 'sin RIF')} · debe ${vusd(c.deuda)}</span></button></li>`).join('') : '<li class="hint" style="padding:8px">No hay clientes con ese texto.</li>';
 
 /* ---------- Entradas de números enteros: solo dígitos ---------- */
-document.addEventListener('keydown', e => { const t = e.target; if (t && t.classList && t.classList.contains('v-int') && (['.', ',', '-', '+', 'e', 'E'].includes(e.key))) e.preventDefault(); });
-const vSoloDigitos = el => { const l = el.value.replace(/\D/g, '').replace(/^0+(?=\d)/, ''); if (l !== el.value) el.value = l; return l === '' ? 0 : +l; };
+const V_AVISO_ENTERO = 'Los bultos se cuentan completos: escribe un número entero, sin comas ni puntos.';
+document.addEventListener('keydown', e => { const t = e.target; if (t && t.classList && t.classList.contains('v-int') && (['.', ',', '-', '+', 'e', 'E'].includes(e.key))) { e.preventDefault(); if (e.key === '.' || e.key === ',') toast(V_AVISO_ENTERO, 'warn'); } });
+const vSoloDigitos = el => { if (/\d[.,]\d/.test(el.value)) toast(V_AVISO_ENTERO + ' Se tomó «' + esc(el.value) + '» como ' + esc(el.value.replace(/\D/g, '')) + ': revisa la cantidad.', 'warn'); const l = el.value.replace(/\D/g, '').replace(/^0+(?=\d)/, ''); if (l !== el.value) el.value = l; return l === '' ? 0 : +l; };
 
 /* ---------- Tabla con totales y CSV ---------- */
 async function vCSV(nombre, cabeceras, filas) {

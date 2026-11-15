@@ -9,7 +9,7 @@ const vCasoChip = d => d.error ? `<span class="chip c-crit">${vtxt(d.error)}</sp
 const vCobTasa = () => { const t = vCob().prev && vCob().prev.tasa; return t && t.valor > 0 ? t.valor : NaN; };
 function vTasaAviso(t, fecha) {
   if (!t) return `<p class="v-alerta">${ic('alert', 16)}No hay tasa BCV guardada para el ${vfecha(fecha)}: no se puede registrar el pago hasta que el Dueño o Administración consulten la tasa.</p>`;
-  return `<p class="v-tasa"><b>Tasa BCV: ${N2.format(t.valor)} Bs por US$ 1</b> <span class="muted">· del ${vfecha(t.fecha)}${t.fecha < fecha ? ' (la última publicada hasta esa fecha)' : ''}</span></p>${t.respaldo ? `<p class="v-alerta v-aviso">${ic('alert', 16)}Usando la última tasa guardada, del día ${vfecha(t.fecha)}: la consulta al BCV falló.</p>` : ''}`;
+  return `<p class="v-tasa"><b>Tasa BCV: ${N2.format(t.valor)} Bs por US$ 1</b> <span class="muted">· rige para el ${vfecha(t.fecha)}${t.fecha < fecha ? ' (la última publicada hasta esa fecha)' : t.fecha > fecha ? ' (no hay tasa guardada del ' + vfecha(fecha) + ': se usa la más cercana)' : ''}</span></p>${t.respaldo ? `<p class="v-alerta v-aviso">${ic('alert', 16)}Usando la última tasa guardada, del día ${vfecha(t.fecha)}: la consulta al BCV falló.</p>` : ''}`;
 }
 function vCobUsd() {
   const C = vCob(), bs = vNum(C.monto), t = vCobTasa();
@@ -85,8 +85,8 @@ async function vCobEnviar(pin) {
   try {
     const r = await vApi('POST', '/cobros', cuerpo); closeModal();
     toast('Pago ' + esc(r.recibo) + ' registrado: ' + vusd(r.usd) + '.');
-    Object.assign(C, {monto: '', banco: '', id_banco: '', ref: '', obs: '', apl: {}, exonerar: false}); const cid = C.cid;
-    V.clientes = null; await vBoot(true); await vCobElegir(cid);
+    Object.assign(C, {monto: '', banco: '', id_banco: '', ref: '', obs: '', apl: {}, exonerar: false, fecha: vHoy()}); const cid = C.cid;
+    V.clientes = null; V.deuda.data = null; V.deuda.base = null; await vBoot(true); await vCobElegir(cid);
     vCobExito(r);
   } catch (e) {
     if (e.info && e.info.codigo === 'DUPLICADO') { closeModal(); vCobDuplicado(e); }

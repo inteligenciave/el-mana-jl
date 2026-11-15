@@ -5,6 +5,7 @@ export const ENT_ACCIONES = {
   subir: ['dueno', 'jefeprod', 'empaque'],
   confirmar: ['dueno', 'jefeprod'],
   cobranza: ['dueno', 'cobranza', 'adm'],
+  verCobranza: ['dueno', 'cobranza', 'adm', 'ventas'],   // ver plazos y reclamos (Ventas solo mira)
   ajustes: ['dueno']
 };
 export const entPuede = (rol, accion) => (ENT_ACCIONES[accion] || []).includes(rol);

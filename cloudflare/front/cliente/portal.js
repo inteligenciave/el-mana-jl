@@ -12,10 +12,11 @@ const ic = {
   casa: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>',
   caja: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7l9-4 9 4-9 4-9-4z"/><path d="M3 7v10l9 4 9-4V7"/><path d="M12 11v10"/></svg>',
   hoja: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h9l4 4v14H6z"/><path d="M9 12h7M9 16h7"/></svg>',
+  camion: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 6h11v10H2z"/><path d="M13 9h4l4 4v3h-8"/><circle cx="7" cy="17.5" r="1.8"/><circle cx="17" cy="17.5" r="1.8"/></svg>',
   moneda: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9.5 9.5c0-1 1.2-1.5 2.5-1.5s2.5.6 2.5 1.7c0 2.3-5 1.2-5 3.6 0 1.1 1.2 1.7 2.5 1.7s2.5-.6 2.5-1.5"/></svg>'
 };
 
-const S = {tok: '', vista: 'inicio', cuenta: null, perfil: null, cat: null, cart: {}, q: '', categoria: 'Todos', sub: 'docs', cargando: true, errLogin: '', enviando: false, hoja: null, pago: {banco: '', referencia: '', monto: '', fecha: '', nota: '', err: '', ok: ''}, nota: ''};
+const S = {tok: '', vista: 'inicio', cuenta: null, perfil: null, cat: null, cart: {}, q: '', categoria: 'Todos', sub: 'docs', cargando: true, errLogin: '', enviando: false, hoja: null, pago: {banco: '', referencia: '', monto: '', fecha: '', nota: '', comp: null, compKb: 0, compOcupado: false, err: '', ok: ''}, nota: ''};
 
 /* ---------- Servidor ---------- */
 async function api(m, p, b) {
@@ -38,7 +39,7 @@ async function cargar() {
   S.cargando = false; pintar();
 }
 async function refrescarCuenta() { try { const [yo, cu, cat] = await Promise.all([api('GET', '/yo'), api('GET', '/cuenta'), api('GET', '/catalogo')]); S.perfil = yo; S.cuenta = cu; S.cat = cat; } catch (e) { aviso(e.message, 1); } }
-function aviso(t, mal) { const d = document.createElement('div'); d.className = 'tt' + (mal ? ' e' : ''); d.textContent = t; $('#toast').appendChild(d); setTimeout(() => d.remove(), mal ? 7000 : 4500); }
+function aviso(t, mal) { if (!mal && window.Borrador) Borrador.exito(); const d = document.createElement('div'); d.className = 'tt' + (mal ? ' e' : ''); d.textContent = t; $('#toast').appendChild(d); setTimeout(() => d.remove(), mal ? 7000 : 4500); }
 
 /* ---------- Carrito ---------- */
 const prod = id => (S.cat || []).find(p => p.id_producto === +id);
@@ -113,11 +114,16 @@ function vPedir() {
 Busca.registrar('portal-prod', {sugerir: q => Busca.sugerir(q, S.cat || [], defProd), vivo: q => { S.q = q; const e = $('#lista-prod'); if (e) { const l = prodsVisibles(); e.innerHTML = l.length ? l.map(htmlProd).join('') : '<p class="vacio">No hay productos con ese texto.</p>'; } }, espera: 120});
 
 const filaDoc = d => { const [t, tn] = estadoDoc(d); return `<div class="item"><div class="top"><div><span class="num">${esc(d.numero)}</span> ${chipE(t, tn)}<div class="mini">${esc(d.tipo)}${d.factura_fiscal ? ' · fact. ' + esc(d.factura_fiscal) : ''} · ${fdl(d.fecha)}${d.vence ? ' · vence ' + fdl(d.vence) : ''}</div></div>
-  <div class="monto">${usd(d.total)}<div class="mini">${d.saldo > 0 ? 'Debes ' + usd(d.saldo) : ''}</div></div></div><button type="button" class="btn lin sm ver" data-a="doc" data-id="${d.id}">Ver detalle</button></div>`; };
+  <div class="monto">${usd(d.total)}<div class="mini">${d.saldo > 0 ? 'Debes ' + usd(d.saldo) : ''}</div></div></div><button type="button" class="btn lin sm ver" data-a="doc" data-id="${d.id}">Ver detalle</button> <button type="button" class="btn lin sm ver" data-a="pdfdoc" data-id="${d.id}">Descargar PDF</button></div>`; };
+const filaPedVenta = p => `<div class="item"><div class="top"><div><span class="num">${esc(p.numero)}</span> ${chipE('Por despachar', 'esp')}<div class="mini">Pedido / ${esc(p.tipo)} · ${fdl(p.fecha)} · ${p.bultos} ${p.bultos === 1 ? 'bulto' : 'bultos'}</div></div></div><button type="button" class="btn lin sm ver" data-a="pdfped" data-id="${p.id}">Descargar PDF</button></div>`;
+async function bajarPdf(ruta) {
+  try { const d = await api('GET', ruta); await ElManaPDF.descargar(d, '/icon-192.png'); aviso('Se descargó el PDF ' + d.archivo + '.'); }
+  catch (e) { aviso(e.message || 'No se pudo descargar el PDF.', 1); }
+}
 function vCuenta() {
   const cu = S.cuenta, r = cu.resumen, c = r.credito, subs = [['docs', 'Facturas y notas'], ['pagos', 'Mis pagos'], ['pedidos', 'Mis pedidos'], ['rep', 'Pagos reportados']];
   let cuerpo = '';
-  if (S.sub === 'docs') cuerpo = (cu.documentos.length ? `<div class="lista">${cu.documentos.map(filaDoc).join('')}</div>` : '<p class="vacio">Todavía no tienes facturas ni notas de entrega.</p>')
+  if (S.sub === 'docs') cuerpo = ((cu.pedidos_venta || []).filter(p => p.estado !== 'DESPACHADO').length ? `<h2 style="margin:0 0 8px">Pedidos por despachar</h2><div class="lista" style="margin-bottom:14px">${cu.pedidos_venta.filter(p => p.estado !== 'DESPACHADO').map(filaPedVenta).join('')}</div>` : '') + (cu.documentos.length ? `<div class="lista">${cu.documentos.map(filaDoc).join('')}</div>` : '<p class="vacio">Todavía no tienes facturas ni notas de entrega.</p>')
     + (cu.notas.length ? `<h2 style="margin:18px 0 8px">Notas de crédito y débito</h2><div class="lista">${cu.notas.map(n => `<div class="item"><div class="top"><div><span class="num">${esc(n.tipo)} ${esc(n.numero || '')}</span><div class="mini">Sobre ${esc(n.sobre || '')} · ${fdl(n.fecha)}<br>${esc(n.motivo || '')}</div></div><div class="monto">${usd(n.total)}</div></div></div>`).join('')}</div>` : '');
   else if (S.sub === 'pagos') cuerpo = cu.pagos.length ? `<div class="lista">${cu.pagos.map(p => `<div class="item"><div class="top"><div><span class="num">${esc(p.recibo)}</span><div class="mini">${fdl(p.fecha)} · ${esc(p.banco || '')} · ref. ${esc(p.referencia || '—')}<br>${p.aplicado_a.length ? 'Aplicado a ' + esc(p.aplicado_a.join(', ')) : 'Sin aplicar todavía'}</div></div><div class="monto">${usd(p.usd)}<div class="mini">${bsf(p.monto_bs)}</div></div></div></div>`).join('')}</div>` : '<p class="vacio">Todavía no hay pagos registrados.</p>';
   else if (S.sub === 'pedidos') cuerpo = cu.pedidos.length ? `<div class="lista">${cu.pedidos.map(p => `<div class="item"><div class="top"><div><span class="num">${esc(p.codigo)}</span> ${chipE(p.estado_texto, tonoPedido(p.estado))}<div class="mini">${new Date(p.creado).toLocaleDateString('es-VE')} · ${p.lineas.map(l => esc(l.cantidad + ' × ' + l.nombre)).join(', ')}</div>${p.motivo_rechazo ? `<div class="mini"><b>Motivo:</b> ${esc(p.motivo_rechazo)}</div>` : ''}</div><div class="monto">${usd(p.total)}</div></div>${p.estado === 'POR_CONFIRMAR' ? `<button type="button" class="btn lin sm ver" data-a="cancelar" data-id="${p.id}">Cancelar pedido</button>` : ''}</div>`).join('')}</div>` : '<p class="vacio">Todavía no has hecho pedidos por aquí.</p>';
@@ -146,19 +152,23 @@ function vPagar() {
       <label class="fld">Monto pagado en bolívares (Bs)<input name="monto" value="${esc(P.monto)}" inputmode="decimal" required autocomplete="off" placeholder="0,00"><small>Usa coma para los decimales. Ejemplo: 1250,50</small></label>
       <label class="fld">Fecha del pago<input type="date" name="fecha" value="${esc(P.fecha || hoy)}" max="${esc(hoy)}" required></label>
       <label class="fld ancho">Nota (opcional)<input name="nota" value="${esc(P.nota)}" maxlength="200" placeholder="Por ejemplo: abono a la nota 1234"></label>
+      <div class="fld ancho"><label for="f-comp">Foto o captura del comprobante (opcional)</label><input type="file" id="f-comp" accept="image/*">
+        ${P.compOcupado ? '<small>Preparando la imagen…</small>' : P.comp ? `<div class="comp-prev"><img alt="Tu comprobante" src="data:image/jpeg;base64,${P.comp}"><div><small>Lista (${P.compKb} KB)</small><button type="button" class="btn lin" data-a="quitar-comp">Quitar</button></div></div>` : ''}</div>
       <div class="ancho"><button class="btn full" type="submit" ${S.enviando ? 'disabled' : ''}>${S.enviando ? 'Enviando…' : 'Enviar el reporte'}</button></div></form></section>
     <section class="card"><h2>Tus pagos reportados</h2>${S.cuenta.reportes.length ? `<div class="lista">${S.cuenta.reportes.slice(0, 8).map(p => `<div class="item"><div class="top"><div><span class="num">${esc(p.codigo)}</span> ${chipE(p.estado_texto, tonoPago(p.estado))}<div class="mini">${fdl(p.fecha_pago)} · ${esc(p.banco)} · ref. ${esc(p.referencia)}</div>${p.motivo_rechazo ? `<div class="mini"><b>Motivo:</b> ${esc(p.motivo_rechazo)}</div>` : ''}</div><div class="monto">${bsf(p.monto_bs)}</div></div></div>`).join('')}</div>` : '<p class="vacio">Todavía no has reportado pagos.</p>'}</section>`;
 }
-const VISTAS = [['inicio', 'Inicio', 'casa'], ['pedir', 'Pedir', 'caja'], ['cuenta', 'Mi cuenta', 'hoja'], ['pagar', 'Pagar', 'moneda']];
+function vEntregas() { return '<section class="card"><h2>Mis entregas</h2><div id="ep-x"></div></section>'; }
+const VISTAS = [['inicio', 'Inicio', 'casa'], ['pedir', 'Pedir', 'caja'], ['entregas', 'Entregas', 'camion'], ['cuenta', 'Mi cuenta', 'hoja'], ['pagar', 'Pagar', 'moneda']];
 function pintar() {
   const foco = Busca.guardarFoco(), app = $('#app');
   if (S.cargando && !S.perfil) { app.innerHTML = '<div class="entrada"><p class="vacio">Cargando tu cuenta…</p></div>'; return; }
   if (!S.tok || !S.perfil) { app.innerHTML = vEntrada(); Busca.restaurarFoco(foco); return; }
   const y = S.perfil, pend = (y.pedidos_por_confirmar || 0) + (y.pagos_por_verificar || 0);
-  const cuerpo = S.vista === 'pedir' ? vPedir() : S.vista === 'cuenta' ? vCuenta() : S.vista === 'pagar' ? vPagar() : vInicio();
+  const cuerpo = S.vista === 'pedir' ? vPedir() : S.vista === 'entregas' ? vEntregas() : S.vista === 'cuenta' ? vCuenta() : S.vista === 'pagar' ? vPagar() : vInicio();
   const tabs = `<nav class="tabs" aria-label="Secciones">${VISTAS.map(([k, t, i]) => `<button type="button" data-a="ir" data-v="${k}" ${S.vista === k ? 'aria-current="page"' : ''}>${ic[i]}<span>${t}</span>${k === 'cuenta' && pend ? `<span class="pt" aria-label="${pend} por revisar">${pend}</span>` : ''}</button>`).join('')}</nav>`;
   app.innerHTML = `<header class="cab"><div class="cab-i"><img src="/icon-192.png" alt=""><div><b>El Maná JL</b><small>${esc(y.cliente.nombre)}</small></div><button type="button" class="salir" data-a="salir">Salir</button></div></header>${tabs}<main id="main" tabindex="-1">${cuerpo}</main>`;
   pintarResumen(); Busca.restaurarFoco(foco);
+  if (S.vista === 'entregas' && typeof EntregasPortal !== 'undefined' && $('#ep-x')) EntregasPortal.montar($('#ep-x'), {token: S.tok});
 }
 
 /* ---------- Hoja (revisar pedido, detalle) ---------- */
@@ -201,8 +211,8 @@ async function enviarPago(f) {
   if (!(monto > 0)) { P.err = 'Escribe el monto en bolívares. Ejemplo: 1250,50'; return pintar(); }
   S.enviando = true; pintar();
   try {
-    const r = await api('POST', '/pagos', {banco: P.banco, id_banco: P.id_banco || undefined, referencia: P.referencia, monto_bs: monto, fecha_pago: P.fecha, nota: P.nota});
-    Object.assign(P, {banco: '', id_banco: '', referencia: '', monto: '', fecha: '', nota: '', err: '', ok: `${r.codigo}: ${r.mensaje}`}); S.enviando = false; await refrescarCuenta(); pintar();
+    const r = await api('POST', '/pagos', {banco: P.banco, id_banco: P.id_banco || undefined, referencia: P.referencia, monto_bs: monto, fecha_pago: P.fecha, nota: P.nota, comprobante: P.comp || undefined});
+    Object.assign(P, {banco: '', id_banco: '', referencia: '', monto: '', fecha: '', nota: '', comp: null, compKb: 0, err: '', ok: `${r.codigo}: ${r.mensaje}`}); S.enviando = false; await refrescarCuenta(); pintar();
   } catch (e) { S.enviando = false; P.err = e.message; pintar(); }
 }
 
@@ -217,11 +227,21 @@ document.addEventListener('click', async e => {
   else if (a === 'revisar') hojaPedido();
   else if (a === 'enviar-pedido') enviarPedido();
   else if (a === 'cerrar') cerrarHoja();
+  else if (a === 'quitar-comp') { S.pago.comp = null; S.pago.compKb = 0; pintar(); }
   else if (a === 'doc') verDoc(id);
+  else if (a === 'pdfdoc') bajarPdf('/documentos/' + id + '/pdf');
+  else if (a === 'pdfped') bajarPdf('/pedidos-venta/' + id + '/pdf');
   else if (a === 'cancelar') { if (!confirm('¿Cancelar este pedido?')) return; try { await api('POST', '/pedidos/' + id + '/cancelar'); await refrescarCuenta(); pintar(); aviso('Pedido cancelado.'); } catch (er) { aviso(er.message, 1); } }
   else if (a === 'salir') { S.tok = ''; S.perfil = null; S.cuenta = null; S.cart = {}; try { sessionStorage.removeItem('em_ct'); } catch (x) { /* nada */ } history.replaceState(null, '', location.pathname); pintar(); }
 });
 document.addEventListener('input', e => { const t = e.target; if (t.classList && t.classList.contains('qin')) { const l = t.value.replace(/\D/g, ''); if (l !== t.value) t.value = l; ponerCant(t.dataset.id, l === '' ? 0 : +l); } });
+document.addEventListener('change', async e => {
+  if (e.target.id !== 'f-comp') return; const P = S.pago, f = e.target.files && e.target.files[0]; if (!f) return;
+  const f2 = document.getElementById('f-pago'); if (f2) Object.assign(P, {banco: f2.elements.banco ? f2.elements.banco.value : P.banco, id_banco: f2.elements.id_banco ? f2.elements.id_banco.value : P.id_banco, referencia: f2.elements.referencia.value, monto: f2.elements.monto.value, fecha: f2.elements.fecha.value, nota: f2.elements.nota.value});
+  P.err = ''; P.ok = ''; P.compOcupado = true; P.comp = null; pintar();
+  try { const r = await EntregasPortal.comprimir(f); P.comp = r.foto; P.compKb = r.kb; } catch (er) { P.err = er.message; }
+  P.compOcupado = false; pintar();
+});
 document.addEventListener('submit', e => {
   e.preventDefault();
   if (e.target.id === 'f-codigo') { S.tok = $('#codigo').value.trim(); try { sessionStorage.setItem('em_ct', S.tok); } catch (x) { /* nada */ } history.replaceState(null, '', location.pathname + '#' + S.tok); cargar(); }
@@ -231,5 +251,15 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') cerrarHoja()
 document.addEventListener('click', e => { if (e.target.id === 'vel') cerrarHoja(); });
 
 S.tok = leerCodigo(); try { if (!S.tok) S.tok = sessionStorage.getItem('em_ct') || ''; } catch (x) { /* nada */ }
+/* Borrador: lo que la persona estaba escribiendo y dónde estaba (solo en este navegador, 24 h; el código personal nunca se guarda) */
+try {
+  if (window.Borrador) {
+    const hh = s => { let h = 5381; for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0; return (h >>> 0).toString(36); };
+    Borrador.config({ctx: () => S.tok ? 'p:' + hh(S.tok) + ':' + S.vista : null, aviso: t => aviso(t)});
+    Borrador.registrar('portal', () => ({vista: S.vista, cat: S.categoria, sub: S.sub, q: S.q, nota: S.nota, cart: S.cart, pago: {banco: S.pago.banco, id_banco: S.pago.id_banco, referencia: S.pago.referencia, monto: S.pago.monto, fecha: S.pago.fecha, nota: S.pago.nota}}),
+      v => { if (!v) return; S.vista = v.vista || S.vista; S.categoria = v.cat || S.categoria; S.sub = v.sub || S.sub; S.q = v.q || ''; S.nota = v.nota || ''; Object.assign(S.cart, v.cart || {}); Object.assign(S.pago, v.pago || {}); if (S.perfil) pintar(); },
+      () => S.tok ? 'p:' + hh(S.tok) + ':*' : null);
+  }
+} catch (e) { /* sin borrador */ }
 if (S.tok) cargar(); else { S.cargando = false; pintar(); }
 })();
