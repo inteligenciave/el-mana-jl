@@ -4720,6 +4720,8 @@ async function onReady() {
   if (Layer.canWrite && Layer.modo() === 'ejemplo' && ((Layer.estado() || {}).hv || 0) < HIST_V) Svc.migrarHist().catch(e => { if (e && e.code !== 'busy') console.error(e); });
 }
 function onErr(col, e) { console.error(col, e); if (Boot.state !== 'ready') { Boot.state = 'error'; Boot.err = e; renderAll(); } else { Store.err = e; softRender(); } }
+/* App instalable (PWA): service worker mínimo, sin caché; si falla no pasa nada */
+try { if ('serviceWorker' in navigator && location.protocol.startsWith('http')) window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {})); } catch (e) {}
 (function init() {
   renderAll();
   startLayer({onReady, onChange, onError: onErr}).catch(e => { console.error(e); Boot.state = 'error'; Boot.err = e; renderAll(); });

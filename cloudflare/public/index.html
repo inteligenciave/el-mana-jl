@@ -1,27 +1,33 @@
 <!doctype html><html lang="es" data-theme="light"><head><script>window.__EM_HTTP = true;</script>
 <title>El Maná JL — Seguimiento productivo</title>
-<meta name="description" content="Seguimiento productivo de El Maná JL: producción, compras, inventario y cobranza en un solo lugar.">
+<meta name="description" content="Sistema de seguimiento productivo de El Maná JL">
 <meta name="theme-color" content="#C92121">
 <link rel="icon" href="/favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
-<link rel="apple-touch-icon" href="/apple-touch-icon.png">
-<link rel="manifest" href="/site.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="/icons/icon-512.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="El Maná">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="El Maná JL">
 <meta property="og:title" content="El Maná JL — Seguimiento productivo">
-<meta property="og:description" content="Seguimiento productivo de El Maná JL: producción, compras, inventario y cobranza en un solo lugar.">
+<meta property="og:description" content="Sistema de seguimiento productivo de El Maná JL">
 <meta property="og:locale" content="es_VE">
 <meta property="og:url" content="https://elmana-jl.talosbot.workers.dev/">
-<meta property="og:image" content="https://elmana-jl.talosbot.workers.dev/og-banner.png">
+<meta property="og:image" content="https://elmana-jl.talosbot.workers.dev/img/compartir.png">
 <meta property="og:image:type" content="image/png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="El Maná JL: seguimiento productivo. Producción, compras, inventario y cobranza.">
+<meta property="og:image:alt" content="El Maná JL, seguimiento productivo">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="El Maná JL — Seguimiento productivo">
-<meta name="twitter:description" content="Seguimiento productivo de El Maná JL: producción, compras, inventario y cobranza en un solo lugar.">
-<meta name="twitter:image" content="https://elmana-jl.talosbot.workers.dev/og-banner.png">
-<meta name="twitter:image:alt" content="El Maná JL: seguimiento productivo. Producción, compras, inventario y cobranza.">
+<meta name="twitter:description" content="Sistema de seguimiento productivo de El Maná JL">
+<meta name="twitter:image" content="https://elmana-jl.talosbot.workers.dev/img/compartir.png">
+<meta name="twitter:image:alt" content="El Maná JL, seguimiento productivo">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="claude:viewport-fit-sides" content="cover">
@@ -4743,6 +4749,8 @@ async function onReady() {
   if (Layer.canWrite && Layer.modo() === 'ejemplo' && ((Layer.estado() || {}).hv || 0) < HIST_V) Svc.migrarHist().catch(e => { if (e && e.code !== 'busy') console.error(e); });
 }
 function onErr(col, e) { console.error(col, e); if (Boot.state !== 'ready') { Boot.state = 'error'; Boot.err = e; renderAll(); } else { Store.err = e; softRender(); } }
+/* App instalable (PWA): service worker mínimo, sin caché; si falla no pasa nada */
+try { if ('serviceWorker' in navigator && location.protocol.startsWith('http')) window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {})); } catch (e) {}
 (function init() {
   renderAll();
   startLayer({onReady, onChange, onError: onErr}).catch(e => { console.error(e); Boot.state = 'error'; Boot.err = e; renderAll(); });
@@ -5756,6 +5764,17 @@ legend{margin-bottom:4px}
 .un-fila>.cp-tabs{padding-left:14px;border-left:2px solid var(--line-2)}
 .un-fila>.cp-tabs .v-tab{min-height:30px;padding:0 11px;font-size:13px;border-radius:999px}
 .un-fila>.cp-tabs .v-tab[aria-selected="true"]{background:var(--yellow,#F2B72E);border-color:var(--yellow,#F2B72E);color:#1F1F1F}
+
+/* CELULAR: nada se sale de la pantalla (textos que se ajustan, botones apilados, tablas con su propio deslizador) */
+@media (max-width:600px){
+.v-prod-p,.v-prod-p b{white-space:normal}
+.v-prod-p{min-width:0;max-width:100%}
+.v-prod-s.crit,.v-prod-s{white-space:normal;overflow-wrap:anywhere;word-break:break-word;min-width:0;max-width:100%}
+.v-grid:not(.v-lista){grid-template-columns:minmax(0,1fr)}
+.v-p3-f .v-acc,.v-acc{display:flex;flex-direction:column;grid-template-columns:minmax(0,1fr);gap:8px}
+.v-p3-f .v-acc .btn,.v-acc .btn{width:100%;max-width:100%;min-width:0;white-space:normal;line-height:1.2;text-align:center;justify-content:center}
+.v-bar{left:0;right:0;max-width:100%;box-sizing:border-box}
+}
 </style>
 <script>
 /* BORRADOR: guarda lo que la persona está escribiendo (y la pestaña/pantalla donde estaba) para recuperarlo si la página se actualiza.
@@ -10491,7 +10510,7 @@ function gMedidor(k, val, fmt) { /* semicírculo: arco gris = meta, arco rojo = 
 /* ¿Este puesto puede abrir esa pantalla? (si no, la tarjeta no ofrece el enlace) */
 const gVa = k => k && (S.rol === 'dueno' || lvlOf(S.rol, k) >= 1);
 const gPrim = l => l.find(gVa) || l[0];
-const gSinCifra = v => v === 'Sin datos' || v === 'No calculable' || v === '…';
+const gSinCifra = v => v === 'Sin datos' || v === 'No calculable' || v === 'No calculado' || v === '…';
 function gBloque(titulo, cifras, enlace, extra, k, sec, cls) {
   return '<article class="card gr-card ' + (cls || 'gr-w3') + '"><div class="card-b"><h2>' + titulo + '</h2>' +
     (k && S.rol === 'dueno' ? '<button type="button" class="lnk gr-fijar" data-act="metaAbrir" data-k="' + k + '">' + (k === 'compras' ? 'Fijar límite' : 'Fijar meta') + '</button>' : '') +
@@ -10520,10 +10539,10 @@ function gTend(titulo, porDia, total, M, fmt) {
 /* Punto de equilibrio del mes = costos fijos / (1 - costos variables / ventas). Fijos y variables: los «Gastos fijos / variables del mes» que ya muestra Control de gestión. */
 function gEquilibrio(vv) {
   let F = null, Vr = null; try { F = DATA.gastosFijos.reduce((a, g) => a + (+g[1] || 0), 0); Vr = DATA.gastosVar.reduce((a, g) => a + (+g[1] || 0), 0); } catch (e) { /* sin dato */ }
-  const sd = m => ({v: 'Sin datos', m});
+  const sd = m => ({v: 'No calculado', m});
   if (vv == null) return sd('Faltan las ventas del mes');
   if (!(F > 0)) return sd('No hay gastos fijos cargados');
-  if (!(vv > 0)) return {v: 'No calculable', m: 'Todavía no hay ventas este mes'};
+  if (!(vv > 0)) return {v: 'No calculado', m: 'Todavía no hay ventas este mes'};
   const mg = 1 - Vr / vv;
   if (!(mg > 0)) return {v: 'No calculable', m: 'Los costos variables igualan o superan las ventas'};
   const pe = F / mg, pct = vv / pe * 100;
