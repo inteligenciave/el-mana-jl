@@ -8,7 +8,7 @@ async function cApi(metodo, ruta, cuerpo) {
   if (!r.ok) { const e = new Error(j.error || 'No se pudo completar la operación.'); e.status = r.status; e.info = j; throw e; }
   return j;
 }
-const cusd = x => x == null ? '—' : 'US$ ' + N2.format(x), cbs = x => x == null ? '—' : 'Bs ' + N2.format(x);
+const cusd = x => x == null ? '—' : '$ ' + N2.format(x), cbs = x => x == null ? '—' : 'Bs ' + N2.format(x);
 const cfec = ts => ts ? new Date(ts).toLocaleDateString('es-VE', {day: '2-digit', month: '2-digit', year: 'numeric'}) : '—';
 const cPantalla = fn => window.__EM_HTTP ? fn() : ph('Portal de clientes', 'Portal de clientes', '', '') + card('', emptyState('Este módulo necesita el servidor', 'Funciona en la versión con base de datos (Cloudflare).'));
 const cErr = e => toast(esc(e && e.message ? e.message : 'No se pudo completar la operación.'), 'err');

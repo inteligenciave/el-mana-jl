@@ -43,11 +43,11 @@ function cpIcono(p) { return `<span class="v-img v-img-n cp-ic" aria-hidden="tru
 function cpTarjeta(p) {
   const q = CPD.cant[p.id] || '', on = cpN(q) > 0, ref = cpRef(p), u = cpUni(p), paso = p.kgSaco > 0 ? p.kgSaco : 1;
   return `<article class="v-prod cp-prod ${on ? 'on' : ''}" data-id="${cpT(p.id)}">${cpIcono(p)}<div class="v-prod-b"><p class="v-prod-n">${cpT(p.n)}</p><p class="v-prod-g">${cpT(p.cat)}</p>
-    <p class="v-prod-p">${ref != null ? `<b class="v-pv">US$ ${N2.format(ref)}</b><span class="v-sub">precio de referencia por ${u}</span>` : '<span class="v-prod-s">Sin precio de referencia</span>'}</p>
+    <p class="v-prod-p">${ref != null ? `<b class="v-pv">$ ${N2.format(ref)}</b><span class="v-sub">precio de referencia por ${u}</span>` : '<span class="v-prod-s">Sin precio de referencia</span>'}</p>
     <div class="v-step"><button type="button" class="v-sb" data-act="cpQty" data-id="${cpT(p.id)}" data-d="-1" aria-label="Quitar ${paso} ${u} de ${cpT(p.n)}">−</button>
     <input type="text" inputmode="decimal" class="v-q cp-q" data-cp="cant" data-id="${cpT(p.id)}" value="${cpT(q)}" placeholder="0" aria-label="Cantidad de ${cpT(p.n)} en ${u}"><span class="cp-u">${u}</span>
     <button type="button" class="v-sb" data-act="cpQty" data-id="${cpT(p.id)}" data-d="1" aria-label="Agregar ${paso} ${u} de ${cpT(p.n)}">+</button></div>
-    ${on ? `<label class="cp-pu">Precio por ${u} (US$)<input type="text" inputmode="decimal" data-cp="precio" data-id="${cpT(p.id)}" value="${cpT(cpPrecio(p))}"></label>` : ''}</div></article>`;
+    ${on ? `<label class="cp-pu">Precio por ${u} ($)<input type="text" inputmode="decimal" data-cp="precio" data-id="${cpT(p.id)}" value="${cpT(cpPrecio(p))}"></label>` : ''}</div></article>`;
 }
 function cpGrid() {
   const v = cpVisibles();
@@ -57,8 +57,9 @@ const cpProvItems = q => { const l = Busca.filtrar(cpProvs(), q, p => [p.nombre,
 function cpP1() {
   const pv = cpProv();
   const pend = (CPD.pedidos || []).filter(x => x.estado === 'PEDIDA');
-  const lista = pend.length ? `<h3 class="cp-h3">Pedidos por recibir (${pend.length})</h3><ul class="cp-ped">${pend.slice(0, 6).map(x => `<li><b>${cpT(x.nro)}</b> · ${cpT(x.proveedor)}<br><span class="muted">${fd(x.fecha)} · US$ ${cpN2(x.total_usd)} · ${x.condicion === 'CONTADO' ? 'contado' : 'crédito ' + x.plazo_dias + ' días'}</span></li>`).join('')}</ul>` : '';
+  const lista = pend.length ? `<h3 class="cp-h3">Pedidos por recibir (${pend.length})</h3><ul class="cp-ped">${pend.slice(0, 6).map(x => `<li><b>${cpT(x.nro)}</b> · ${cpT(x.proveedor)}<br><span class="muted">${fd(x.fecha)} · $ ${cpN2(x.total_usd)} · ${x.condicion === 'CONTADO' ? 'contado' : 'crédito ' + x.plazo_dias + ' días'}</span></li>`).join('')}</ul>` : '';
   if (!pv) return `<div class="v-pick"><label class="fld">Buscar proveedor<input type="search" class="v-pk-in" ${Busca.atr('c-prov')} value="${cpT(CPD.pq)}" placeholder="Nombre, RIF o qué vende"></label>
+    <div class="cp-pvb"><button type="button" class="btn sm pri" data-act="pvNuevo" data-o="compra">${ic('plus', 16)}Nuevo proveedor</button><a class="btn sm ghost" href="#catalogos">Administrar proveedores</a></div>
     <ul class="v-pk-list" id="cp-pk">${cpProvItems(CPD.pq)}</ul></div>${lista}`;
   return `<div class="v-cli"><p class="v-cli-n">${pv.nombre}</p><p class="mono">${cpT(pv.rif || 'sin RIF')}</p>
     <dl class="v-dl"><div><dt>Vende</dt><dd>${cpT(pv.rubro)}</dd></div><div><dt>Pago habitual</dt><dd>${pv.cond === 'Crédito' ? 'Crédito · ' + cpT(pv.plazo) : 'Contado'}</dd></div></dl>
@@ -75,9 +76,9 @@ function cpP2() {
 function cpP3() {
   const pv = cpProv(), ls = cpLineas(), tot = cpTotal(), contado = CPD.cond === 'CONTADO', bancos = CPD.bancos || [];
   if (!pv) return '<p class="hint">Elige el proveedor y los productos para ver el total.</p>';
-  const filas = ls.length ? `<ul class="v-lin cp-lin">${ls.map(l => `<li><span class="v-lin-n">${cpT(l.p.n)}</span><span class="v-lin-c">${cpN2(l.cant)} ${cpUni(l.p)} × US$ ${N2.format(l.pu)}</span><b>US$ ${cpN2(Math.round(l.cant * l.pu * 100) / 100)}</b></li>`).join('')}</ul>` : '<p class="hint">Todavía no has elegido productos.</p>';
+  const filas = ls.length ? `<ul class="v-lin cp-lin">${ls.map(l => `<li><span class="v-lin-n">${cpT(l.p.n)}</span><span class="v-lin-c">${cpN2(l.cant)} ${cpUni(l.p)} × $ ${N2.format(l.pu)}</span><b>$ ${cpN2(Math.round(l.cant * l.pu * 100) / 100)}</b></li>`).join('')}</ul>` : '<p class="hint">Todavía no has elegido productos.</p>';
   return `<div class="v-p3w"><div class="v-p3-l">${filas}</div><div class="v-p3-f">
-    <div class="v-tot"><p class="v-tot-t"><span>Total</span><b>US$ ${cpN2(tot)}</b></p><p class="hint v-ref">${S.tasa > 0 ? '≈ ' + cpBsTxt(tot) + ' a la tasa BCV ' + N2.format(S.tasa) : 'No hay tasa BCV guardada.'}</p></div>
+    <div class="v-tot"><p class="v-tot-t"><span>Total</span><b>$ ${cpN2(tot)}</b></p><p class="hint v-ref">${S.tasa > 0 ? '≈ ' + cpBsTxt(tot) + ' a la tasa BCV ' + N2.format(S.tasa) : 'No hay tasa BCV guardada.'}</p></div>
     <div class="row2"><label class="fld">Nº de factura del proveedor<input type="text" data-cp="factura" value="${cpT(CPD.factura)}" maxlength="40"></label>
     <label class="fld">Fecha de la factura<input type="date" data-cp="fecha" value="${cpT(CPD.fecha)}"></label></div>
     <fieldset class="v-cond"><legend>¿Cómo se paga?</legend><div class="v-vistas" role="group" aria-label="Condición de pago">${[['CREDITO', 'A crédito'], ['CONTADO', 'De contado']].map(([k, t]) => `<button type="button" class="v-cat" aria-pressed="${CPD.cond === k}" data-act="cpCond" data-v="${k}">${t}</button>`).join('')}</div></fieldset>
@@ -156,11 +157,110 @@ async function cpHacer() {
   finally { CPD.busy = false; render(); }
 }
 
+/* ---------- Proveedores: alta y edición en un cuadro (se usa aquí y en la pantalla Proveedores) ----------
+   Solo Gerencia y Administración. El servidor también lo exige (src/acceso.js). Desactivar no borra: las compras anteriores conservan el nombre. */
+const PV_DIAS = ['7', '20', '21', '25'];
+const pvLimpio = s => String(s == null ? '' : s).replace(/\s+/g, ' ').trim();
+const pvClave = s => String(s || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+function pvRif(s) {
+  const t = String(s || '').toUpperCase().replace(/[\s.]/g, '');
+  if (!/^[JVEG]-?\d{8}-?\d$/.test(t)) return null;
+  const d = t.replace(/\D/g, ''); return t[0] + '-' + d.slice(0, 8) + '-' + d.slice(8);
+}
+function pvCondDe(p) {
+  if (!p || p.cond !== 'Crédito') return {c: 'Contado', sel: '7', otro: ''};
+  if (p.abonos || p.plazo === 'Abonos semanales') return {c: 'Abonos', sel: '7', otro: ''};
+  const d = String(p.dias || ''); return PV_DIAS.includes(d) ? {c: 'Credito', sel: d, otro: ''} : {c: 'Credito', sel: 'otro', otro: d};
+}
+function pvModal(id, origen) {
+  if (lvl('catalogos') < 2) return toast('Tu rol no puede agregar ni editar proveedores.', 'warn');
+  const p = id ? one('proveedores', id) : null; if (id && !p) return;
+  const q = p || {nombre: '', rif: '', rubro: '', tipo: 'insumo', tel: '', correo: '', direccion: ''}, cd = pvCondDe(p);
+  const tipos = [['papa', 'Papa (materia prima)'], ['insumo', 'Insumos'], ...(origen === 'compra' && !(p && p.tipo === 'general') ? [] : [['general', 'Compras generales']])];
+  modal(id ? 'Editar proveedor' : 'Nuevo proveedor', `<div class="form" id="pv-form" data-id="${cpT(id || '')}" data-o="${origen}">
+    <label class="fld">Nombre<input type="text" id="pv-n" maxlength="100" value="${cpT(q.nombre)}" autocomplete="off"></label>
+    <div class="row2"><label class="fld">RIF<input type="text" id="pv-r" maxlength="14" value="${cpT(q.rif)}" placeholder="J-12345678-9" autocomplete="off"></label>
+    <label class="fld">Qué vende<input type="text" id="pv-ru" maxlength="60" value="${cpT(q.rubro === 'Sin rubro' ? '' : q.rubro)}" placeholder="Ej.: Papa, aceite, sal"></label></div>
+    <label class="fld">Qué se le compra<select id="pv-t">${tipos.map(([k, t]) => `<option value="${k}" ${q.tipo === k ? 'selected' : ''}>${t}</option>`).join('')}</select></label>
+    <div class="row2"><label class="fld">Condición de pago<select id="pv-c"><option value="Contado" ${cd.c === 'Contado' ? 'selected' : ''}>De contado</option><option value="Credito" ${cd.c === 'Credito' ? 'selected' : ''}>A crédito</option><option value="Abonos" ${cd.c === 'Abonos' ? 'selected' : ''}>Abonos semanales</option></select></label>
+    <label class="fld" id="pv-dw" ${cd.c === 'Credito' ? '' : 'hidden'}>Días de plazo<select id="pv-ds">${PV_DIAS.map(d => `<option value="${d}" ${cd.sel === d ? 'selected' : ''}>${d} días</option>`).join('')}<option value="otro" ${cd.sel === 'otro' ? 'selected' : ''}>Otro número</option></select></label></div>
+    <label class="fld" id="pv-ow" ${cd.c === 'Credito' && cd.sel === 'otro' ? '' : 'hidden'}>Otro plazo, en días<input type="text" id="pv-do" inputmode="numeric" maxlength="3" value="${cpT(cd.otro)}"></label>
+    <div class="row2"><label class="fld">Teléfono (opcional)<input type="tel" id="pv-te" maxlength="20" value="${cpT(q.tel)}" placeholder="0414-0000000" autocomplete="off"></label>
+    <label class="fld">Correo (opcional)<input type="email" id="pv-co" maxlength="100" value="${cpT(q.correo)}" autocomplete="off"></label></div>
+    <label class="fld">Dirección (opcional)<input type="text" id="pv-di" maxlength="200" value="${cpT(q.direccion)}" autocomplete="off"></label>
+    <p class="err" id="pv-e" role="alert" hidden></p>
+    <div class="btnrow"><button type="button" class="btn pri" data-act="pvGuardar">${ic('check', 16)}Guardar</button><button type="button" class="btn" data-act="closeModal">Cancelar</button></div></div>`);
+  const i = $('#pv-n'); if (i) i.focus();
+}
+document.addEventListener('change', e => {
+  const t = e.target; if (!t || !t.id || !$('#pv-form')) return;
+  if (t.id === 'pv-c' || t.id === 'pv-ds') { const cr = $('#pv-c').value === 'Credito'; $('#pv-dw').hidden = !cr; $('#pv-ow').hidden = !(cr && $('#pv-ds').value === 'otro'); }
+});
+document.addEventListener('input', e => { const t = e.target; if (t && (t.id === 'pv-do')) { const v = t.value.replace(/\D/g, ''); if (v !== t.value) t.value = v; } });
+function pvLeer(id) {
+  const v = x => pvLimpio($('#' + x).value), nombre = v('pv-n'), rubro = v('pv-ru'), tel = v('pv-te'), correo = v('pv-co'), dir = v('pv-di'), c = $('#pv-c').value;
+  if (!nombre) return {err: 'Falta el nombre del proveedor.'};
+  if (nombre.length > 100) return {err: 'El nombre es muy largo (máximo 100 letras).'};
+  if (!v('pv-r')) return {err: 'Falta el RIF.'};
+  const rif = pvRif(v('pv-r')); if (!rif) return {err: 'El RIF no es válido. Escríbelo así: J-12345678-9 (empieza con J, V, E o G).'};
+  if (rows('proveedores').some(x => x.id !== id && pvClave(x.rif) === pvClave(rif))) return {err: 'Ya hay un proveedor con ese RIF.'};
+  if (!rubro) return {err: 'Falta qué vende el proveedor.'};
+  if (tel && (!/^[0-9+()\-\s.]+$/.test(tel) || tel.replace(/\D/g, '').length < 7 || tel.replace(/\D/g, '').length > 15)) return {err: 'El teléfono solo puede llevar números, espacios y los signos + - ( ).'};
+  if (correo && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(correo)) return {err: 'El correo no es válido. Ejemplo: ventas@empresa.com'};
+  let cond = 'Contado', plazo = 'Contado', dias = 0, abonos = null;
+  if (c === 'Abonos') { cond = 'Crédito'; plazo = 'Abonos semanales'; dias = 7; abonos = 4; }
+  else if (c === 'Credito') {
+    const d = $('#pv-ds').value === 'otro' ? parseInt($('#pv-do').value, 10) : parseInt($('#pv-ds').value, 10);
+    if (!(d >= 1 && d <= 365)) return {err: 'Escribe los días de plazo (un número entre 1 y 365).'};
+    cond = 'Crédito'; plazo = d + ' días'; dias = d;
+  }
+  return {d: {nombre, rif, rubro, tipo: $('#pv-t').value, cond, plazo, dias, abonos, tel, correo, direccion: dir}};
+}
+Object.assign(Svc, {
+  async guardarProveedor(id, d) {
+    if (lvl('catalogos') < 2) throw fail('Tu rol no puede agregar ni editar proveedores.');
+    if (!id) {
+      const usados = new Set(rows('proveedores').map(x => x.id));
+      do { id = await nextId('P', 0, 'P', ''); } while (usados.has(id));
+      await W.set('proveedores', id, {...d, hist: null, rechazo: null, entrega: d.tipo === 'papa' ? 2 : d.tipo === 'insumo' ? 5 : 7, orden: Date.now()});
+      await Svc.audit('prov', id, d.nombre, 'agregó', {}); return id;
+    }
+    const prev = one('proveedores', id) || {}, ch = {};
+    Object.keys(d).forEach(k => { const a = prev[k] == null ? '' : prev[k], b = d[k] == null ? '' : d[k]; if (String(a) !== String(b)) ch[k] = [a, b]; });
+    await W.update('proveedores', id, d);
+    if (Object.keys(ch).length) await Svc.audit('prov', id, d.nombre, 'modificó', ch);
+    return id;
+  }
+});
+Object.assign(ENT_LBL, {correo: 'Correo', direccion: 'Dirección', plazo: 'Plazo', abonos: 'Abonos'});
+async function pvGuardar() {
+  const f = $('#pv-form'), e = $('#pv-e'); if (!f || CPD.busy) return; e.hidden = true;
+  const id = f.dataset.id, origen = f.dataset.o, r = pvLeer(id);
+  if (r.err) { e.textContent = r.err; e.hidden = false; return; }
+  CPD.busy = true;
+  try {
+    const nid = await Svc.guardarProveedor(id, r.d);
+    await waitFor(() => (DATA.proveedores || []).some(p => p.id === nid));
+    closeModal(); toast(id ? 'Cambios guardados.' : 'Proveedor agregado.');
+    if (origen === 'compra' && !id) { CPD.prov = nid; CPD.pq = ''; cpAlElegirProv(); }
+  } catch (er) { console.error(er); e.textContent = errMsg(er); e.hidden = false; }
+  finally { CPD.busy = false; render(); }
+}
+async function pvActivar(id, activo) {
+  if (S.busy['pvact']) return; S.busy['pvact'] = true;
+  try { await Svc.archivar('proveedores', id, !activo); toast(activo ? 'Proveedor activado.' : 'Proveedor desactivado: ya no sale en la lista de compras, pero las compras anteriores conservan su nombre.'); if (CPD.prov === id && !activo) CPD.prov = null; }
+  catch (er) { console.error(er); toast(esc(errMsg(er)), 'err'); }
+  finally { delete S.busy['pvact']; render(); }
+}
+
 Object.assign(PERM_DEF, {'c-pedido': 'adm:2'});
 Object.assign(SCREENS, {'c-pedido': {mod: 'adm', g: 'Compras', t: 'Hacer una compra', s: 'Hacer una compra', ic: 'cart', r: scrCompraPedido}});
 S.perm = permInit();
-Object.assign(ACT_REQ, {cpHacer: ['c-pedido', 2]}); Object.assign(ACT_LBL, {cpHacer: 'hacer compras a proveedores'}); WRITE_ACTS.add('cpHacer');
+Object.assign(ACT_REQ, {cpHacer: ['c-pedido', 2], pvNuevo: ['catalogos', 2], pvEditar: ['catalogos', 2], pvGuardar: ['catalogos', 2], pvActivar: ['catalogos', 2]});
+Object.assign(ACT_LBL, {cpHacer: 'hacer compras a proveedores', pvNuevo: 'agregar proveedores', pvEditar: 'editar proveedores', pvGuardar: 'guardar proveedores', pvActivar: 'activar o desactivar proveedores'});
+['cpHacer', 'pvGuardar', 'pvActivar'].forEach(k => WRITE_ACTS.add(k));
 Object.assign(ACT, {
+  pvNuevo: el => pvModal('', el.dataset.o || 'cat'), pvEditar: el => pvModal(el.dataset.id, el.dataset.o || 'cat'), pvGuardar: () => pvGuardar(), pvActivar: el => pvActivar(el.dataset.id, el.dataset.v === '1'),
   cpProv: el => { CPD.prov = el.dataset.id; cpAlElegirProv(); },
   cpCambiarProv: () => { Object.assign(CPD, {prov: null, pq: '', bq: '', cant: {}, precio: {}, err: ''}); render(); },
   cpTodos: el => { CPD.todos = el.dataset.v === '1'; render(); },

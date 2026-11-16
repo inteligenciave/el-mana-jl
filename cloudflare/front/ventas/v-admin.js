@@ -7,7 +7,7 @@ const vFld = (id, t, v, o = {}) => `<label class="fld">${t}<input type="${o.type
 async function vAdmClientes() { try { V.adm.clientes = await vApi('GET', '/clientes?limite=500'); } catch (e) { vErr(e); V.adm.clientes = []; } render(); }
 function vClienteModal(c) {
   const dueno = lvl('v-clientes') >= 3, nuevo = !c; c = c || {modalidad_despacho_pref: 'NOTA_ENTREGA'};
-  const cond = dueno ? `<h3 class="v-h3">Condiciones comerciales (las define el Dueño)</h3><div class="row2">${vFld('vc-desc', 'Descuento fijo (%)', c.descuento_fijo_pct, {inputmode: 'decimal', ph: 'ninguno'})}${vFld('vc-lim', 'Límite de crédito (US$)', c.limite_credito_cents == null ? '' : c.limite_credito_cents / 100, {inputmode: 'decimal', ph: 'sin límite'})}</div>
+  const cond = dueno ? `<h3 class="v-h3">Condiciones comerciales (las define el Dueño)</h3><div class="row2">${vFld('vc-desc', 'Descuento fijo (%)', c.descuento_fijo_pct, {inputmode: 'decimal', ph: 'ninguno'})}${vFld('vc-lim', 'Límite de crédito ($)', c.limite_credito_cents == null ? '' : c.limite_credito_cents / 100, {inputmode: 'decimal', ph: 'sin límite'})}</div>
       <div class="row2">${vFld('vc-pp', 'Días de pronto pago', c.dias_pronto_pago, {inputmode: 'numeric', ph: 'sin definir', sm: 'Pagando hasta este día desde la emisión se aplica el precio de pronto pago.'})}${vFld('vc-cr', 'Días de crédito normal', c.dias_credito_normal, {inputmode: 'numeric', ph: 'sin definir', sm: 'Pasado este día se aplica el precio de mora.'})}</div>` : '';
   modal(nuevo ? 'Cliente nuevo' : 'Cliente: ' + vtxt(c.razon_social), `<div class="form">${vFld('vc-rs', 'Razón social o nombre', c.razon_social, {max: 150})}<div class="row2">${vFld('vc-rif', 'RIF o identificación', c.rif_id, {max: 20})}<label class="fld">Estado del cliente (obligatorio)<select id="vc-zona">${vZonaOpciones(c.zona)}</select></label></div>${vFld('vc-dir', 'Dirección de entrega', c.direccion_entrega, {max: 200})}<p class="hint" id="vc-lista-t">${vListaTxt(c.zona)}</p>
     <div class="row3"><label class="fld">Vendedor<select id="vc-vend"><option value="">Sin vendedor</option>${V.vendedores.map(v => `<option value="${v.id}" ${c.id_vendedor === v.id ? 'selected' : ''}>${vtxt(v.nombre)}</option>`).join('')}</select></label>
@@ -34,7 +34,7 @@ async function vReglasModal(idCliente) {
   try {
     const r = await vApi('GET', '/clientes/' + idCliente + '/precios'), rm = Object.fromEntries(r.reglas.map(x => [x.id_producto, x])), pm = Object.fromEntries(r.precios.map(x => [x.id_producto, x])), cd = x => x == null ? '' : x / 100;
     modal('Precios por producto: ' + vtxt(r.cliente.razon_social), `<div class="form">
-      <div class="tw"><table class="v-reglas"><thead><tr><th>Producto</th><th class="r">Rige hoy, por bulto</th><th class="r">A crédito, por bulto (US$)</th><th class="r">Pronto pago, por bulto (US$)</th><th class="r">Con mora, por bulto (US$)</th><th class="r">Dcto. PP %</th><th class="r">Recargo mora %</th></tr></thead><tbody>
+      <div class="tw"><table class="v-reglas"><thead><tr><th>Producto</th><th class="r">Rige hoy, por bulto</th><th class="r">A crédito, por bulto ($)</th><th class="r">Pronto pago, por bulto ($)</th><th class="r">Con mora, por bulto ($)</th><th class="r">Dcto. PP %</th><th class="r">Recargo mora %</th></tr></thead><tbody>
       ${V.productos.map(p => { const x = rm[p.id_producto] || {}; return `<tr data-p="${p.id_producto}"><td>${vtxt(p.nombre)} ${vtxt(p.gramaje || '')}</td><td class="r">${(pm[p.id_producto] || {}).base == null ? '—' : vusd(pm[p.id_producto].base)}</td>
         <td><input class="v-dec" data-r="base" value="${cd(x.precio_base_credito_cents)}"></td><td><input class="v-dec" data-r="pp" value="${cd(x.precio_pronto_pago_cents)}"></td><td><input class="v-dec" data-r="mora" value="${cd(x.precio_mora_vencido_cents)}"></td>
         <td><input class="v-dec" data-r="dpp" value="${x.pct_descuento_pp ?? ''}"></td><td><input class="v-dec" data-r="rm" value="${x.pct_recargo_mora ?? ''}"></td></tr>`; }).join('')}</tbody></table></div>
@@ -50,16 +50,47 @@ async function vReglasGuardar(id) {
 }
 
 /* ---------- Productos ---------- */
+const vImgInterna = u => /^\/api\/v\/productos\/\d+\/imagen/.test(u || '');
 function vProductoModal(p) {
   const nuevo = !p; p = p || {categoria: 'PAPAS', alicuota_iva: 16};
+  V.pImg = {orig: p.imagen_blanca_url || null, nueva: null, quitar: false, ocupado: false};
   modal(nuevo ? 'Producto nuevo' : 'Producto: ' + vtxt(p.nombre), `<div class="form"><div class="row2">${vFld('vp-sku', 'SKU', p.codigo_sku, {max: 30})}${vFld('vp-nom', 'Nombre', p.nombre, {max: 120})}</div>
     <div class="row3">${vFld('vp-gr', 'Gramaje', p.gramaje, {max: 25})}<label class="fld">Categoría<select id="vp-cat"><option value="PAPAS" ${p.categoria === 'PAPAS' ? 'selected' : ''}>Papas</option><option value="SALSAS" ${p.categoria === 'SALSAS' ? 'selected' : ''}>Salsas</option></select></label>${vFld('vp-iva', 'IVA (%)', p.alicuota_iva, {inputmode: 'decimal'})}</div>
-    <div class="row2">${vFld('vp-img', 'Imagen con fondo blanco (enlace)', p.imagen_blanca_url, {max: 255, ph: 'Opcional'})}</div>
+    <div class="fld"><span>Imagen del producto (fondo blanco)</span><div class="v-imgsel"><div id="vp-prev" class="v-imgprev"></div>
+      <div class="btnrow"><label class="btn" id="vp-elegir"><span id="vp-elegir-t">Elegir imagen</span><input type="file" id="vp-file" accept="image/*" hidden></label><button type="button" class="btn" id="vp-quitar" hidden>Quitar</button></div></div>
+      <small class="hint" id="vp-imgmsg">Opcional. Se reduce sola para que pese poco.</small></div>
     <p class="err" id="vp-e" role="alert" hidden></p><div class="btnrow"><button type="button" class="btn pri" data-act="vProductoGuardar" data-id="${p.id_producto || ''}">Guardar</button><button type="button" class="btn" data-act="closeModal">Cancelar</button></div></div>`);
+  vProdImgPintar();
 }
+function vProdImgPintar() {
+  const I = V.pImg, prev = $('#vp-prev'); if (!prev) return;
+  const hay = !!(I.nueva || (!I.quitar && I.orig));
+  prev.innerHTML = I.nueva ? `<img src="data:image/jpeg;base64,${I.nueva.b64}" alt="Vista previa">` : hay ? (vImgInterna(I.orig) ? `<img src="${V_PIXEL}" data-vsrc="${esc(I.orig)}" alt="Imagen actual">` : `<img src="${esc(I.orig)}" alt="Imagen actual">`) : '<span class="hint">Sin imagen</span>';
+  $('#vp-elegir-t').textContent = I.ocupado ? 'Preparando…' : hay ? 'Cambiar' : 'Elegir imagen';
+  $('#vp-quitar').hidden = !hay;
+  if (I.nueva) $('#vp-imgmsg').textContent = 'Lista: pesa ' + Math.max(1, Math.round(I.nueva.bytes / 1024)) + ' KB. Se guardará al pulsar Guardar.';
+}
+document.addEventListener('change', async e => {
+  if (!e.target || e.target.id !== 'vp-file') return;
+  const f = e.target.files && e.target.files[0]; e.target.value = ''; if (!f || !V.pImg) return;
+  const er = $('#vp-e'); er.hidden = true; V.pImg.ocupado = true; vProdImgPintar();
+  try { V.pImg.nueva = await vComprimirImagen(f); V.pImg.quitar = false; }
+  catch (x) { er.textContent = x.message; er.hidden = false; }
+  V.pImg.ocupado = false; vProdImgPintar();
+});
+document.addEventListener('click', e => { if (e.target && e.target.id === 'vp-quitar' && V.pImg) { V.pImg.nueva = null; V.pImg.quitar = true; $('#vp-imgmsg').textContent = 'La imagen se quitará al pulsar Guardar.'; vProdImgPintar(); } });
 async function vProductoGuardar(id) {
-  const b = {codigo_sku: vVal('vp-sku'), nombre: vVal('vp-nom'), gramaje: vVal('vp-gr'), categoria: vVal('vp-cat'), alicuota_iva: vDec('vp-iva'), imagen_blanca_url: vVal('vp-img')}, e = $('#vp-e'); e.hidden = true;
-  try { await vApi(id ? 'PUT' : 'POST', '/productos' + (id ? '/' + id : ''), b); closeModal(); toast('Producto guardado.'); await vBoot(true); }
+  const I = V.pImg || {}, e = $('#vp-e');
+  if (I.ocupado) { e.textContent = 'Espera un momento: la imagen se está preparando.'; e.hidden = false; return; }
+  const b = {codigo_sku: vVal('vp-sku'), nombre: vVal('vp-nom'), gramaje: vVal('vp-gr'), categoria: vVal('vp-cat'), alicuota_iva: vDec('vp-iva'), imagen_blanca_url: I.quitar ? null : (I.orig || null)}; e.hidden = true;
+  try {
+    const r = await vApi(id ? 'PUT' : 'POST', '/productos' + (id ? '/' + id : ''), b), pid = id || (r && r.id_producto);
+    if (I.nueva) {
+      try { if (!pid) throw new Error('no se pudo identificar el producto nuevo'); await vApi('PUT', '/productos/' + pid + '/imagen', {imagen_base64: I.nueva.b64}); }
+      catch (x) { await vBoot(true); closeModal(); toast('El producto se guardó, pero la imagen no: ' + esc(x.message) + '. Ábrelo y súbela de nuevo.', 'warn'); return; }
+    }
+    closeModal(); toast('Producto guardado.'); await vBoot(true);
+  }
   catch (er) { e.textContent = er.message; e.hidden = false; }
 }
 /* Total de kilos del producto terminado (solo de los que tienen peso; los demás se cuentan aparte, sin inventar kilos) */
@@ -131,7 +162,7 @@ async function vEjemploBorrar() {
 const V_DEF_CLI = [{tipo: 'Cliente', valores: c => c.razon_social, detalle: c => c.rif_id || 'sin RIF'}, {tipo: 'RIF', valores: c => c.rif_id, detalle: c => c.razon_social}];
 function scrClientesVentas() {
   return vPantalla(() => {
-    const A = V.adm, dueno = lvl('v-clientes') >= 3, reg = lvl('v-clientes') >= 2;
+    const A = V.adm, dueno = lvl('v-clientes') >= 3, reg = lvl('v-clientes') >= 2, inv = VP.puedeInventario(S.rol);
     const tabs = [['clientes', 'Clientes'], ['productos', 'Productos e inventario'], ['vendedores', 'Vendedores y comisiones'], ['ajustes', 'Ajustes']];
     let cuerpo = '';
     if (A.tab === 'clientes') {
@@ -143,9 +174,9 @@ function scrClientesVentas() {
           {h: '', f: c => `<div class="btnrow">${reg ? `<button type="button" class="btn sm" data-act="vEditarCliente" data-id="${c.id_cliente}">Editar</button>` : ''}${dueno ? `<button type="button" class="btn sm" data-act="vReglas" data-id="${c.id_cliente}">Precios</button>` : ''}</div>`}], lista, {empty: 'No hay clientes todavía. Crea uno o importa el Excel de cobranza.'}) : '<p class="hint">Cargando…</p>'}`;
     } else if (A.tab === 'productos') {
       const lp = Busca.filtrar(V.productos, A.qp, Busca.textosDe(V_DEF_PROD));
-      cuerpo = `<div class="v-bar2"><label class="fld">Buscar<input type="search" aria-label="Buscar producto" ${Busca.atr('adm-prod')} value="${esc(A.qp || '')}" placeholder="Nombre, gramaje o código SKU"></label>${dueno ? `<button type="button" class="btn pri" data-act="vNuevoProducto">${ic('plus', 16)}Producto nuevo</button>` : ''}</div>
+      cuerpo = `<div class="v-bar2"><label class="fld">Buscar<input type="search" aria-label="Buscar producto" ${Busca.atr('adm-prod')} value="${esc(A.qp || '')}" placeholder="Nombre, gramaje o código SKU"></label>${inv ? `<button type="button" class="btn pri" data-act="vNuevoProducto">${ic('plus', 16)}Producto nuevo</button>` : ''}</div>
         ${table([{h: 'SKU', f: p => `<span class="mono">${vtxt(p.codigo_sku)}</span>`}, {h: 'Producto', f: p => vtxt(p.nombre) + (p.ejemplo ? ' <span class="chip c-warn">EJEMPLO</span>' : '')}, {h: 'Gramaje', f: p => vtxt(p.gramaje || '')}, {h: 'Categoría', f: p => p.categoria === 'SALSAS' ? 'Salsas' : 'Papas'}, {h: 'IVA', r: 1, f: p => N2.format(p.alicuota_iva) + ' %'}, {h: 'Bultos', r: 1, f: p => `<b>${N0.format(p.stock_entero)}</b>`}, {h: 'Kg por bulto', r: 1, f: p => VD.tienePesoBulto(p) ? N2.format(p.kg_por_bulto) : '<span class="chip c-warn">falta kg por bulto</span>'}, {h: 'Unid. por bulto', r: 1, f: p => VD.tieneUnidadesBulto(p) ? N0.format(p.unidades_por_bulto) : '<span class="chip c-warn">falta unidades</span>'}, {h: 'Kilos', r: 1, f: p => VD.tienePesoBulto(p) ? '<b>' + N2.format(VD.kilosDeBultos(p.stock_entero, p.kg_por_bulto)) + '</b>' : '<span class="muted">sin peso</span>'},
-          {h: '', f: p => `<div class="btnrow">${dueno ? `<button type="button" class="btn sm" data-act="vEditarProducto" data-id="${p.id_producto}">Editar</button>` : ''}${VP.puedePesoBulto(S.rol) ? `<button type="button" class="btn sm" data-act="vPeso" data-id="${p.id_producto}">Peso de bulto</button>` : ''}${dueno ? `<button type="button" class="btn sm" data-act="vEntrada" data-id="${p.id_producto}">Entrada</button>` : ''}</div>`}], lp, {empty: 'Ningún producto coincide con la búsqueda.'})}
+          ...(inv ? [{h: '', f: p => `<div class="btnrow"><button type="button" class="btn sm" data-act="vEditarProducto" data-id="${p.id_producto}">Editar</button><button type="button" class="btn sm" data-act="vPeso" data-id="${p.id_producto}">Peso de bulto</button><button type="button" class="btn sm" data-act="vEntrada" data-id="${p.id_producto}">Entrada</button></div>`}] : [])], lp, {empty: 'Ningún producto coincide con la búsqueda.'})}
         ${vTotalKilos(lp)}
         `;
     } else if (A.tab === 'vendedores') {

@@ -6,7 +6,7 @@ const pHTTP = () => !!window.__EM_HTTP;
 const ptxt = s => esc(s == null ? '' : s);
 const pDueno = () => S.rol === 'dueno';
 const pFecha = ts => ts ? new Date(ts).toLocaleString('es-VE', {day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'}) : '—';
-const pUsdBulto = c => c == null ? '<span class="muted">sin precio</span>' : 'US$ ' + N2.format(c / 100) + ' por bulto';
+const pUsdBulto = c => c == null ? '<span class="muted">sin precio</span>' : '$ ' + N2.format(c / 100) + ' por bulto';
 const pNom = p => ptxt(p.nombre) + ' ' + ptxt(p.gramaje || '');
 const P_POR_PAG = 6, P_TARJ_PAG = 3;
 
@@ -60,7 +60,7 @@ function pCelda(p, lista, mod) {
   const c = mod === 'contado' ? x.contado_cents : x.credito_cents, cam = pUltimo('L:' + p.id_producto + ':' + lista + ':' + mod);
   const pend = cam && cam.estado === 'PENDIENTE', rech = cam && cam.estado === 'RECHAZADO';
   const nuevo = pend && cam.lineas[0] ? cam.lineas[0].despues.replace(' por bulto', '') : '';
-  return `<td class="r p-cel"><button type="button" class="p-cbtn" data-act="pEditar" data-id="${p.id_producto}" data-l="${lista}" data-m="${mod}" aria-label="Cambiar precio ${P_MOD[mod]} por bulto de ${pNom(p)}, lista ${lista}"><b>US$ ${pCentsATxt(c)}</b><span class="p-bs">${pBs(c)}</span>${pend ? `<span class="chip c-warn">Pendiente de aprobar: ${ptxt(nuevo)}</span>` : ''}${rech ? `<span class="chip c-crit" title="${ptxt(cam.motivo || '')}">Rechazado${cam.motivo ? ': ' + ptxt(cam.motivo.slice(0, 40)) : ''}</span>` : ''}</button></td>`;
+  return `<td class="r p-cel"><button type="button" class="p-cbtn" data-act="pEditar" data-id="${p.id_producto}" data-l="${lista}" data-m="${mod}" aria-label="Cambiar precio ${P_MOD[mod]} por bulto de ${pNom(p)}, lista ${lista}"><b>$ ${pCentsATxt(c)}</b><span class="p-bs">${pBs(c)}</span>${pend ? `<span class="chip c-warn">Pendiente de aprobar: ${ptxt(nuevo)}</span>` : ''}${rech ? `<span class="chip c-crit" title="${ptxt(cam.motivo || '')}">Rechazado${cam.motivo ? ': ' + ptxt(cam.motivo.slice(0, 40)) : ''}</span>` : ''}</button></td>`;
 }
 const pEstadosDe = n => (((PP.lm && PP.lm.listas) || []).find(l => l.nombre === n) || {}).estados || [];
 const pTxtEstados = n => { const e = pEstadosDe(n); return e.length ? e.join(', ') : 'ningún estado'; };
@@ -72,7 +72,7 @@ function scrPrecios() {
     return `${ph('Precios', 'Precios por lista')}
     
     <div class="p-tabs" role="tablist">${ls.map(l => `<button type="button" role="tab" class="btn sm ${l.nombre === sel ? 'pri' : ''}" aria-selected="${l.nombre === sel}" data-act="pLista" data-n="${ptxt(l.nombre)}">Lista ${ptxt(l.nombre)}</button>`).join('')}<button type="button" class="btn sm" data-act="pEstados">Estados y listas${sinPrecios ? ' <span class="chip c-warn">' + sinPrecios + ' sin precios</span>' : ''}</button></div>
-    <p class="hint">Estados con la lista ${ptxt(sel)}: <b>${ptxt(pTxtEstados(sel))}</b> · ${t ? 'Bs: referencia a tasa BCV de hoy (Bs ' + N2.format(t) + ' por US$)' : 'Sin tasa BCV hoy'}</p>
+    <p class="hint">Estados con la lista ${ptxt(sel)}: <b>${ptxt(pTxtEstados(sel))}</b> · ${t ? 'Bs: referencia a tasa BCV de hoy (Bs ' + N2.format(t) + ' por $)' : 'Sin tasa BCV hoy'}</p>
     ${card('', `<div class="tw"><table class="p-listas"><thead><tr><th>Producto</th><th class="r">Contado · por bulto</th><th class="r">Crédito · por bulto</th></tr></thead><tbody>
       ${PP.listas.filter(p => (p.listas || {})[sel]).map(p => `<tr><td><b>${pNom(p)}</b></td>${pCelda(p, sel, 'contado')}${pCelda(p, sel, 'credito')}</tr>`).join('')}</tbody></table></div>`)}`;
   });
@@ -99,9 +99,9 @@ async function pPropios(estado) {
 function pEditarModal(id, lista, mod) {
   const p = (PP.listas || []).find(x => x.id_producto === id); if (!p) return;
   const x = p.listas[lista], c = mod === 'contado' ? x.contado_cents : x.credito_cents, dueno = pDueno(), cam = pUltimo('L:' + id + ':' + lista + ':' + mod), bloqueado = !dueno && cam && cam.estado === 'PENDIENTE';
-  modal(`Precio ${P_MOD[mod]} por bulto · lista ${lista}`, `<div class="form"><p><b>${pNom(p)}</b><br>Precio vigente: <b>US$ ${pCentsATxt(c)} por bulto</b> <span class="muted">(${pBs(c) || 'sin tasa BCV'})</span></p>
+  modal(`Precio ${P_MOD[mod]} por bulto · lista ${lista}`, `<div class="form"><p><b>${pNom(p)}</b><br>Precio vigente: <b>$ ${pCentsATxt(c)} por bulto</b> <span class="muted">(${pBs(c) || 'sin tasa BCV'})</span></p>
     ${bloqueado ? '<p class="v-alerta v-aviso" role="status">Ya hay un cambio pendiente de aprobar para este precio. Espera la respuesta del Dueño.</p>' : ''}
-    <label class="fld">Precio nuevo por bulto (US$)<input type="text" inputmode="decimal" id="p-nuevo" placeholder="Ej.: 45,00" ${bloqueado ? 'disabled' : ''}></label>
+    <label class="fld">Precio nuevo por bulto ($)<input type="text" inputmode="decimal" id="p-nuevo" placeholder="Ej.: 45,00" ${bloqueado ? 'disabled' : ''}></label>
     <p class="hint"><b>Este cambio aplica a: ${ptxt(pTxtEstados(lista))}.</b></p>
     <p class="err" id="p-e" role="alert" hidden></p><div class="btnrow"><button type="button" class="btn pri" data-act="pEditarOk" data-id="${id}" data-l="${lista}" data-m="${mod}" ${bloqueado ? 'disabled' : ''}>${dueno ? 'Cambiar precio' : 'Enviar para aprobar'}</button><button type="button" class="btn" data-act="closeModal">Cancelar</button></div></div>`);
   const i = $('#p-nuevo'); if (i && !bloqueado) i.focus();
@@ -133,8 +133,8 @@ async function pReglasModal(id) {
     const r = await pGet('/clientes/' + id + '/precios'), rm = Object.fromEntries(r.reglas.map(x => [x.id_producto, x])), pm = Object.fromEntries(r.precios.map(x => [x.id_producto, x])), cd = x => x == null ? '' : String(x / 100).replace('.', ','), c = pUltimo('C:' + id), bloqueado = !pDueno() && c && c.estado === 'PENDIENTE';
     modal('Precios por bulto: ' + ptxt(r.cliente.razon_social), `<div class="form">
       ${bloqueado ? '<p class="v-alerta v-aviso" role="status">Ya hay un cambio pendiente de aprobar para este cliente. Espera la respuesta del Dueño.</p>' : ''}
-      <div class="tw"><table class="v-reglas p-reglas"><thead><tr><th>Producto</th><th class="r">Rige hoy, por bulto</th><th class="r">A crédito, por bulto (US$)</th><th class="r">Pronto pago, por bulto (US$)</th><th class="r">Con mora, por bulto (US$)</th><th class="r">Descuento pronto pago %</th><th class="r">Recargo por mora %</th></tr></thead><tbody>
-      ${PP.prod.map(p => { const x = rm[p.id_producto] || {}; return `<tr data-p="${p.id_producto}"><td>${pNom(p)}</td><td class="r">${(pm[p.id_producto] || {}).base == null ? '—' : 'US$ ' + N2.format(pm[p.id_producto].base)}</td>
+      <div class="tw"><table class="v-reglas p-reglas"><thead><tr><th>Producto</th><th class="r">Rige hoy, por bulto</th><th class="r">A crédito, por bulto ($)</th><th class="r">Pronto pago, por bulto ($)</th><th class="r">Con mora, por bulto ($)</th><th class="r">Descuento pronto pago %</th><th class="r">Recargo por mora %</th></tr></thead><tbody>
+      ${PP.prod.map(p => { const x = rm[p.id_producto] || {}; return `<tr data-p="${p.id_producto}"><td>${pNom(p)}</td><td class="r">${(pm[p.id_producto] || {}).base == null ? '—' : '$ ' + N2.format(pm[p.id_producto].base)}</td>
         <td><input class="v-dec" data-r="precio_base_credito" value="${cd(x.precio_base_credito_cents)}" ${bloqueado ? 'disabled' : ''}></td><td><input class="v-dec" data-r="precio_pronto_pago" value="${cd(x.precio_pronto_pago_cents)}" ${bloqueado ? 'disabled' : ''}></td><td><input class="v-dec" data-r="precio_mora_vencido" value="${cd(x.precio_mora_vencido_cents)}" ${bloqueado ? 'disabled' : ''}></td>
         <td><input class="v-dec" data-r="pct_descuento_pp" value="${x.pct_descuento_pp == null ? '' : String(x.pct_descuento_pp).replace('.', ',')}" ${bloqueado ? 'disabled' : ''}></td><td><input class="v-dec" data-r="pct_recargo_mora" value="${x.pct_recargo_mora == null ? '' : String(x.pct_recargo_mora).replace('.', ',')}" ${bloqueado ? 'disabled' : ''}></td></tr>`; }).join('')}</tbody></table></div>
       <p class="err" id="p-e" role="alert" hidden></p><div class="btnrow"><button type="button" class="btn pri" data-act="pReglasOk" data-id="${id}" ${bloqueado ? 'disabled' : ''}>${pDueno() ? 'Guardar precios' : 'Enviar para aprobar'}</button><button type="button" class="btn" data-act="closeModal">Cancelar</button></div></div>`);

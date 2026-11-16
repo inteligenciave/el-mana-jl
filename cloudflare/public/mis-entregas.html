@@ -1,5 +1,5 @@
 <!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><meta name="referrer" content="no-referrer"><meta name="theme-color" content="#C92121"><title>Mis entregas · El Maná JL</title><style>body{margin:0;background:#f6f4ef;color:#1b1b1b;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif}header{background:#C92121;color:#fff;padding:14px 16px}header h1{margin:0;font-size:19px}main{max-width:640px;margin:0 auto;padding:16px}</style></head><body><header><h1>Mis entregas y plazos</h1></header><main><div id="x"></div></main><script>
-/* Entregas en el PORTAL DEL CLIENTE: por factura, cuenta regresiva, descuento vigente, «cuánto pagar hoy» (US$ y Bs) y el botón «No recibí esto».
+/* Entregas en el PORTAL DEL CLIENTE: por factura, cuenta regresiva, descuento vigente, «cuánto pagar hoy» ($ y Bs) y el botón «No recibí esto».
    Autocontenido: no depende de la app del equipo. Uso desde cualquier página del portal:
      EntregasPortal.montar(document.getElementById('x'), {token: 'CODIGO_PERSONAL'});   // pide /api/c/entregas/estado con la cabecera x-token
      EntregasPortal.html(estado)  → solo el HTML de las tarjetas (si el portal ya tiene `estado` de /api/c/entregas/estado)
@@ -7,7 +7,7 @@
 const EntregasPortal = (() => {
   const N2 = new Intl.NumberFormat('es-VE', {minimumFractionDigits: 2, maximumFractionDigits: 2});
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
-  const usd = x => x == null ? '—' : 'US$ ' + N2.format(x), bs = x => x == null ? '—' : 'Bs ' + N2.format(x);
+  const usd = x => x == null ? '—' : '$ ' + N2.format(x), bs = x => x == null ? '—' : 'Bs ' + N2.format(x);
   const fecha = s => { const d = new Date(String(s).slice(0, 10) + 'T12:00:00'); return isNaN(d) ? '—' : d.toLocaleDateString('es-VE', {day: '2-digit', month: '2-digit', year: 'numeric'}); };
   const fechaHora = ts => new Date(ts).toLocaleString('es-VE', {day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'});
   const MS = 864e5;

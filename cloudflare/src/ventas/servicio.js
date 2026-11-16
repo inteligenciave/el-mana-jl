@@ -1,7 +1,7 @@
 /* Casos de uso del módulo de Ventas y Liquidación Dual. Usa el dominio (reglas) y el repo (datos). No conoce HTTP. */
 import * as D from './dominio.js';
 import * as R from './repo.js';
-import {puede, puedePesoBulto, ROL_TXT} from './permisos.js';
+import {puede, puedePesoBulto, puedeInventario, MSG_SIN_INVENTARIO, ROL_TXT} from './permisos.js';
 import * as T from '../tasa/servicio.js';
 import * as PR from '../precios/repo.js';
 import * as PD from '../precios/dominio.js';
@@ -43,7 +43,7 @@ export async function arranque(db) {
 
 /* ---------- Catálogo ---------- */
 export async function guardarProducto(ctx, id, b) {
-  exigir(ctx, 'catalogo', 'Solo el Dueño cambia el catálogo (precios, alícuota, SKU).');
+  if (!puedeInventario(ctx.rol)) throw err(403, MSG_SIN_INVENTARIO);
   const c = {codigo_sku: txt(b.codigo_sku, 30), nombre: txt(b.nombre, 120), gramaje: txt(b.gramaje, 25), categoria: b.categoria === 'SALSAS' ? 'SALSAS' : 'PAPAS', imagen_blanca_url: txt(b.imagen_blanca_url, 255) || null,
     alicuota_iva: numOrNull(b.alicuota_iva) ?? D.IVA_DEFECTO, precio_ref_cents: null};   // el precio ya no se carga aquí: rige la lista de precios (Administración → Precios)
   if (!c.codigo_sku || !c.nombre) throw err(400, 'El SKU y el nombre son obligatorios.');
@@ -51,15 +51,37 @@ export async function guardarProducto(ctx, id, b) {
   if (id) {
     const prev = await R.getProducto(ctx.db, id); if (!prev) throw err(404, 'Producto no encontrado.');
     c.precio_ref_cents = prev.precio_ref_cents ?? null;
-    await enLote(ctx.db, [R.stActualizarProducto(ctx.db, id, c), PR.stCerrarPendiente(ctx.db, PD.claveProducto(id), ROL_TXT[ctx.rol] || ctx.rol, 'El Dueño fijó el precio directamente.'), ...audit(ctx, 'producto', c.codigo_sku, c.nombre, 'modificó', {antes: {precio: dol(prev.precio_ref_cents), iva: prev.alicuota_iva}, despues: {precio: dol(c.precio_ref_cents), iva: c.alicuota_iva}})]);
+    const borraImg = D.esImagenInterna(prev.imagen_blanca_url) && !D.esImagenInterna(c.imagen_blanca_url);
+    await enLote(ctx.db, [R.stActualizarProducto(ctx.db, id, c), ...(borraImg ? [R.stBorrarImagen(ctx.db, id)] : []), PR.stCerrarPendiente(ctx.db, PD.claveProducto(id), ROL_TXT[ctx.rol] || ctx.rol, 'El Dueño fijó el precio directamente.'), ...audit(ctx, 'producto', c.codigo_sku, c.nombre, 'modificó', {antes: {precio: dol(prev.precio_ref_cents), iva: prev.alicuota_iva}, despues: {precio: dol(c.precio_ref_cents), iva: c.alicuota_iva}})]);
     return R.getProducto(ctx.db, id);
   }
-  await enLote(ctx.db, [R.stInsertarProducto(ctx.db, {...c, orden: 99}), ...audit(ctx, 'producto', c.codigo_sku, c.nombre, 'agregó', {})]);
-  return {ok: true};
+  const rs = await enLote(ctx.db, [R.stInsertarProducto(ctx.db, {...c, orden: 99}), ...audit(ctx, 'producto', c.codigo_sku, c.nombre, 'agregó', {})]);
+  return {ok: true, id_producto: rs[0] && rs[0].meta ? rs[0].meta.last_row_id : null};
+}
+/* Imagen del producto (ya comprimida a ≤180 KB en el navegador): se guarda aparte y el producto apunta a ella. Mismo permiso que editar productos. */
+export async function guardarImagenProducto(ctx, id, b) {
+  if (!puedeInventario(ctx.rol)) throw err(403, MSG_SIN_INVENTARIO);
+  const v = D.validarImagenProducto(b && b.imagen_base64); if (!v.ok) throw err(v.status, v.msg);
+  const p = await R.getProducto(ctx.db, id); if (!p) throw err(404, 'Producto no encontrado.');
+  const ts = Date.now(), url = `/api/v/productos/${id}/imagen?v=${ts}`;
+  await enLote(ctx.db, [R.stGuardarImagen(ctx.db, id, 'image/jpeg', b.imagen_base64, v.bytes, ts), R.stUrlImagen(ctx.db, id, url), ...audit(ctx, 'producto', p.codigo_sku, p.nombre, 'cambió la imagen', {kb: Math.round(v.bytes / 102.4) / 10})]);
+  return {ok: true, imagen_blanca_url: url, bytes: v.bytes};
+}
+export async function quitarImagenProducto(ctx, id) {
+  if (!puedeInventario(ctx.rol)) throw err(403, MSG_SIN_INVENTARIO);
+  const p = await R.getProducto(ctx.db, id); if (!p) throw err(404, 'Producto no encontrado.');
+  await enLote(ctx.db, [R.stBorrarImagen(ctx.db, id), R.stUrlImagen(ctx.db, id, null), ...audit(ctx, 'producto', p.codigo_sku, p.nombre, 'quitó la imagen', {})]);
+  return {ok: true, imagen_blanca_url: null};
+}
+/* Respuesta binaria de la imagen (la usan el equipo y el portal) */
+export async function respuestaImagen(db, id) {
+  const im = await R.getImagenProducto(db, id); if (!im) throw err(404, 'Este producto no tiene imagen.');
+  const bin = Uint8Array.from(atob(im.datos), c => c.charCodeAt(0));
+  return new Response(bin, {headers: {'content-type': im.mime || 'image/jpeg', 'cache-control': 'private, max-age=86400', 'x-content-type-options': 'nosniff', 'content-length': String(bin.length)}});
 }
 /* Peso por bulto: solo Dueño y Administración (comprobado aquí con el rol, no solo en pantalla). Vacío = sin cargar; no se inventa. */
 export async function guardarPesoBulto(ctx, id, b) {
-  if (!puedePesoBulto(ctx.rol)) throw err(403, 'Solo el Dueño y Administración cargan o corrigen los kg y las unidades por bulto.');
+  if (!puedePesoBulto(ctx.rol)) throw err(403, MSG_SIN_INVENTARIO);
   const kg = D.validarKgBulto(b.kg_por_bulto); if (!kg.ok) throw err(400, kg.msg);
   const un = D.validarUnidadesBulto(b.unidades_por_bulto); if (!un.ok) throw err(400, un.msg);
   const p = await R.getProducto(ctx.db, id); if (!p) throw err(404, 'Producto no encontrado.');
@@ -68,7 +90,7 @@ export async function guardarPesoBulto(ctx, id, b) {
 }
 /* Entrada manual de inventario: solo el Dueño y con motivo. La producción entra sola al cerrar el turno. */
 export async function entradaStock(ctx, idProducto, cantidad, nota) {
-  if (ctx.rol !== 'dueno') throw err(403, 'Solo el Dueño suma bultos a mano. La producción entra sola al cerrar el turno.');
+  if (!puedeInventario(ctx.rol)) throw err(403, MSG_SIN_INVENTARIO);
   if (!D.entero(cantidad)) throw err(400, 'La cantidad debe ser un número entero mayor que cero.');
   if (txt(nota, 100).length < 3) throw err(400, 'Escribe el motivo de la entrada.');
   const p = await R.getProducto(ctx.db, idProducto); if (!p) throw err(404, 'Producto no encontrado.');
@@ -158,7 +180,7 @@ export async function crearVenta(ctx, b, o = {}) {
   });
   const tot = D.totalesLineas(lineas, 0, cli.descuento_fijo_pct);
   const lim = D.revisarLimite(cli, cli.deuda_cents, tot.total);
-  if (!lim.ok) throw err(409, `El pedido (US$ ${(tot.total / 100).toFixed(2)}) supera el crédito disponible (US$ ${(lim.disponible / 100).toFixed(2)}).`, {codigo: 'LIMITE_CREDITO', disponible: dol(lim.disponible), total: dol(tot.total)});
+  if (!lim.ok) throw err(409, `El pedido ($ ${(tot.total / 100).toFixed(2)}) supera el crédito disponible ($ ${(lim.disponible / 100).toFixed(2)}).`, {codigo: 'LIMITE_CREDITO', disponible: dol(lim.disponible), total: dol(tot.total)});
   const fecha = o.fecha || D.hoyVE(), cfg = await R.leerConfig(db), ej = o.ejemplo ? 1 : (cli.ejemplo ? 1 : 0);
   const envio = D.ubicacionEnvio(cli); // se congela en el documento: no cambia si luego se edita la ficha
   const id = await R.siguiente(db, 'documento'), esNE = b.tipo === 'NOTA_ENTREGA';
@@ -230,7 +252,7 @@ export async function crearPedido(ctx, b, o = {}) {
   const comprometido = await PRD.comprometidoCliente(db, cli.id_cliente);   // lo ya pedido y sin despachar también cuenta contra el crédito
   const compC = comprometido.reduce((a, f) => a + D.totalesLineas([{cantidad: f.pend, precio_base_cents: f.precio_base_cents, precio_pp_cents: f.precio_base_cents, precio_mora_cents: f.precio_base_cents, alicuota: f.alicuota}], 0, f.descuento_pct).total, 0);
   const lim = D.revisarLimite(cli, (cli.deuda_cents || 0) + compC, tot.total);
-  if (!lim.ok) throw err(409, `El pedido (US$ ${(tot.total / 100).toFixed(2)}) supera el crédito disponible (US$ ${(Math.max(0, lim.disponible) / 100).toFixed(2)}).`, {codigo: 'LIMITE_CREDITO', disponible: dol(lim.disponible), total: dol(tot.total)});
+  if (!lim.ok) throw err(409, `El pedido ($ ${(tot.total / 100).toFixed(2)}) supera el crédito disponible ($ ${(Math.max(0, lim.disponible) / 100).toFixed(2)}).`, {codigo: 'LIMITE_CREDITO', disponible: dol(lim.disponible), total: dol(tot.total)});
   const fecha = o.fecha || D.hoyVE(), ej = cli.ejemplo ? 1 : 0, zona = D.zonaDeEstado(cli.zona) || 'Sin zona';
   const id = await R.siguiente(db, 'pedido_venta'), nro = 'PED-' + pad(id);
   const kilos = Math.round(lineas.reduce((a, l) => a + l.cantidad * l.kg_por_bulto, 0) * 1000) / 1000;
@@ -381,7 +403,7 @@ export async function cobrar(ctx, b, o = {}) {
   if (apls.some(a => !Number.isInteger(a.id_documento) || !(a.usd_cents > 0))) throw err(400, 'Hay un monto aplicado no válido.');
   if (new Set(apls.map(a => a.id_documento)).size !== apls.length) throw err(400, 'Un documento aparece dos veces.');
   const totalApl = apls.reduce((t, a) => t + a.usd_cents, 0);
-  if (totalApl > usdC) throw err(400, `Lo aplicado a las notas (US$ ${(totalApl / 100).toFixed(2)}) supera el pago (US$ ${(usdC / 100).toFixed(2)}).`);
+  if (totalApl > usdC) throw err(400, `Lo aplicado a las notas ($ ${(totalApl / 100).toFixed(2)}) supera el pago ($ ${(usdC / 100).toFixed(2)}).`);
 
   // Duplicados
   const avisos = [];
@@ -402,7 +424,7 @@ export async function cobrar(ctx, b, o = {}) {
     const d = pend.get(a.id_documento); if (!d) throw err(400, 'Un documento no está pendiente de este cliente.');
     if (D.diasEntre(d.fecha_emision, fecha) < 0) throw err(400, 'La fecha de pago es anterior a la emisión del documento ' + (d.numero_externo || d.nro_control_interno) + '.');
     const {lineas, liq, restante} = await liquidar(db, d, cli, fecha, exonera);
-    if (a.usd_cents > restante) throw err(400, `Al documento ${d.numero_externo || d.nro_control_interno} solo se le puede aplicar US$ ${(restante / 100).toFixed(2)} (monto a cobrar según la fecha de pago: ${D.CASO_TXT[liq.caso].toLowerCase()}).`);
+    if (a.usd_cents > restante) throw err(400, `Al documento ${d.numero_externo || d.nro_control_interno} solo se le puede aplicar $ ${(restante / 100).toFixed(2)} (monto a cobrar según la fecha de pago: ${D.CASO_TXT[liq.caso].toLowerCase()}).`);
     vendedorPago = d.id_vendedor ?? vendedorPago;
     const liquida = a.usd_cents === restante;
     st.push(R.stAplicacion(db, {id_pago: idPago, id_documento: d.id_documento, usd_cents: a.usd_cents, liquido: liquida, ejemplo: ej}));

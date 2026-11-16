@@ -13,9 +13,12 @@ export const PERM_VENTAS = {
 export const MODS_ADM = ['adm', 'custodio', 'ventas', 'cobranza', 'rrhh']; // roles con el módulo Administración por defecto
 export const ROL_TXT = {dueno: 'Dueño', adm: 'Administración y compras', custodio: 'Custodio de caja chica', recep: 'Recepción', jefeprod: 'Jefe de producción', empaque: 'Empaque y despacho', produccion: 'Producción', ventas: 'Ventas (vendedor)', cobranza: 'Cobranza', rrhh: 'Nómina y RRHH'};
 
-/* Peso por bulto: solo el Dueño y Administración lo cargan o corrigen (el servidor lo comprueba con el rol). */
-export const ROLES_PESO_BULTO = ['dueno', 'adm'];
-export const puedePesoBulto = rol => ROLES_PESO_BULTO.includes(rol);
+/* Inventario a mano (entradas, peso/unidades por bulto, correcciones, crear o editar productos): solo Gerencia, Jefe de producción y Producción.
+   Ventas y Administración NO: las existencias solo bajan al vender (pedidos). El servidor lo comprueba con el rol. */
+export const ROLES_INVENTARIO = ['dueno', 'jefeprod', 'produccion'];
+export const puedeInventario = rol => ROLES_INVENTARIO.includes(rol);
+export const puedePesoBulto = puedeInventario;
+export const MSG_SIN_INVENTARIO = 'Tu puesto no puede cambiar el inventario; solo se descuenta al vender.';
 
 /* Qué exige cada acción: [pantalla, nivel] */
 export const ACCIONES = {

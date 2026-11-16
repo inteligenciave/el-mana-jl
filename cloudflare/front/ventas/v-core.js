@@ -7,7 +7,7 @@ const V = {
 };
 const vHTTP = () => !!window.__EM_HTTP;
 const vc = x => Math.round(Number(x) * 100);                 // dólares a centavos
-const vusd = x => x == null ? '—' : 'US$ ' + N2.format(x);
+const vusd = x => x == null ? '—' : '$ ' + N2.format(x);
 const vbs = x => x == null ? '—' : 'Bs ' + N2.format(x);
 const vnum = x => N2.format(x);
 const vtxt = s => esc(s == null ? '' : s);
@@ -86,6 +86,7 @@ function vBancos() {
   if (V.bancos === undefined) { V.bancos = null; vApi('GET', '/bancos').then(r => { V.bancos = r; render(); }).catch(() => { V.bancos = {bancos: [], mensaje_vacio: 'Todavía no hay bancos cargados. Pídele al Dueño o a Administración que los carguen'}; render(); }); }
   return V.bancos;
 }
+window.vBancos = vBancos;
 function vBancoCampo(pre, obj, ph) {
   const L = vBancos();
   if (!L) return '<label class="fld">Banco<select disabled><option>Cargando bancos…</option></select></label>';
@@ -93,3 +94,44 @@ function vBancoCampo(pre, obj, ph) {
   return '<label class="fld">Banco<select data-vk="' + pre + '.id_banco"><option value="">Elige el banco…</option>' + L.bancos.map(b => '<option value="' + b.id + '"' + (String(obj.id_banco || '') === String(b.id) ? ' selected' : '') + '>' + esc(b.nombre + ' (' + b.moneda_txt.toLowerCase() + ')') + '</option>').join('') + '</select></label>';
 }
 const vBancoListo = obj => { const L = V.bancos; return L && L.bancos.length ? !!obj.id_banco : !!(obj.banco || '').trim(); };
+
+/* ---------- Imagen de producto: compresión en el navegador (≤ 180 KB, JPEG sobre fondo blanco) ---------- */
+const V_IMG_TOPE = 180 * 1024, V_IMG_ORIGINAL_MAX = 40 * 1048576;
+const vBytesB64 = b => Math.floor(b.length * 3 / 4) - (b.endsWith('==') ? 2 : b.endsWith('=') ? 1 : 0);
+async function vAbrirImagen(file) {
+  if (typeof createImageBitmap === 'function') { try { return await createImageBitmap(file, {imageOrientation: 'from-image'}); } catch (e) { /* se prueba con <img> */ } }
+  const url = URL.createObjectURL(file);
+  try { return await new Promise((ok, mal) => { const im = new Image(); im.onload = () => ok(im); im.onerror = () => mal(new Error('x')); im.src = url; }); }
+  finally { setTimeout(() => URL.revokeObjectURL(url), 5000); }
+}
+function vDibujar(img, ladoMax, calidad) {
+  const w0 = img.naturalWidth || img.width, h0 = img.naturalHeight || img.height, k = Math.min(1, ladoMax / Math.max(w0, h0));
+  const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(w0 * k)); c.height = Math.max(1, Math.round(h0 * k));
+  const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.drawImage(img, 0, 0, c.width, c.height);
+  return c.toDataURL('image/jpeg', calidad).split(',')[1];
+}
+/* Devuelve {b64, bytes, antes}. Primero baja la calidad y, si hace falta, el tamaño, hasta quedar en 180 KB o menos. */
+async function vComprimirImagen(file) {
+  if (!file || (file.type && !/^image\//i.test(file.type))) throw new Error('Ese archivo no es una imagen. Elige una foto o un dibujo (JPG, PNG o similar).');
+  if (file.size > V_IMG_ORIGINAL_MAX) throw new Error('La imagen original pesa demasiado. Elige una de menos de 40 MB.');
+  let img; try { img = await vAbrirImagen(file); } catch (e) { throw new Error(/hei[cf]/i.test((file.type || '') + ' ' + (file.name || '')) ? 'Esa foto está en formato HEIC y este navegador no la puede abrir. Guárdala como JPG o toma una captura de pantalla.' : 'No se pudo leer esa imagen. Prueba con una JPG o PNG.'); }
+  let lado = 800, q = 0.85, b64 = vDibujar(img, lado, q);
+  while (vBytesB64(b64) > V_IMG_TOPE && q > 0.45) { q = Math.round((q - 0.1) * 100) / 100; b64 = vDibujar(img, lado, q); }
+  while (vBytesB64(b64) > V_IMG_TOPE && lado > 240) { lado -= 80; q = 0.7; b64 = vDibujar(img, lado, q); }
+  if (img.close) img.close();
+  if (vBytesB64(b64) > V_IMG_TOPE) throw new Error('La imagen sigue siendo demasiado pesada aun reduciéndola. Prueba con otra.');
+  return {b64, bytes: vBytesB64(b64), antes: file.size};
+}
+/* Las imágenes internas necesitan tu rol en la cabecera: se bajan con fetch y se muestran desde memoria */
+const V_IMG_CACHE = new Map(), V_PIXEL = 'data:image/gif;base64,R0lGODlhAQABAAAAACwAAAAAAQABAAA=';
+function vImgPendientes() {
+  document.querySelectorAll('img[data-vsrc]').forEach(im => {
+    const u = im.getAttribute('data-vsrc'); im.removeAttribute('data-vsrc');
+    const hit = V_IMG_CACHE.get(u); if (typeof hit === 'string') { im.src = hit; return; }
+    const pr = hit || fetch(u, {headers: {'x-rol': S.rol}}).then(r => r.ok ? r.blob() : Promise.reject(new Error('x'))).then(b => URL.createObjectURL(b));
+    V_IMG_CACHE.set(u, pr);
+    pr.then(o => { V_IMG_CACHE.set(u, o); im.src = o; }).catch(() => { V_IMG_CACHE.delete(u); });
+  });
+}
+let vImgT = 0;
+new MutationObserver(() => { if (!vImgT) vImgT = setTimeout(() => { vImgT = 0; vImgPendientes(); }, 30); }).observe(document.body, {childList: true, subtree: true});

@@ -1,4 +1,4 @@
-/* Entregas en el PORTAL DEL CLIENTE: por factura, cuenta regresiva, descuento vigente, «cuánto pagar hoy» (US$ y Bs) y el botón «No recibí esto».
+/* Entregas en el PORTAL DEL CLIENTE: por factura, cuenta regresiva, descuento vigente, «cuánto pagar hoy» ($ y Bs) y el botón «No recibí esto».
    Autocontenido: no depende de la app del equipo. Uso desde cualquier página del portal:
      EntregasPortal.montar(document.getElementById('x'), {token: 'CODIGO_PERSONAL'});   // pide /api/c/entregas/estado con la cabecera x-token
      EntregasPortal.html(estado)  → solo el HTML de las tarjetas (si el portal ya tiene `estado` de /api/c/entregas/estado)
@@ -6,7 +6,7 @@
 const EntregasPortal = (() => {
   const N2 = new Intl.NumberFormat('es-VE', {minimumFractionDigits: 2, maximumFractionDigits: 2});
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
-  const usd = x => x == null ? '—' : 'US$ ' + N2.format(x), bs = x => x == null ? '—' : 'Bs ' + N2.format(x);
+  const usd = x => x == null ? '—' : '$ ' + N2.format(x), bs = x => x == null ? '—' : 'Bs ' + N2.format(x);
   const fecha = s => { const d = new Date(String(s).slice(0, 10) + 'T12:00:00'); return isNaN(d) ? '—' : d.toLocaleDateString('es-VE', {day: '2-digit', month: '2-digit', year: 'numeric'}); };
   const fechaHora = ts => new Date(ts).toLocaleString('es-VE', {day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'});
   const MS = 864e5;

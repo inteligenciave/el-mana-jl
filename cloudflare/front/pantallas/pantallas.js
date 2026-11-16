@@ -6,6 +6,7 @@
 const PANT = [
   {k: 'ger', t: 'Gerencia', ic: 'chart', roles: [], lead: 'Resumen del negocio', grupos: [['Resumen', [['gerencia', 'Resumen'], ['gestion', 'Control de gestión'], ['mapa', 'Mapa de procesos'], ['p-aprobar', 'Precios por aprobar'], ['g-extras', 'Funciones extra']]]]},
   {k: 'adm', t: 'Administración', ic: 'wallet', roles: ['adm', 'custodio', 'rrhh', 'cobranza'], lead: 'Compras, pagos, cobros y personal', grupos: [
+    ['Resumen', [['adm-resumen', 'Resumen']]],
     ['Compras', [['c-pedido', 'Hacer una compra'], ['compras-mp', 'Papa e insumos'], ['compras-gen', 'Otras compras'], ['analisis', 'Comparar compras'], ['catalogos', 'Proveedores'], ['inventario-adm', 'Existencias']]],
     ['Pagar', [['cxp', 'Por pagar'], ['caja', 'Caja chica'], ['prestamos', 'Préstamos'], ['politicas', 'Reglas']]],
     ['Cobrar', [['v-cobro', 'Registrar cobro'], ['v-pagos', 'Cobros hechos'], ['v-deuda', 'Quién debe'], ['c-pagos', 'Pagos por revisar'], ['e-plazos', 'Plazos y reclamos'], ['v-reportes', 'Comisiones y asientos'], ['v-importar', 'Traer del Excel']]],
@@ -21,7 +22,7 @@ const PANT = [
     ['Más', [['catprod', 'Equipo'], ['manual', 'Manual']]]]},
   {k: 'vent', t: 'Ventas', ic: 'cart', roles: ['ventas'], lead: 'Vender, clientes y catálogo', grupos: [['Ventas', [['v-pedido', 'Hacer una venta'], ['v-clientes', 'Clientes y catálogo'], ['v-deuda', 'Quién debe'], ['v-pagos', 'Cobros hechos'], ['ventas', 'Registro de ventas'], ['pr-invv', 'Inventario disponible'], ['clientes', 'Lista de clientes'], ['c-pedidos', 'Pedidos de clientes']]]]},
   {k: 'logi', t: 'Logística', ic: 'tag', roles: [], lead: 'En desarrollo', grupos: [['Logística', [['alm-logistica', 'Bultos y etiquetas'], ['log-dev', 'Próximamente']]]]},
-  {k: 'desp', t: 'Despacho', ic: 'truck', roles: ['empaque', 'jefeprod'], lead: 'Despachos y entregas', grupos: [['Despacho', [['despachos', 'Despachos'], ['e-entregas', 'Entregas con foto'], ['alm-logistica', 'Bultos y etiquetas']]]]},
+  {k: 'desp', t: 'Despacho', ic: 'truck', roles: ['empaque', 'jefeprod'], lead: 'Despachos y entregas', grupos: [['Despacho', [['despachos', 'Despachos'], ['fl-desp', 'Vehículos'], ['e-entregas', 'Entregas con foto'], ['alm-logistica', 'Bultos y etiquetas']]]]},
   {k: 'cli', t: 'Cliente', ic: 'users', roles: [], lead: 'Fichas y portal del cliente', grupos: [['Cliente', [['c-ficha', 'Fichas y enlaces'], ['cli-portal', 'Portal del cliente']]]]}
 ];
 const ORDEN_DUENO = ['ger', 'vent', 'adm', 'prod', 'desp', 'logi', 'cli'];
@@ -39,62 +40,166 @@ function pantActual() {
   S.pant = (cur || ext) ? (cur || ext).k : null; return cur || ext;
 }
 window.pantNombre = () => { const p = pantActual(); return p ? p.t : 'Inicio'; };
-const destino = p => { const l = (S.lastPant || {})[p.k], fl = planas(p, S.rol); return l && fl.includes(l) ? l : (fl[0] || 'pant-vacia'); };
+/* Producción: «Recibir» y «Producir» son las dos pantallas principales (las que tenga permiso el puesto) */
+const PRIN_PROD = [['recepcion', 'Recibir', 'truck'], ['produccion', 'Producir', 'flame']];
+const prinDe = p => p.k === 'prod' ? PRIN_PROD.filter(([k]) => planas(p, S.rol).includes(k)) : [];
+const destino = p => { const l = (S.lastPant || {})[p.k], fl = planas(p, S.rol), pr = prinDe(p);
+  if (pr.length) return S.rol === 'recep' && pr.some(x => x[0] === 'recepcion') ? 'recepcion' : (pr.find(x => x[0] === 'produccion') || pr[0])[0]; return l && fl.includes(l) ? l : (fl[0] || 'pant-vacia'); };
 
 Object.assign(SCREENS, {
   'gerencia':   {mod: 'adm', g: 'Gerencia', t: 'Resumen del negocio', s: 'Resumen', ic: 'chart', r: scrGerencia},
+  'adm-resumen': {mod: 'adm', g: 'Administración', t: 'Resumen de la operación', s: 'Resumen', ic: 'chart', r: () => scrGerencia('adm')},
   'log-dev':    {mod: 'home', libre: true, g: 'Logística', t: 'Logística', s: 'Próximamente', ic: 'tag', r: () => `<div class="card"><div class="card-b">${emptyState('Esta pantalla está en desarrollo', 'Todavía no hay nada que hacer aquí. Cuando esté lista aparecerá en esta pestaña. Mientras tanto usa «Bultos y etiquetas».')}</div></div>`},
   'cli-portal': {mod: 'home', libre: true, g: 'Cliente', t: 'Portal del cliente', s: 'Portal', ic: 'users', r: scrPortalCli},
   'g-extras':   {mod: 'adm', g: 'Gerencia', t: 'Funciones extra por puesto', s: 'Funciones extra', ic: 'lock', r: scrExtras},
   'pant-vacia': {mod: 'home', libre: true, g: 'Inicio', t: 'Sin pantalla', s: 'Inicio', ic: 'map', r: () => `<div class="card"><div class="card-b">${emptyState('Tu puesto todavía no tiene pantalla', 'Pide al Dueño que te asigne una. Mientras tanto no hay nada que hacer aquí.')}</div></div>`}
 });
-Object.assign(PERM_DEF, {gerencia: '', 'g-extras': ''});
+Object.assign(PERM_DEF, {gerencia: '', 'g-extras': '', 'adm-resumen': 'adm:1'});
+ROLE_HOME.adm = 'adm-resumen';
 S.perm = permInit();
 
-/* ---------- Gerencia: solo lo que ya existe y es real ---------- */
-const GER = {est: null, doc: null, pag: null, deuda: null, prec: null, kpi: null, dpend: null, dapro: null};
+/* ---------- Gerencia: resumen del mes en 5 bloques (solo cifras reales; si no hay dato: «Sin datos») ---------- */
+const GER = {est: null, doc: null, ent: null, busy: false};
+const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+function gerMes() { /* del día 1 de este mes a hoy, con la fecha local */
+  const h = new Date(), p = n => String(n).padStart(2, '0'), y = h.getFullYear(), m = h.getMonth() + 1;
+  return {d: y + '-' + p(m) + '-01', h: y + '-' + p(m) + '-' + p(h.getDate()), t: '1 al ' + h.getDate() + ' de ' + MESES[m - 1], ms: new Date(y, m - 1, 1).getTime(), me: new Date(y, m - 1, h.getDate() + 1).getTime()};
+}
 async function gerApi(ruta) { const r = await fetch('/api/v' + ruta, {headers: {'x-rol': S.rol}}); if (!r.ok) throw new Error(ruta); return r.json(); }
 async function gerCargar() {
-  if (GER.busy) return; GER.busy = true;
-  const kp = async () => { try { [GER.kpi, GER.dpend, GER.dapro] = await Promise.all([window.prApi('GET', '/kpi-merma'), window.prApi('GET', '/diferencias/contador'), window.prApi('GET', '/diferencias?estado=APROBADA')]); } catch (e) { GER.kpi = null; } };
+  if (GER.busy) return; GER.busy = true; const M = gerMes();
   const pide = async (k, ruta) => { try { GER[k] = await gerApi(ruta); } catch (e) { GER[k] = null; } };
-  await Promise.all([pide('doc', '/documentos'), pide('pag', '/pagos'), pide('deuda', '/deuda'), S.rol === 'dueno' ? pide('prec', '/precios/pendientes') : null, S.rol === 'dueno' && window.prApi ? kp() : null]);
+  const tab = async () => { try { GER.tab = window.prApi && (S.rol === 'dueno' || lvlOf(S.rol, 'pr-zonas') >= 1) ? await window.prApi('GET', '/tablero') : null; } catch (e) { GER.tab = null; } };
+  const flota = async () => { try { const r = await fetch('/api/f/vehiculos?todos=1', {headers: {'x-rol': S.rol}}); GER.veh = r.ok ? (await r.json()).vehiculos : null; } catch (e) { GER.veh = null; } };
+  await Promise.all([pide('doc', '/documentos?desde=' + M.d + '&hasta=' + M.h), pide('ent', '/entregas/'), pide('deuda', '/deuda'), pide('prec', '/precios/pendientes'), pide('ped', '/portal/pedidos?estado=POR_CONFIRMAR'), pide('pag', '/portal/pagos?estado=POR_VERIFICAR'), pide('disp', '/entregas/disputas'), tab(), flota()]);
   GER.est = 'ok'; GER.busy = false; GER.ts = Date.now(); try { render(); } catch (e) { /* sin pantalla */ }
 }
-const gUsd = x => 'US$ ' + N2.format(x);
-function scrGerencia() {
+const gUsd = x => '$ ' + N2.format(x);
+const gEnMes = (f, M) => !!f && String(f).slice(0, 10) >= M.d && String(f).slice(0, 10) <= M.h;
+const META_K = {ventas: 'Ventas', compras: 'Límite de compra', desp: 'Despacho', ent: 'Logística'};
+const metas = () => { try { return (one('ajustes', 'metas_mes') || {}); } catch (e) { return {}; } };
+function gMedidor(k, val, fmt) { /* semicírculo: arco gris = meta, arco rojo = avance */
+  const cl = k === 'compras', SM = cl ? 'Sin límite' : 'Sin meta', m = +metas()[k] || 0, ok = val != null && m > 0, pct = ok ? val / m * 100 : 0, arco = Math.min(100, pct);
+  return '<svg class="gr-gauge" viewBox="0 0 120 68" role="img" aria-label="' + (ok ? (cl && pct > 100 ? 'Límite superado. ' : '') + 'Avance ' + N0.format(pct) + ' %' : SM) + '"><path d="M10 60A50 50 0 0 1 110 60" pathLength="100" fill="none" stroke="#E4E1DA" stroke-width="11" stroke-linecap="round"/>' +
+    (ok && arco > 0 ? '<path d="M10 60A50 50 0 0 1 110 60" pathLength="100" fill="none" stroke="' + (cl && pct <= 100 ? '#F2B72E' : '#C92121') + '" stroke-width="11" stroke-linecap="round" stroke-dasharray="' + arco + ' 100"/>' : '') +
+    '<circle cx="110" cy="60" r="3.5" fill="#F2B72E"/>' + (cl && pct > 100 ? '<path d="M12 4l9 15H3z" fill="#F2B72E" stroke="#C92121" stroke-width="2" stroke-linejoin="round"/><path d="M12 10v4M12 16.5v.5" stroke="#C92121" stroke-width="2" stroke-linecap="round"/>' : '') + '<text x="60" y="52" text-anchor="middle" class="gr-gt' + (ok ? '' : ' muted') + '">' + (ok ? N0.format(pct) + ' %' : SM) + '</text></svg>' +
+    '<p class="gr-meta">' + (m > 0 ? (cl ? 'Límite de compra: ' : 'Meta: ') + fmt(m) : '&nbsp;') + '</p>';
+}
+/* ¿Este puesto puede abrir esa pantalla? (si no, la tarjeta no ofrece el enlace) */
+const gVa = k => k && (S.rol === 'dueno' || lvlOf(S.rol, k) >= 1);
+const gPrim = l => l.find(gVa) || l[0];
+const gSinCifra = v => v === 'Sin datos' || v === 'No calculable' || v === '…';
+function gBloque(titulo, cifras, enlace, extra, k, sec, cls) {
+  return '<article class="card gr-card ' + (cls || 'gr-w3') + '"><div class="card-b"><h2>' + titulo + '</h2>' +
+    (k && S.rol === 'dueno' ? '<button type="button" class="lnk gr-fijar" data-act="metaAbrir" data-k="' + k + '">' + (k === 'compras' ? 'Fijar límite' : 'Fijar meta') + '</button>' : '') +
+    '<div class="gr-body"><div class="gr-l">' + cifras.map(c => '<div class="gr-c"><b class="' + (gSinCifra(c.v) ? 'muted' : '') + '">' + c.v + '</b><span>' + c.l + '</span></div>').join('') +
+    (sec && sec.length ? '<div class="gr-sec">' + sec.map(x => '<p><span>' + x[0] + '</span><b>' + x[1] + '</b></p>').join('') + '</div>' : '') + '</div>' +
+    (extra ? '<div class="gr-r">' + extra + '</div>' : '') + '</div>' +
+    (gVa(enlace) ? '<a class="btn pri gr-btn" href="#' + enlace + '">Ver detalle</a>' : '') + '</div></article>';
+}
+function gBarras(mm, M) {
+  const g = {}; mm.filter(m => gEnMes(m.fecha, M) && m.estado !== 'rech').forEach(m => { const n = String(m.prod || m.causa || m.etapa || 'Otros').trim() || 'Otros'; g[n] = (g[n] || 0) + (+m.usd || 0); });
+  let l = Object.entries(g).filter(x => x[1] > 0).sort((a, b) => b[1] - a[1]);
+  if (!l.length) return '<p class="gr-meta">Sin mermas este mes</p>';
+  if (l.length > 6) { const o = l.slice(5).reduce((a, x) => a + x[1], 0); l = l.slice(0, 5).concat([['Otros', o]]); }
+  const mx = l[0][1];
+  return '<div class="gr-bars">' + l.map(([n, v]) => '<div class="gr-br"><span title="' + esc(n) + '">' + esc(n) + '</span><i><u style="width:' + Math.max(3, v / mx * 100) + '%"></u></i><b>' + gUsd(v) + '</b></div>').join('') + '</div>';
+}
+/* Tendencia por día: una barra por día, del 1 al de hoy */
+function gTend(titulo, porDia, total, M, fmt) {
+  if (!porDia) return '<section class="card gr-tr"><div class="gr-trh"><h3>' + titulo + '</h3><b class="muted">Sin datos</b></div></section>';
+  const n = +M.h.slice(8), v = []; for (let i = 1; i <= n; i++) v.push(porDia[i] || 0);
+  const mx = Math.max(0, ...v), im = mx > 0 ? v.lastIndexOf(mx) : -1, cab = '<div class="gr-trh"><h3>' + titulo + '</h3><b class="' + (gSinCifra(total) ? 'muted' : '') + '">' + total + '</b></div>';
+  if (!(mx > 0)) return '<section class="card gr-tr">' + cab + '<p class="gr-vacio">Sin movimiento este mes</p></section>';
+  const marca = i => i === 1 || i === 5 || i === 10 || i === n;
+  return '<section class="card gr-tr">' + cab + '<div class="gr-tg"><span class="gr-tmax">Máx. ' + fmt(mx) + '</span><div class="gr-tb" role="img" aria-label="' + titulo + '">' + v.map((x, i) => '<u class="' + (i === im ? 'mx ' : '') + (i + 1 === n ? 'hoy' : '') + '" title="Día ' + (i + 1) + ': ' + fmt(x) + '" style="height:' + (x > 0 ? Math.max(4, x / mx * 100) : 2) + '%"></u>').join('') + '</div></div><div class="gr-tx">' + v.map((x, i) => '<span class="' + (i + 1 === n ? 'on' : '') + '">' + (marca(i + 1) ? (i + 1 === n && n > 1 ? 'Hoy' : i + 1) : '') + '</span>').join('') + '</div></section>';
+}
+/* Punto de equilibrio del mes = costos fijos / (1 - costos variables / ventas). Fijos y variables: los «Gastos fijos / variables del mes» que ya muestra Control de gestión. */
+function gEquilibrio(vv) {
+  let F = null, Vr = null; try { F = DATA.gastosFijos.reduce((a, g) => a + (+g[1] || 0), 0); Vr = DATA.gastosVar.reduce((a, g) => a + (+g[1] || 0), 0); } catch (e) { /* sin dato */ }
+  const sd = m => ({v: 'Sin datos', m});
+  if (vv == null) return sd('Faltan las ventas del mes');
+  if (!(F > 0)) return sd('No hay gastos fijos cargados');
+  if (!(vv > 0)) return {v: 'No calculable', m: 'Todavía no hay ventas este mes'};
+  const mg = 1 - Vr / vv;
+  if (!(mg > 0)) return {v: 'No calculable', m: 'Los costos variables igualan o superan las ventas'};
+  const pe = F / mg, pct = vv / pe * 100;
+  return {v: gUsd(pe), pe, pct, vv};
+}
+/* Vehículos: dónde está cada camión o autobús y qué carga lleva (lo anota una persona; sin GPS). Hasta 4 a la vista. */
+function gVehiculos() {
+  const V = GER.veh, T = window.flTxt || {}, orden = {RUTA: 0, PLANTA: 1, TALLER: 2, FUERA_SERVICIO: 3};
+  let cuerpo;
+  if (!Array.isArray(V)) cuerpo = '<p class="gr-meta">' + (GER.est === 'ok' ? 'Sin datos' : '…') + '</p>';
+  else if (!V.length) cuerpo = '<p class="gr-meta">Sin vehículos cargados</p>';
+  else {
+    const L = V.slice().sort((a, b) => (orden[a.donde] - orden[b.donde]) || String(a.placa).localeCompare(String(b.placa)));
+    cuerpo = '<ul class="gr-vl">' + L.slice(0, 4).map(v => '<li class="d-' + v.donde + '"><p class="gr-vn"><b>' + esc(v.marca_modelo || v.placa) + '</b><span>' + esc(v.placa) + '</span></p><p class="gr-vd"><b>' + esc(T.donde ? T.donde(v) : v.donde_txt) + '</b><span>' + esc(T.desde ? T.desde(v) : '') + '</span></p><p class="gr-vc">' + esc(T.carga ? T.carga(v) : '') + '</p></li>').join('') + '</ul>' +
+      (V.length > 4 && gVa('fl-flota') ? '<a class="lnk gr-vall" href="#fl-flota">Ver todos (' + V.length + ')</a>' : '');
+  }
+  return '<article class="card gr-card gr-veh"><div class="card-b"><h2>Vehículos</h2>' + cuerpo + (gVa('fl-flota') ? '<a class="btn pri gr-btn" href="#fl-flota">Ver detalle</a>' : '') + '</div></article>';
+}
+const GR_ICO = '<svg class="gr-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l10 18H2z" fill="#F2B72E" stroke="#C92121" stroke-width="2" stroke-linejoin="round"/><path d="M12 10v5M12 17.5v.5" stroke="#C92121" stroke-width="2" stroke-linecap="round"/></svg>';
+function gAlertas() {
+  const c = (x, k) => Array.isArray(x) ? x.length : (x && x[k] != null ? +x[k] : null);
+  let L = [[GER.prec ? +GER.prec.pendientes || 0 : null, 'Precios por aprobar', 'p-aprobar'], [c(GER.pag), 'Pagos por verificar', 'c-pagos'], [c(GER.ped), 'Pedidos del portal por confirmar', 'c-pedidos'], [Array.isArray(GER.disp) ? GER.disp.filter(x => x.estado === 'ABIERTA').length : null, 'Reclamos de entrega abiertos', 'e-plazos'], [typeof mrNuevas === 'function' ? mrNuevas().length : null, 'Mermas nuevas (24 h)', 'mermas']];
+  if (S.rol !== 'dueno') L = L.filter(x => x[0] != null && (gVa(x[2]) || x[2] === 'mermas')); /* sin pantalla propia, las mermas nuevas se muestran sin enlace */
+  const todo0 = L.every(x => x[0] === 0);
+  return '<section class="card gr-al"><h3>Requiere atención</h3>' + (todo0 ? '<p class="gr-ok">Sin pendientes</p>' : '<div class="gr-alg" style="--n:' + L.length + '">' + L.map(x => '<' + (gVa(x[2]) ? 'a href="#' + x[2] + '"' : 'div') + ' class="' + (x[0] ? 'on' : '') + '"><b>' + (x[0] > 0 ? GR_ICO : '') + (x[0] == null ? 'Sin datos' : x[0]) + '</b><span>' + x[1] + '</span></' + (gVa(x[2]) ? 'a' : 'div') + '>').join('') + '</div>') + '</section>';
+}
+function gZonas() {
+  const T = GER.tab; if (!T || !Array.isArray(T.activas)) return '<section class="card gr-zn"><div class="gr-trh"><h3>Zonas</h3><b class="muted">Sin datos</b></div></section>';
+  const meta = +T.meta_kg || 0, kg = x => N0.format(x) + ' kg', z = T.activas;
+  const filas = z.slice(0, 4).map(a => '<div class="gr-z"><p><span>' + esc(a.zona) + '</span><b>' + kg(a.kilos) + '</b></p><i><u style="width:' + (meta > 0 ? Math.min(100, a.kilos / meta * 100) : 0) + '%"></u></i></div>').join('');
+  return '<section class="card gr-zn"><div class="gr-trh"><h3>Zonas' + (meta > 0 ? ' · meta ' + N0.format(meta / 1000) + ' t' : '') + '</h3>' + (z.length > 4 ? '<a class="lnk" href="#pr-zonas">Ver todas</a>' : '') + '</div>' + (z.length ? '<div class="gr-zg">' + filas + '</div>' : '<p class="gr-ok">Sin pedidos por despachar</p>') + '</section>';
+}
+function scrGerencia(modo) {
+  const adm = modo === 'adm';
+  if (GER.rol !== S.rol && !GER.busy) { GER.rol = S.rol; GER.est = null; GER.tab = null; }
   if (!GER.est || (GER.est === 'ok' && !GER.busy && Date.now() - (GER.ts || 0) > 5000)) gerCargar(); /* se actualiza al volver a entrar */
-  const t = S.tasaInfo, cargando = GER.est !== 'ok';
-  const msj = cargando ? 'Cargando…' : 'No se pudo leer. Vuelve a entrar en un momento.';
-  const tasa = t ? stat('Tasa del dólar (BCV)', 'Bs ' + N2.format(t.valor), (t.respaldo ? 'Hoy no se pudo consultar: se usa la última guardada. ' : 'Al día. ') + 'Rige para el ' + fdl(t.fecha), t.respaldo ? 'warn' : 'ok')
-    : stat('Tasa del dólar (BCV)', '—', 'Todavía no hay tasa guardada. Se consulta sola cada día.', 'warn');
-  const docs = (GER.doc || []).filter(d => !/^ANULAD/.test(d.estado || '') && d.estado !== 'FACTURADO_DESDE_NE'); /* una nota que ya se facturó cuenta una sola vez: como factura */
-  const ej = (GER.doc || []).some(d => d.ejemplo) || (GER.pag || []).some(p => p.ejemplo);
-  const ventas = GER.doc ? stat('Ventas hechas', docs.length + (docs.length === 1 ? ' venta' : ' ventas'), 'Suman ' + gUsd(docs.reduce((a, d) => a + (d.total_cents || 0), 0) / 100)) : stat('Ventas hechas', '—', msj);
-  const cobros = (GER.pag || []).filter(p => p.estado === 'ACTIVO');
-  const cob = GER.pag ? stat('Cobros recibidos', cobros.length + (cobros.length === 1 ? ' cobro' : ' cobros'), 'Suman ' + gUsd(cobros.reduce((a, p) => a + (+p.usd || 0), 0))) : stat('Cobros recibidos', '—', msj);
-  const cxc = GER.deuda ? stat('Por cobrar', gUsd(GER.deuda.total || 0), (GER.deuda.clientes || []).length + ' cliente(s) con deuda') : stat('Por cobrar', '—', msj);
-  const aprob = S.rol === 'dueno' ? (GER.prec ? stat('Precios por aprobar', GER.prec.pendientes + (GER.prec.pendientes === 1 ? ' cambio' : ' cambios'), GER.prec.pendientes ? 'Administración espera tu respuesta. <a class="lnk" href="#p-aprobar">Revisar</a>' : 'No hay cambios de precio pendientes.', GER.prec.pendientes ? 'warn' : 'ok') : stat('Precios por aprobar', '—', msj)) : '';
-  const lista = visibles(S.rol).filter(p => p.k !== 'ger').map(p => `<a class="pt-tile" href="#${destino(p)}">${ic(p.ic, 30)}<b>${p.t}</b><span>${p.lead}</span></a>`).join('');
-  return `<h1 class="sr">Gerencia</h1>
-  <div class="v-stats pt-stats">${tasa}${ventas}${cob}${cxc}${aprob}</div>${kpiMerma()}
-  ${ej ? `<p class="perm-note">${ic('info')}<span>Estas cifras incluyen datos de ejemplo cargados para probar.</span></p>` : ''}
-  <h2 class="pt-h2">Ir a una pantalla</h2><div class="pt-tiles">${lista}</div>`;
+  const M = gerMes(), SD = 'Sin datos', col = c => { try { return typeof rows === 'function' ? rows(c) : null; } catch (e) { return null; } };
+  const cargando = GER.est !== 'ok', dia = f => +String(f).slice(8, 10);
+  /* Ventas: cada venta una sola vez (la nota ya facturada cuenta como factura) */
+  const docs = GER.doc ? GER.doc.filter(d => !/^ANULAD/.test(d.estado || '') && d.estado !== 'FACTURADO_DESDE_NE') : null;
+  const vv = docs ? docs.reduce((a, d) => a + (d.total_cents || 0), 0) / 100 : null;
+  const vDia = docs ? docs.reduce((o, d) => { const i = dia(d.fecha_emision); o[i] = (o[i] || 0) + (d.total_cents || 0) / 100; return o; }, {}) : null;
+  /* Administración: compras del mes (cantidad × precio) */
+  const cm = col('compras'), cmes = cm ? cm.filter(c => gEnMes(c.fecha, M)) : null, cv = cmes ? cmes.reduce((a, c) => a + (+c.qf || 0) * (+c.pu || 0), 0) : null;
+  const cDia = cmes ? cmes.reduce((o, c) => { const i = dia(c.fecha); o[i] = (o[i] || 0) + (+c.qf || 0) * (+c.pu || 0); return o; }, {}) : null;
+  let porPagar = null, caja = null; try { porPagar = cxpBuckets().total; } catch (e) { /* sin dato */ } try { caja = cajaResumen().disponible; } catch (e) { /* sin dato */ }
+  /* Producción: mermas del mes por producto; la nómina se anota por quincena, no por día */
+  const mm = col('mermas'), lt = col('lotes'), kilos = lt ? lt.filter(l => gEnMes(l.fecha, M)).reduce((a, l) => a + (+l.cruda || 0), 0) : null;
+  /* Despacho: notas de entrega emitidas en el mes */
+  const dm = col('despachos'), dmes = dm ? dm.filter(n => gEnMes(n.fecha, M) && !/anulad/i.test(n.estado || '')) : null, desp = dmes ? dmes.length : null;
+  const dDia = dmes ? dmes.reduce((o, n) => { const i = dia(n.fecha); o[i] = (o[i] || 0) + 1; return o; }, {}) : null;
+  /* Logística: entregas con foto registradas en el mes */
+  const ent = Array.isArray(GER.ent) ? GER.ent.filter(e => e.estado !== 'RECHAZADA' && e.subido_ts >= M.ms && e.subido_ts < M.me).length : null;
+  const n = (x, u1, u2) => x == null ? (cargando ? '…' : SD) : x + ' ' + (x === 1 ? u1 : u2), nf = x => N0.format(x), u = x => x == null ? SD : gUsd(x);
+  const zonasOk = !adm || !!(GER.tab && Array.isArray(GER.tab.activas));
+  return `<h1 class="sr">${adm ? 'Administración' : 'Gerencia'}</h1>
+  <p class="gr-per">Resumen del mes: ${M.t}</p>
+  <div class="gr-grid${adm ? ' gr-adm' : ''}">
+    ${gBloque('Ventas', [{v: vv != null ? gUsd(vv) : (cargando ? '…' : SD), l: 'Total vendido del mes'}], adm ? gPrim(['ventas', 'v-pagos', 'v-pedido']) : 'v-pedido', adm ? '' : gMedidor('ventas', vv, gUsd), 'ventas', [['Por cobrar', GER.deuda ? gUsd(GER.deuda.total || 0) : (cargando ? '…' : SD)]])}
+    ${gBloque('Administración', [{v: cv != null ? gUsd(cv) : SD, l: 'Compras del mes'}], 'analisis', adm ? '' : gMedidor('compras', cv, gUsd), 'compras', [['Por pagar a proveedores', u(porPagar)], ['Caja chica', u(caja)]])}
+    ${adm ? '' : (() => { const E = gEquilibrio(vv); return gBloque('Punto de equilibrio', [{v: E.v, l: 'Ventas mínimas del mes'}], 'gestion', E.pe ? '<div class="gr-pb" role="img" aria-label="Avance ' + N0.format(E.pct) + ' %"><u style="width:' + Math.min(100, E.pct) + '%"></u></div><p class="gr-meta">Llevas ' + gUsd(E.vv) + ' de ' + gUsd(E.pe) + ' (' + N0.format(E.pct) + ' %)</p>' : '<p class="gr-meta">' + E.m + '</p>', null, null, 'gr-pe'); })()}
+    ${gBloque('Producción', adm ? [{v: kilos != null ? nf(kilos) + ' kg' : (cargando ? '…' : SD), l: 'Kilos procesados del mes'}] : [{v: SD, l: 'Nómina de hoy'}], 'mermas', '<div class="gr-pm"><p class="gr-meta">Mermas del mes</p>' + (mm ? gBarras(mm, M) : '<p class="gr-meta">' + SD + '</p>') + '</div>', null, adm ? null : [['Kilos procesados', kilos != null ? nf(kilos) + ' kg' : SD], ['Bultos empacados', SD]], 'gr-prod')}
+    ${gVehiculos()}
+  </div>
+  <div class="gr-fila3${zonasOk ? '' : ' gr-f2'}">${(() => { const v = n(desp, 'nota', 'notas'); return '<section class="card gr-tr gr-dm"><div class="gr-trh"><h3>Despachos del mes</h3></div><div class="gr-c"><b class="' + (gSinCifra(v) ? 'muted' : '') + '">' + v + '</b><span>Notas de entrega del ' + M.t + '</span></div>' + (adm && gVa('despachos') ? '<a class="lnk" href="#despachos">Ver despachos</a>' : '') + '</section>'; })()}${gAlertas()}${zonasOk ? gZonas() : ''}</div>`;
 }
-/* KPI de merma: solo lo registrado; sin metas inventadas. Cada gráfico crece según su número de barras. */
-function kpiMerma() {
-  const K = GER.kpi; if (S.rol !== 'dueno' || !K) return '';
-  const p = x => x == null ? 'Sin datos' : N2.format(x) + ' %', kg = x => N2.format(x) + ' kg';
-  const et = K.etapas.filter(e => e.etapa !== 'recepcion'), mx = Math.max(0, ...et.map(e => e.merma_pct || 0));
-  const filas = et.map(e => '<div class="pr-brow"><span>' + e.nombre + '</span>' + (e.merma_pct == null ? '<span class="muted">Sin datos</span><b></b>' : '<span><i style="width:' + Math.max(2, mx > 0 ? e.merma_pct / mx * 100 : 0) + '%"></i></span><b>' + p(e.merma_pct) + '</b>') + '</div>').join('');
-  const mot = {}; K.etapas.forEach(e => (e.por_motivo || []).forEach(m => { mot[m.motivo] = (mot[m.motivo] || 0) + (m.kg || 0); }));
-  const ms = Object.entries(mot).sort((a, b) => b[1] - a[1]), mm = ms.length ? ms[0][1] : 0;
-  const fm = ms.length ? ms.map(([n, v]) => '<div class="pr-brow am"><span>' + n + '</span><span><i style="width:' + Math.max(2, mm > 0 ? v / mm * 100 : 0) + '%"></i></span><b>' + kg(v) + '</b></div>').join('') : '<p class="muted">Sin datos</p>';
-  const pend = (GER.dpend || {}).pendientes || 0, apro = Array.isArray(GER.dapro) ? GER.dapro.length : 0;
-  return '<div class="pr-kpis"><section class="pr-kpi"><h3>Merma real por etapa' + (K.total && K.total.merma_pct != null ? ' · total ' + p(K.total.merma_pct) : '') + '</h3>' + filas + '</section>' +
-    '<section class="pr-kpi"><h3>Merma por motivo</h3>' + fm + '</section>' +
-    '<section class="pr-kpi"><h3>Diferencias</h3><div class="pr-brow"><span>Por aprobar</span><span></span><b>' + pend + '</b></div><div class="pr-brow"><span>Aprobadas</span><span></span><b>' + apro + '</b></div>' + (pend ? '<a class="lnk" href="#pr-dif">Revisar</a>' : '') + '</section></div>';
+function gMetaAbrir(k) {
+  const v = +metas()[k] || '';
+  modal(k === 'compras' ? 'Límite de compra del mes' : 'Meta del mes · ' + META_K[k], '<label for="meta-v">' + (k === 'compras' ? 'Límite de compra en $' : k === 'ventas' ? 'Meta en $' : 'Meta en cantidad') + '</label><input id="meta-v" type="number" min="0" step="any" value="' + v + '" style="width:100%;margin-top:6px"><div class="btnrow" style="margin-top:12px"><button type="button" class="btn pri" data-act="metaGuardar" data-k="' + k + '">' + (k === 'compras' ? 'Guardar límite' : 'Guardar meta') + '</button><button type="button" class="btn" data-act="closeModal">Cancelar</button></div>');
+  setTimeout(() => { const i = document.getElementById('meta-v'); if (i) i.focus(); }, 0);
 }
+async function gMetaGuardar(k) {
+  const x = document.getElementById('meta-v'), v = x ? +x.value : NaN;
+  if (x && x.value === '') return toast(k === 'compras' ? 'Escribe el límite de compra del mes.' : 'Escribe la meta del mes.', 'warn');
+  if (!(v >= 0)) return toast('Escribe un número igual o mayor que cero.', 'warn');
+  await run('meta-' + k, async () => { await W.set('ajustes', 'metas_mes', {...metas(), [k]: v}); closeModal(); }, k === 'compras' ? 'Límite de compra guardado.' : 'Meta guardada.');
+}
+Object.assign(ACT, {metaAbrir: el => gMetaAbrir(el.dataset.k), metaGuardar: el => gMetaGuardar(el.dataset.k)});
+WRITE_ACTS.add('metaGuardar');
 function scrPortalCli() {
   return `<div class="card"><div class="card-b"><p class="empty-t">Portal del cliente</p><p>Es la página donde cada cliente ve su cuenta con su enlace personal. Los enlaces se crean en «Fichas y enlaces».</p>
     <div class="btnrow"><a class="btn pri" href="/cliente.html" target="_blank" rel="noopener">Abrir el portal del cliente</a></div></div></div>`;
@@ -104,7 +209,7 @@ function scrPortalCli() {
 function scrRoles7() {
   const nombres = r => visibles(r).map(p => p.t).join(', ') || 'Ninguna por ahora';
   return `${phFull('El Maná JL', '¿Quién eres?', 'Elige tu puesto. Verás solo la pantalla de tu trabajo.')}
-  <div class="pm-grid">${Object.keys(ROLES).map(r => `<article class="card rolecard"><div class="card-b"><h2 style="font-size:17px">${ROLES[r]}</h2><p class="hint" style="margin:4px 0 8px">${ROLE_DESC[r]}</p><p class="hint"><b>Ve:</b> ${r === 'dueno' ? 'Gerencia y las otras 6 pantallas' : nombres(r)}</p>
+  <div class="pm-grid">${Object.keys(ROLES).map(r => `<article class="card rolecard"><div class="card-b"><h2 style="font-size:17px">${ROLES[r]}</h2><p class="hint" style="margin:4px 0 8px">${ROLE_DESC[r]}</p><p class="hint" title="${esc(r === 'dueno' ? 'Gerencia y las otras 6 pantallas' : nombres(r))}"><b>Ve:</b> ${r === 'dueno' ? 'Gerencia y las otras 6 pantallas' : nombres(r)}</p>
     <button type="button" class="btn pri" style="margin-top:12px" data-act="elegirRol" data-v="${r}">Entrar</button></div></article>`).join('')}</div>${NOTICE()}`;
 }
 scrPuertas = scrRoles7; scrElegirRol = scrRoles7;
@@ -128,14 +233,14 @@ homeRoute = function () {
   const act = vis.find(p => p.k === S.pant);
   if (act) return destino(act);
   if (S.rol === 'dueno') return destino(vis[0]);
-  const rh = ROLE_HOME[S.rol], prim = vis.find(p => rh && planas(p, S.rol).includes(rh)) || vis[0];
+  const rh = prinDe(vis.find(p => p.k === 'prod') || {}).length && vis.some(p => p.k === 'prod' && S.rol !== 'dueno') ? destino(vis.find(p => p.k === 'prod')) : ROLE_HOME[S.rol], prim = vis.find(p => rh && planas(p, S.rol).includes(rh)) || vis[0];
   return planas(prim, S.rol).includes(rh) ? rh : destino(prim);
 };
 
 /* ---------- Lanzador «Opciones»: un botón de cuadrícula que abre iconos grandes con TODAS las opciones de la pantalla ---------- */
-const IC_OP = {gerencia: 'chart', gestion: 'gauge', mapa: 'map', 'p-aprobar': 'check', 'g-extras': 'lock', 'c-pedido': 'cart', 'compras-mp': 'potato', 'compras-gen': 'cart', analisis: 'compare', catalogos: 'book', 'inventario-adm': 'warehouse',
+const IC_OP = {gerencia: 'chart', 'adm-resumen': 'chart', gestion: 'gauge', mapa: 'map', 'p-aprobar': 'check', 'g-extras': 'lock', 'c-pedido': 'cart', 'compras-mp': 'potato', 'compras-gen': 'cart', analisis: 'compare', catalogos: 'book', 'inventario-adm': 'warehouse',
   cxp: 'receipt', caja: 'coins', prestamos: 'wallet', politicas: 'shield', 'v-cobro': 'coins', 'v-pagos': 'check', 'v-deuda': 'alert', 'c-pagos': 'receipt', 'e-plazos': 'calendar', 'v-reportes': 'chart', 'v-importar': 'file',
-  'p-precios': 'tag', 'p-clientes': 'users', 'e-ajustes': 'sliders', 'p-estado': 'clip', 'p-bancos': 'wallet', 'fl-flota': 'truck', personal: 'users', asistencia: 'calendar', nomina: 'coins', manual: 'book', roles: 'shield', datos: 'layers',
+  'p-precios': 'tag', 'p-clientes': 'users', 'e-ajustes': 'sliders', 'p-estado': 'clip', 'p-bancos': 'wallet', 'fl-flota': 'truck', 'fl-desp': 'truck', personal: 'users', asistencia: 'calendar', nomina: 'coins', manual: 'book', roles: 'shield', datos: 'layers',
   planta: 'gauge', recepcion: 'truck', produccion: 'flame', empaque: 'pack', mermas: 'drop', cotejo: 'compare', 'alm-mp': 'potato', 'alm-proceso': 'layers', 'alm-pt': 'box', inventario: 'warehouse', catprod: 'users',
   'v-pedido': 'cart', 'v-clientes': 'users', ventas: 'receipt', clientes: 'users', 'c-pedidos': 'clip', 'alm-logistica': 'tag', 'log-dev': 'tag', despachos: 'truck', 'e-entregas': 'box', 'c-ficha': 'users', 'cli-portal': 'users', 'pr-zonas': 'truck', 'pr-turno': 'flame', 'pr-dif': 'alert', 'pr-mot': 'sliders', 'pr-aj': 'sliders', 'pr-proc': 'flame', 'pr-inv': 'box'};
 const icGrid = n => '<svg class="ic" width="' + n + '" height="' + n + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/></svg>';
@@ -149,8 +254,10 @@ function launcherHTML(p) {
   if (!cuerpo) cuerpo = '<p class="pt-vacio">Esta pantalla no tiene opciones disponibles para tu puesto. Pide al Dueño que te asigne alguna.</p>';
   const nBad = Object.entries(B).filter(([k]) => gs.some(([, ts]) => ts.some(([c]) => c === k)) || ex.includes(k)).reduce((a, [, v]) => a + (v[0] || 0), 0);
   const actual = nombreOp(p, S.route), ab = S.ptOpen ? ' aria-expanded="true"' : ' aria-expanded="false"';
-  return '<nav class="pt-bar" aria-label="' + p.t + '"><button type="button" class="pt-btn" id="ptBtn" aria-haspopup="true" aria-controls="ptPan"' + ab + '>' + icGrid(20) + '<span>Opciones</span>' + (nBad ? '<span class="pt-dot" aria-label="Hay avisos"></span>' : '') + '</button>' +
-    '<span class="pt-t">' + ic(p.ic, 18) + p.t + '</span><span class="pt-sep" aria-hidden="true">›</span><span class="pt-cur">' + actual + '</span>' +
+  const pr = prinDe(p), enPr = pr.some(x => x[0] === S.route);
+  const grandes = pr.length ? '<div class="pt-prin">' + pr.map(([k, n, i]) => '<a class="pt-main" data-k="' + k + '" href="#' + k + '"' + (k === S.route ? ' aria-current="page"' : '') + '>' + ic(i, 26) + '<span>' + n + '</span>' + (B[k] && B[k][0] ? '<span class="badge ' + B[k][1] + '">' + B[k][0] + '</span>' : '') + '</a>').join('') + '</div>' : '';
+  return '<nav class="pt-bar' + (pr.length ? ' pt-conprin' : '') + '" aria-label="' + p.t + '">' + grandes + '<button type="button" class="pt-btn" id="ptBtn" aria-haspopup="true" aria-controls="ptPan"' + ab + '>' + icGrid(20) + '<span>Opciones</span>' + (nBad ? '<span class="pt-dot" aria-label="Hay avisos"></span>' : '') + '</button>' +
+    (enPr ? '' : '<span class="pt-t">' + ic(p.ic, 18) + p.t + '</span><span class="pt-sep" aria-hidden="true">›</span><span class="pt-cur">' + actual + '</span>') +
     '<div class="pt-pan" id="ptPan" role="menu" aria-label="Opciones de ' + p.t + '"' + (S.ptOpen ? '' : ' hidden') + '>' + cuerpo + '</div></nav>';
 }
 function ptCerrar(volver) {

@@ -26,7 +26,7 @@ function scrPagos() {
       {h: 'Fecha', f: x => vfecha(x.fecha_pago)}, {h: 'Recibo', f: x => `<button type="button" class="btn sm ghost" data-act="vVerPago" data-id="${x.id_pago}">${vtxt(x.recibo)}</button>`},
       {h: 'Cliente', f: x => vtxt(x.cliente)}, {h: 'Vendedor', f: x => vtxt(x.vendedor || '—')}, {h: 'Notas', f: x => vtxt(x.notas || 'sin aplicar')},
       {h: 'Banco · referencia', f: x => `${vtxt(x.banco || '—')} · <span class="mono">${vtxt(x.referencia || 'sin ref.')}</span>`},
-      {h: 'Monto Bs', r: 1, f: x => vbs(x.monto_bs)}, {h: 'Tasa', r: 1, f: x => N2.format(x.tasa)}, {h: 'US$', r: 1, f: x => `<b>${vusd(x.usd)}</b>`},
+      {h: 'Monto Bs', r: 1, f: x => vbs(x.monto_bs)}, {h: 'Tasa', r: 1, f: x => N2.format(x.tasa)}, {h: '$', r: 1, f: x => `<b>${vusd(x.usd)}</b>`},
       {h: 'Estado', f: x => x.estado === 'ANULADO' ? `<span class="chip c-crit" title="${esc(x.motivo_anulacion || '')}">Anulado</span>` : `<span class="chip c-ok">Activo</span>${x.retroactivo ? ' <span class="chip c-warn">con PIN</span>' : ''}${x.origen === 'importado' ? ' <span class="chip c-n">importado</span>' : ''}`},
       {h: '', f: x => puedeAnular && x.estado === 'ACTIVO' ? `<button type="button" class="btn sm" data-act="vAnular" data-id="${x.id_pago}">Anular</button>` : ''}
     ], filas, {empty: Busca.norm(f.q) ? 'Ningún pago coincide en este rango de fechas. Prueba con «Todo» para buscar en todas las fechas.' : 'No hay pagos con este filtro.', foot: filas && filas.length ? `<tr class="v-foot"><td colspan="6">Total de pagos activos (${act.length})</td><td class="r">${vbs(totBs)}</td><td></td><td class="r"><b>${vusd(totUsd)}</b></td><td colspan="2"></td></tr>` : ''});

@@ -46,7 +46,7 @@ const vacio = v => v === '' || v == null;
 export function textoValor(campo, v) {
   if (v == null) return 'sin cargar';
   const tipo = (CAMPOS[campo] || [])[1];
-  if (tipo === 'usd') return 'US$ ' + (v / 100).toFixed(2).replace('.', ',') + ' por bulto';
+  if (tipo === 'usd') return '$ ' + (v / 100).toFixed(2).replace('.', ',') + ' por bulto';
   if (tipo === 'pct') return String(v).replace('.', ',') + ' %';
   if (tipo === 'dias') return v + (v === 1 ? ' día' : ' días');
   return String(v);

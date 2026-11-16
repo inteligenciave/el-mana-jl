@@ -23,6 +23,7 @@ async function vPedRecuperar() {
   } catch (e) { /* si no se puede recuperar, se empieza de cero */ }
 }
 function vImg(p) {
+  if (vImgInterna(p.imagen_blanca_url)) return `<img class="v-img" src="${V_PIXEL}" data-vsrc="${esc(p.imagen_blanca_url)}" alt="${esc(p.nombre)}">`;
   if (p.imagen_blanca_url) return `<img class="v-img" src="${esc(p.imagen_blanca_url)}" alt="${esc(p.nombre)}" loading="lazy">`;
   /* Sin foto todavía: un recuadro con el nombre (no se inventa ninguna imagen) */
   return `<span class="v-img v-img-n" role="img" aria-label="${esc(p.nombre)} ${esc(p.gramaje || '')}"><span>${esc(p.nombre)}<br>${esc(p.gramaje || '')}</span></span>`;

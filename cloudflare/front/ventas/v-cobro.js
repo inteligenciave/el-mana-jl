@@ -9,7 +9,7 @@ const vCasoChip = d => d.error ? `<span class="chip c-crit">${vtxt(d.error)}</sp
 const vCobTasa = () => { const t = vCob().prev && vCob().prev.tasa; return t && t.valor > 0 ? t.valor : NaN; };
 function vTasaAviso(t, fecha) {
   if (!t) return `<p class="v-alerta">${ic('alert', 16)}No hay tasa BCV guardada para el ${vfecha(fecha)}: no se puede registrar el pago hasta que el Dueño o Administración consulten la tasa.</p>`;
-  return `<p class="v-tasa"><b>Tasa BCV: ${N2.format(t.valor)} Bs por US$ 1</b> <span class="muted">· rige para el ${vfecha(t.fecha)}${t.fecha < fecha ? ' (la última publicada hasta esa fecha)' : t.fecha > fecha ? ' (no hay tasa guardada del ' + vfecha(fecha) + ': se usa la más cercana)' : ''}</span></p>${t.respaldo ? `<p class="v-alerta v-aviso">${ic('alert', 16)}Usando la última tasa guardada, del día ${vfecha(t.fecha)}: la consulta al BCV falló.</p>` : ''}`;
+  return `<p class="v-tasa"><b>Tasa BCV: ${N2.format(t.valor)} Bs por $ 1</b> <span class="muted">· rige para el ${vfecha(t.fecha)}${t.fecha < fecha ? ' (la última publicada hasta esa fecha)' : t.fecha > fecha ? ' (no hay tasa guardada del ' + vfecha(fecha) + ': se usa la más cercana)' : ''}</span></p>${t.respaldo ? `<p class="v-alerta v-aviso">${ic('alert', 16)}Usando la última tasa guardada, del día ${vfecha(t.fecha)}: la consulta al BCV falló.</p>` : ''}`;
 }
 function vCobUsd() {
   const C = vCob(), bs = vNum(C.monto), t = vCobTasa();
@@ -32,7 +32,7 @@ function vCobDocs() {
     {h: 'Caso', f: d => vCasoChip(d)}, {h: 'Ruta', f: d => `<span class="v-ruta" title="${esc(vRutaTxt(d.ruta))}">${vtxt(d.ruta === 'SIN_DETALLE' ? 'Excel' : d.ruta || '')}</span>`},
     {h: 'Documento emitido al cobrar', f: d => d.error ? '' : d.ruta === 'A' ? `Factura por ${vusd(d.final.total)}` : d.nota ? `${d.nota.tipo === 'NOTA_CREDITO' ? 'Nota de crédito' : 'Nota de débito'} por ${vusd(d.nota.total)}` : d.ruta === 'B' ? 'Sin ajuste' : '—'},
     {h: 'Neto a cobrar', r: 1, f: d => d.error ? '' : vusd(d.neto)}, {h: 'Ya abonado', r: 1, f: d => d.error ? '' : vusd(d.pagado)}, {h: 'Falta', r: 1, f: d => d.error ? '' : `<b>${vusd(d.restante)}</b>`},
-    {h: 'Aplicar este pago (US$)', f: d => d.error ? '' : `<div class="v-apl"><input type="text" inputmode="decimal" class="v-dec" data-apl="${d.id_documento}" value="${esc(C.apl[d.id_documento] ?? '')}" aria-label="Monto a aplicar a ${esc(d.nro || '')}" ${d.restante <= 0 ? 'disabled' : ''}><button type="button" class="btn sm ghost" data-act="vAplTodo" data-id="${d.id_documento}" ${d.restante <= 0 ? 'disabled' : ''}>Todo</button></div>`}
+    {h: 'Aplicar este pago ($)', f: d => d.error ? '' : `<div class="v-apl"><input type="text" inputmode="decimal" class="v-dec" data-apl="${d.id_documento}" value="${esc(C.apl[d.id_documento] ?? '')}" aria-label="Monto a aplicar a ${esc(d.nro || '')}" ${d.restante <= 0 ? 'disabled' : ''}><button type="button" class="btn sm ghost" data-act="vAplTodo" data-id="${d.id_documento}" ${d.restante <= 0 ? 'disabled' : ''}>Todo</button></div>`}
   ], pv.documentos, {empty: 'Sin notas pendientes.'});
   return `${tabla}${hayMora ? `<label class="toggle v-exo"><input type="checkbox" data-act-change="vCobExo" ${C.exonerar ? 'checked' : ''}><span>Exonerar el recargo por mora (exige el PIN de gerencia y queda en la auditoría)</span></label>` : ''}
     <div class="btnrow"><button type="button" class="btn" data-act="vAplRepartir">${ic('compare', 16)}Repartir el pago (más antigua primero)</button><button type="button" class="btn ghost" data-act="vAplLimpiar">Limpiar</button></div>`;

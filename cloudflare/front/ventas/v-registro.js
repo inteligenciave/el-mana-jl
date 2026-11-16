@@ -16,14 +16,15 @@ Object.assign(ROLE_HOME, {ventas: 'v-pedido', cobranza: 'v-cobro'});
 
 /* Qué permiso exige cada acción: [pantalla, nivel] (el servidor lo vuelve a comprobar) */
 const VACT_REQ = {vGenerar: ['v-pedido', 2], vCobrar: ['v-cobro', 2], vAnular: ['v-pagos', 3], vNuevoCliente: ['v-clientes', 2], vEditarCliente: ['v-clientes', 2], vClienteGuardar: ['v-clientes', 2], vReglas: ['v-clientes', 3], vReglasGuardar: ['v-clientes', 3],
-  vProductoGuardar: ['v-clientes', 3], vNuevoProducto: ['v-clientes', 3], vEditarProducto: ['v-clientes', 3], vEntrada: ['v-clientes', 2], vEntradaGuardar: ['v-clientes', 2], vVendedorGuardar: ['v-clientes', 3], vNuevoVendedor: ['v-clientes', 3], vEditarVendedor: ['v-clientes', 3],
+  vVendedorGuardar: ['v-clientes', 3], vNuevoVendedor: ['v-clientes', 3], vEditarVendedor: ['v-clientes', 3],
   vAjustesGuardar: ['v-clientes', 3], vPinGuardar: ['v-clientes', 3], vEjemploCargar: ['v-clientes', 3], vEjemploBorrarOk: ['v-clientes', 3], vImpEnviar: ['v-importar', 2]};
 const VACT_LBL = {vGenerar: 'generar notas de entrega o facturas', vCobrar: 'registrar pagos', vAnular: 'anular pagos', vNuevoCliente: 'crear clientes', vEditarCliente: 'editar clientes', vClienteGuardar: 'guardar clientes', vReglas: 'cambiar precios por cliente', vReglasGuardar: 'guardar precios por cliente',
   vProductoGuardar: 'cambiar el catálogo', vNuevoProducto: 'crear productos', vEditarProducto: 'editar productos', vEntrada: 'registrar entradas de inventario', vEntradaGuardar: 'registrar entradas de inventario', vVendedorGuardar: 'cambiar vendedores y comisiones', vNuevoVendedor: 'crear vendedores', vEditarVendedor: 'editar vendedores',
   vAjustesGuardar: 'cambiar los ajustes de ventas', vPinGuardar: 'cambiar el PIN de gerencia', vEjemploCargar: 'cargar datos de ejemplo', vEjemploBorrarOk: 'borrar datos de ejemplo', vImpEnviar: 'importar datos'};
-Object.assign(ACT_REQ, VACT_REQ); Object.assign(ACT_LBL, VACT_LBL); Object.keys(VACT_REQ).forEach(k => WRITE_ACTS.add(k)); WRITE_ACTS.add('vPesoGuardar');
+Object.assign(ACT_REQ, VACT_REQ); Object.assign(ACT_LBL, VACT_LBL); Object.keys(VACT_REQ).forEach(k => WRITE_ACTS.add(k)); ['vPesoGuardar', 'vNuevoProducto', 'vEditarProducto', 'vProductoGuardar', 'vEntrada', 'vEntradaGuardar'].forEach(k => WRITE_ACTS.add(k));
 
 const vElId = el => +el.dataset.id;
+const vSinInv = () => toast('Tu puesto no puede cambiar el inventario; solo se descuenta al vender.', 'warn');
 const vRecargarTodo = async () => { V.clientes = null; V.adm.clientes = null; V.deuda.data = null; V.pagos.filas = null; V.rep.data = null; await vBoot(true); };
 const VACT = {
   vReintentar: () => { V.boot = null; render(); },
@@ -42,11 +43,11 @@ const VACT = {
   vEditarCliente: el => { const c = (V.adm.clientes || []).find(x => x.id_cliente === vElId(el)); c && vClienteModal(c); },
   vClienteGuardar: el => vClienteGuardar(el.dataset.id ? vElId(el) : null),
   vReglas: el => vReglasModal(vElId(el)), vReglasGuardar: el => vReglasGuardar(vElId(el)),
-  vNuevoProducto: () => vProductoModal(null), vEditarProducto: el => vProductoModal(V.productos.find(p => p.id_producto === vElId(el))),
-  vProductoGuardar: el => vProductoGuardar(el.dataset.id ? vElId(el) : null),
-  vPeso: el => { if (!VP.puedePesoBulto(S.rol)) return toast('Solo el Dueño y Administración cargan el peso del bulto.', 'warn'); vPesoModal(V.productos.find(p => p.id_producto === vElId(el))); },
-  vPesoGuardar: el => vPesoGuardar(vElId(el)),
-  vEntrada: el => vEntradaModal(V.productos.find(p => p.id_producto === vElId(el))), vEntradaGuardar: el => vEntradaGuardar(vElId(el)),
+  vNuevoProducto: () => VP.puedeInventario(S.rol) ? vProductoModal(null) : vSinInv(), vEditarProducto: el => VP.puedeInventario(S.rol) ? vProductoModal(V.productos.find(p => p.id_producto === vElId(el))) : vSinInv(),
+  vProductoGuardar: el => VP.puedeInventario(S.rol) ? vProductoGuardar(el.dataset.id ? vElId(el) : null) : vSinInv(),
+  vPeso: el => { if (!VP.puedeInventario(S.rol)) return vSinInv(); vPesoModal(V.productos.find(p => p.id_producto === vElId(el))); },
+  vPesoGuardar: el => VP.puedeInventario(S.rol) ? vPesoGuardar(vElId(el)) : vSinInv(),
+  vEntrada: el => VP.puedeInventario(S.rol) ? vEntradaModal(V.productos.find(p => p.id_producto === vElId(el))) : vSinInv(), vEntradaGuardar: el => VP.puedeInventario(S.rol) ? vEntradaGuardar(vElId(el)) : vSinInv(),
   vNuevoVendedor: () => vVendedorModal(null), vEditarVendedor: el => vVendedorModal(V.vendedores.find(v => v.id === vElId(el))), vVendedorGuardar: el => vVendedorGuardar(el.dataset.id ? vElId(el) : null),
   vAjustesGuardar: () => vAjustesGuardar(), vPinGuardar: () => vPinGuardar(),
   vEjemploCargar: async () => { await vRun('ej', () => vApi('POST', '/ejemplo'), 'Datos de ejemplo cargados.'); await vRecargarTodo(); },

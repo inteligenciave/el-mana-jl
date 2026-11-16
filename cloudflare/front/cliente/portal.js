@@ -6,7 +6,7 @@ const $ = s => document.querySelector(s);
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
 window.esc = esc; /* lo usa el buscador común */
 const N2 = new Intl.NumberFormat('es-VE', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-const usd = x => x == null ? '—' : 'US$ ' + N2.format(x), bsf = x => x == null ? '—' : 'Bs ' + N2.format(x);
+const usd = x => x == null ? '—' : '$ ' + N2.format(x), bsf = x => x == null ? '—' : 'Bs ' + N2.format(x);
 const fdl = s => { if (!s) return '—'; const [y, m, d] = String(s).slice(0, 10).split('-'); return d + '/' + m + '/' + y; };
 const ic = {
   casa: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>',
@@ -25,6 +25,19 @@ async function api(m, p, b) {
   if (!r.ok) { const e = new Error(j.error || 'No se pudo completar. Inténtalo de nuevo.'); e.status = r.status; e.info = j; throw e; }
   return j;
 }
+/* Las imágenes internas necesitan el código personal en la cabecera: se bajan con fetch y se muestran desde memoria */
+const PIXEL = 'data:image/gif;base64,R0lGODlhAQABAAAAACwAAAAAAQABAAA=', IMG_CACHE = new Map();
+function imgsPendientes() {
+  document.querySelectorAll('img[data-psrc]').forEach(im => {
+    const u = im.getAttribute('data-psrc'); im.removeAttribute('data-psrc');
+    const hit = IMG_CACHE.get(u); if (typeof hit === 'string') { im.src = hit; return; }
+    const pr = hit || fetch(u, {headers: {'x-token': S.tok}}).then(r => r.ok ? r.blob() : Promise.reject(new Error('x'))).then(b => URL.createObjectURL(b));
+    IMG_CACHE.set(u, pr);
+    pr.then(o => { IMG_CACHE.set(u, o); im.src = o; }).catch(() => { IMG_CACHE.delete(u); });
+  });
+}
+let imgT = 0;
+new MutationObserver(() => { if (!imgT) imgT = setTimeout(() => { imgT = 0; imgsPendientes(); }, 30); }).observe(document.body, {childList: true, subtree: true});
 const leerCodigo = () => (location.hash || '').replace(/^#(k=)?/, '').trim();
 async function cargar() {
   S.cargando = true; pintar();
@@ -96,7 +109,7 @@ function prodsVisibles() {
 }
 function htmlProd(p) {
   const q = S.cart[p.id_producto] || 0, ini = esc(p.nombre.replace(/^Papas?\s+|^Salsa\s+/i, '').slice(0, 2).toUpperCase() || 'EM');
-  return `<div class="prod ${p.sin_inventario ? 'sin' : ''} ${q ? 'on' : ''}" id="pr-${p.id_producto}"><div class="foto">${p.imagen ? `<img src="${esc(p.imagen)}" alt="" loading="lazy">` : `<span class="fnom">${esc(p.nombre)}</span>`}</div>
+  return `<div class="prod ${p.sin_inventario ? 'sin' : ''} ${q ? 'on' : ''}" id="pr-${p.id_producto}"><div class="foto">${p.imagen ? (p.imagen.startsWith('/api/c/portal/') ? `<img src="${PIXEL}" data-psrc="${esc(p.imagen)}" alt="">` : `<img src="${esc(p.imagen)}" alt="" loading="lazy">`) : `<span class="fnom">${esc(p.nombre)}</span>`}</div>
     <div><b>${esc(p.nombre)}</b><div class="p">${esc(p.gramaje || '')}<br>A crédito: <strong>${usd(p.precio)}</strong> por bulto${p.precio_pronto_pago ? `<br>De contado: <strong>${usd(p.precio_pronto_pago)}</strong> por bulto` : ''}</div></div>
     <div class="cant">${p.sin_inventario ? '<span class="chip c-mal">Sin inventario</span>' : `<span class="sub">Hay ${p.disponible}</span><div class="step"><button type="button" id="m-${p.id_producto}" data-a="menos" data-id="${p.id_producto}" aria-label="Quitar uno de ${esc(nomProd(p))}" ${q ? '' : 'disabled'}>−</button>
       <input id="q-${p.id_producto}" inputmode="numeric" pattern="[0-9]*" data-id="${p.id_producto}" class="qin" value="${q || ''}" placeholder="0" aria-label="Cantidad de ${esc(nomProd(p))}">

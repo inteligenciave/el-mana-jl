@@ -42,6 +42,10 @@ export const stActualizarProducto = (db, id, c) => bind(db, 'UPDATE productos SE
   [id, c.nombre, c.gramaje, c.categoria, c.imagen_blanca_url, c.alicuota_iva, c.precio_ref_cents, c.codigo_sku]);
 export const stInsertarProducto = (db, c) => bind(db, 'INSERT INTO productos (codigo_sku, nombre, gramaje, categoria, imagen_blanca_url, stock_entero, alicuota_iva, precio_ref_cents, orden, ejemplo) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10)',
   [c.codigo_sku, c.nombre, c.gramaje, c.categoria, c.imagen_blanca_url || null, c.stock_entero || 0, c.alicuota_iva ?? 16, c.precio_ref_cents ?? null, c.orden ?? 99, c.ejemplo ? 1 : 0]);
+export const getImagenProducto = (db, id) => one(db, 'SELECT mime, datos, bytes, ts FROM producto_imagenes WHERE id_producto = ?1', [id]);
+export const stGuardarImagen = (db, id, mime, datos, bytes, ts) => bind(db, 'INSERT INTO producto_imagenes (id_producto, mime, datos, bytes, ts) VALUES (?1,?2,?3,?4,?5) ON CONFLICT(id_producto) DO UPDATE SET mime = ?2, datos = ?3, bytes = ?4, ts = ?5', [id, mime, datos, bytes, ts]);
+export const stBorrarImagen = (db, id) => bind(db, 'DELETE FROM producto_imagenes WHERE id_producto = ?1', [id]);
+export const stUrlImagen = (db, id, url) => bind(db, 'UPDATE productos SET imagen_blanca_url = ?2 WHERE id_producto = ?1', [id, url]);
 export const stPesoBulto = (db, id, kg, unid) => bind(db, 'UPDATE productos SET kg_por_bulto = ?2, unidades_por_bulto = ?3 WHERE id_producto = ?1', [id, kg, unid]);
 export const stStock = (db, id, delta) => bind(db, 'UPDATE productos SET stock_entero = stock_entero + ?2 WHERE id_producto = ?1', [id, delta]);
 export const stMovimiento = (db, m) => bind(db, 'INSERT INTO movimientos_inventario (id_producto, cantidad, tipo, id_documento, fecha, ts, ejemplo) VALUES (?1,?2,?3,?4,?5,?6,?7)', [m.id_producto, m.cantidad, m.tipo, m.id_documento ?? null, m.fecha, Date.now(), m.ejemplo ? 1 : 0]);

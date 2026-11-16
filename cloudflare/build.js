@@ -57,7 +57,7 @@ const ENT = require('./build-entregas.js')(leer, comoModulo); /* Entrega con fot
 const CLI = require('./build-cliente.js'); /* Portal del cliente: public/cliente.html + pantallas internas (módulo aditivo) */
 const PRE = {js: '(function () {\n"use strict";\n' + leer('front/precios/p-precios.js') + '\n})();\n(function () {\n"use strict";\n' + leer('front/bancos/p-bancos.js') + '\n})();\n(function () {\n"use strict";\n' + leer('front/compras/c-pedido.js') + '\n})();', css: leer('front/precios/precios.css') + leer('front/compras/compras.css')}; /* Cambios de precio con aprobación del Dueño */
 if (/<\/script/i.test(PRE.js)) throw new Error('p-precios.js contiene </script>');
-const PROD = {js: '(function () {\n"use strict";\n' + leer('front/produccion/p-prod.js') + '\n' + leer('front/produccion/p-herencia.js') + '\n' + leer('front/produccion/p-flota.js') + '\n})();', css: leer('front/produccion/produccion.css')}; /* Producción por zonas: turnos, pedidos por zona, salidas */
+const PROD = {js: '(function () {\n"use strict";\n' + leer('front/produccion/p-prod.js') + '\n' + leer('front/produccion/p-herencia.js') + '\n' + leer('front/produccion/p-lote.js') + '\n' + leer('front/produccion/p-flota.js') + '\n})();', css: leer('front/produccion/produccion.css')}; /* Producción por zonas: turnos, pedidos por zona, salidas */
 if (/<\/script/i.test(PROD.js)) throw new Error('p-prod.js contiene </script>');
 const PAN = {js: leer('front/pantallas/pantallas.js'), css: leer('front/pantallas/pantallas.css')};
 if (/<\/script/i.test(PAN.js)) throw new Error('pantallas.js contiene </script>');

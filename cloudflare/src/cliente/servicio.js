@@ -56,7 +56,7 @@ export async function catalogo(ctx) {
   const out = [];
   for (const p of prods) {
     const pr = VS.precioDe(p, rm.get(p.id_producto), cx).pr; if (!pr) continue; // sin precio cargado: no se ofrece
-    out.push({id_producto: p.id_producto, sku: p.codigo_sku, nombre: p.nombre, gramaje: p.gramaje, categoria: p.categoria, imagen: p.imagen_blanca_url || null,
+    out.push({id_producto: p.id_producto, sku: p.codigo_sku, nombre: p.nombre, gramaje: p.gramaje, categoria: p.categoria, imagen: /^\/api\/v\/productos\/\d+\/imagen/.test(p.imagen_blanca_url || '') ? `/api/c/portal/productos/${p.id_producto}/imagen?v=${(p.imagen_blanca_url.match(/v=(\d+)/) || [])[1] || 0}` : (p.imagen_blanca_url || null),
       precio: dol(pr.base), precio_pronto_pago: pr.pp < pr.base ? dol(pr.pp) : null, iva: p.alicuota_iva, disponible: Math.max(0, p.stock_entero - (p.stock_apartado || 0)), sin_inventario: p.stock_entero - (p.stock_apartado || 0) <= 0, ...C.extraProducto(p)});
   }
   return out;
@@ -81,7 +81,7 @@ export async function crearPedido(ctx, b) {
   }
   if (sin.length) throw err(409, sin.map(s => s.disponible ? `«${s.nombre}»: solo hay ${s.disponible}.` : `«${s.nombre}»: Sin inventario.`).join(' '), {codigo: 'SIN_STOCK', productos: sin});
   const tot = D.totalesLineas(lineas, 0, cli.descuento_fijo_pct), cr = await situacionCredito(db, cli);
-  if (cr.limite_cents != null && tot.total > cr.disponible_cents) throw err(409, `Este pedido (US$ ${(tot.total / 100).toFixed(2)}) supera tu crédito disponible (US$ ${(cr.disponible_cents / 100).toFixed(2)}). Reporta un pago o pide un pedido más pequeño.`, {codigo: 'LIMITE_CREDITO', disponible: dol(cr.disponible_cents), total: dol(tot.total)});
+  if (cr.limite_cents != null && tot.total > cr.disponible_cents) throw err(409, `Este pedido ($ ${(tot.total / 100).toFixed(2)}) supera tu crédito disponible ($ ${(cr.disponible_cents / 100).toFixed(2)}). Reporta un pago o pide un pedido más pequeño.`, {codigo: 'LIMITE_CREDITO', disponible: dol(cr.disponible_cents), total: dol(tot.total)});
   const id = await R.siguiente(db, 'pedido_portal'), nota = txt(b.nota, 300);
   await R.lote(db, [R.stPedido(db, {id, id_cliente: cli.id_cliente, total_cents: tot.total, nota, id_enlace: ctx.enlace.id, ejemplo: cli.ejemplo}), ...lineas.map(l => R.stPedidoLinea(db, id, l)), ...auditP(ctx, C.codigoPedido(id), 'envió un pedido', {total_usd: dol(tot.total), lineas: lineas.length})]);
   return {id, codigo: C.codigoPedido(id), estado: 'POR_CONFIRMAR', total: dol(tot.total), mensaje: 'Recibimos tu pedido. Queda por confirmar hasta que Ventas lo apruebe.'};

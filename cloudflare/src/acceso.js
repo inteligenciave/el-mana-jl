@@ -15,18 +15,20 @@ const REGLAS = {
   caja_reposiciones: {r: ['dueno', 'adm', 'custodio'], w: ['dueno', 'custodio']},
   caja_arqueos:      {r: ['dueno', 'adm', 'custodio'], w: ['dueno', 'custodio']},
   gestion:           {r: ['dueno', 'adm', 'ventas', 'cobranza'], w: ['dueno', 'ventas', 'cobranza']},
+  productos:         {r: null, w: ['dueno', 'jefeprod', 'produccion']},                    // existencias y fichas de producto: todos leen; solo Gerencia, Jefe de producción y Producción las cambian a mano (Ventas solo descuenta al vender)
+  proveedores:       {r: null, w: ['dueno', 'adm']},                                       // todos los puestos ven los proveedores; solo Gerencia y Administración los crean, editan o desactivan
   clientes:          {r: ['dueno', 'adm', 'ventas', 'cobranza'], w: ['dueno', 'adm', 'ventas', 'cobranza']},
   auditoria:         {r: ['dueno', 'adm'], w: null}
 };
 /* Documentos sueltos de «ajustes» */
 const AJ_LEE = {tel_clientes: ['dueno', 'adm', 'ventas', 'cobranza']};
-const AJ_ESCRIBE = {matriz: ['dueno'], tel_clientes: ['dueno', 'ventas', 'cobranza']};
+const AJ_ESCRIBE = {matriz: ['dueno'], metas_mes: ['dueno'], tel_clientes: ['dueno', 'ventas', 'cobranza']};
 /* Campos de empleados visibles para quien no es RRHH ni Dueño */
 const EMP_PUBLICO = ['id', 'n', 'area', 'cargo', 'antig', 'orden', 'arch', 'archTs', 'archPor', 'estado', 'retiro'];
 
 export const puedeLeer = (rol, c, id) => {
   if (c === 'ajustes' && id && AJ_LEE[id]) return AJ_LEE[id].includes(rol);
-  const g = REGLAS[c]; return !g || g.r.includes(rol) || c === 'empleados';
+  const g = REGLAS[c]; return !g || !g.r || g.r.includes(rol) || c === 'empleados';
 };
 export const puedeEscribir = (rol, c, id) => {
   if (c === 'ajustes' && AJ_ESCRIBE[id]) return AJ_ESCRIBE[id].includes(rol);
@@ -41,3 +43,6 @@ export function filtrarDoc(rol, c, d) {
 
 /* Flota (vehículos de la empresa): agregan, editan y cambian el estado Dueño y Administración; los demás puestos válidos solo eligen (ven los activos). */
 export const FLOTA_GESTIONA = ['dueno', 'adm'];
+
+/* Ubicación de los vehículos (dónde están y qué cargan): la anotan Gerencia, Administración y Empaque y despacho; los demás puestos solo ven. */
+export const FLOTA_UBICA = ['dueno', 'adm', 'empaque'];

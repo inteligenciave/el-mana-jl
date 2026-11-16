@@ -24,6 +24,7 @@ export async function rutasVentas(req, env, url) {
     let r;
     if (m === 'GET') {
       if (p === '/arranque') { ver('ver'); return json(await S.arranque(db)); }
+      if ((r = p.match(/^\/productos\/(\d+)\/imagen$/))) { ver('ver'); return await S.respuestaImagen(db, +r[1]); }
       if (p === '/pedidos-recientes') { ver('ver'); return json(await S.pedidosRecientes(db)); }
       if ((r = p.match(/^\/pdf\/pedido\/(\d+)$/))) { ver('ver'); return json(await S.datosPdfPedido(db, +r[1])); }
       if ((r = p.match(/^\/pdf\/documento\/(\d+)$/))) { ver('verDeuda'); return json(await S.datosPdfDocumento(db, +r[1])); }
@@ -50,6 +51,8 @@ export async function rutasVentas(req, env, url) {
       if ((r = p.match(/^\/clientes\/(\d+)\/reglas$/)) && m === 'PUT') return json(await P.cambiarPreciosCliente(ctx, +r[1], b.reglas));   // Dueño: rige ya · Administración: queda pendiente · otros: 403
       if (p === '/productos' && m === 'POST') return json(await S.guardarProducto(ctx, null, b), 201);
       if ((r = p.match(/^\/productos\/(\d+)$/)) && m === 'PUT') return json(await S.guardarProducto(ctx, +r[1], b));
+      if ((r = p.match(/^\/productos\/(\d+)\/imagen$/)) && m === 'PUT') return json(await S.guardarImagenProducto(ctx, +r[1], b));
+      if ((r = p.match(/^\/productos\/(\d+)\/imagen$/)) && m === 'DELETE') return json(await S.quitarImagenProducto(ctx, +r[1]));
       if ((r = p.match(/^\/productos\/(\d+)\/peso$/)) && m === 'PUT') return json(await S.guardarPesoBulto(ctx, +r[1], b));
       if ((r = p.match(/^\/productos\/(\d+)\/entrada$/)) && m === 'POST') return json(await S.entradaStock(ctx, +r[1], b.cantidad, b.nota));
       if (p === '/vendedores' && m === 'POST') return json(await S.guardarVendedor(ctx, null, b), 201);

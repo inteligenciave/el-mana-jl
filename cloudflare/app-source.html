@@ -593,6 +593,11 @@ tbody tr:hover td{background:color-mix(in srgb,var(--y) 12%,transparent)}
 .door-i{display:grid;place-items:center;width:64px;height:64px;border-radius:50%}
 .note{background:var(--y-bg);border-left-color:var(--y)}
 .pm-grid .card,.rolecard{border-top-width:5px}
+.pm-grid{grid-auto-rows:1fr}
+.pm-grid .rolecard{display:flex;flex-direction:column;height:100%}
+.pm-grid .rolecard .card-b{display:flex;flex-direction:column;flex:1;align-items:stretch;text-align:left}
+.pm-grid .rolecard .hint{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;line-clamp:3;overflow:hidden}
+.pm-grid .rolecard .btn{margin-top:auto!important;align-self:center;min-width:140px;justify-content:center}
 .doc{border-top:6px solid var(--y)}
 .cp-tab>summary{background:var(--y-bg);padding:6px 10px;border-radius:8px}
 
@@ -1002,7 +1007,7 @@ const SEED_SRC = {
      pasos:['Abrir la bandeja «Recepciones por validar» en Compras de materia prima.','Cotejar kg recibidos contra kg facturados y la calidad registrada.','Confirmar precio unitario y condición (contado o crédito) según la factura de compra del proveedor.','Validar: el sistema crea la compra efectiva y la entrada al almacén de materia prima.','Si es a crédito, verificar que apareció en Cuentas por pagar con su fecha de vencimiento.'],
      docs:['Factura de compra original (proveedor)','Registro REC firmado por quien recibió'],
      ctrl:['Se paga sobre kg recibidos, no sobre kg facturados, cuando la diferencia supera la tolerancia.','Precio por encima del 5 % del histórico requiere visto bueno del dueño.']},
-    {id:'contado', t:'Compra de contado', resp:'Administración (o custodio de caja chica si es menor a US$ 100)', frec:'Según necesidad',
+    {id:'contado', t:'Compra de contado', resp:'Administración (o custodio de caja chica si es menor a $ 100)', frec:'Según necesidad',
      pasos:['Indicar el motivo de la compra y la partida contable.','Si el monto es menor al umbral, se paga por caja chica; si no, por banco.','Registrar la nota de entrega con número, proveedor, RIF, fecha y monto.','Adjuntar la foto del comprobante.'],
      docs:['Nota de entrega','Soporte de pago'],
      ctrl:['Ninguna compra de contado sin comprobante con RIF.','Compras de contado mayores al umbral solo con aprobación del dueño.']},
@@ -1011,7 +1016,7 @@ const SEED_SRC = {
      docs:['Factura de compra a crédito (proveedor)','Acuerdo de plazo del proveedor'],
      ctrl:['Revisión semanal de concentración de deuda por proveedor.','Alerta automática 3 días antes del vencimiento.']},
     {id:'caja', t:'Caja chica: gasto y reposición', resp:'Custodio de caja chica', frec:'Diaria; arqueo semanal',
-     pasos:['Verificar que el gasto sea menor al umbral (US$ 100).','Pedir la nota de entrega con RIF; registrar número, proveedor, fecha y monto.','Escribir la justificación del gasto.','Cuando el saldo baje del 30 % del fondo, solicitar reposición con el reporte de gastos.','Hacer arqueo: efectivo contado + comprobantes + préstamos por cobrar = fondo.'],
+     pasos:['Verificar que el gasto sea menor al umbral ($ 100).','Pedir la nota de entrega con RIF; registrar número, proveedor, fecha y monto.','Escribir la justificación del gasto.','Cuando el saldo baje del 30 % del fondo, solicitar reposición con el reporte de gastos.','Hacer arqueo: efectivo contado + comprobantes + préstamos por cobrar = fondo.'],
      docs:['Comprobantes de cada gasto','Reporte de caja chica','Acta de arqueo'],
      ctrl:['Gasto sin justificación o sin comprobante completo bloquea la reposición.','Arqueo sorpresa mensual por el dueño.']},
     {id:'prestamos', t:'Préstamos a empleados', resp:'Custodio de caja chica', frec:'Solo en los días de entrega fijados (1 y 15)',
@@ -1021,7 +1026,7 @@ const SEED_SRC = {
     {id:'pago-cxp', t:'Pago de cuentas por pagar', resp:'Administración, con aprobación del dueño', frec:'Martes y viernes',
      pasos:['Revisar el tablero de Cuentas por pagar: vencidas, vence esta semana, próximos 30 días.','Priorizar vencidas y proveedores críticos (papa y aceite).','Registrar el pago o abono con su referencia bancaria.','Archivar el comprobante junto a la factura de compra.'],
      docs:['Factura de compra (proveedor)','Comprobante de transferencia o pago'],
-     ctrl:['Nunca pagar sin la factura de compra del proveedor validada.','Pagos mayores a US$ 1.000 con doble firma.']},
+     ctrl:['Nunca pagar sin la factura de compra del proveedor validada.','Pagos mayores a $ 1.000 con doble firma.']},
     {id:'cierre', t:'Cierre diario y semanal', resp:'Administración y jefe de producción', frec:'Diario (cierre de turno) y semanal (viernes)',
      pasos:['Cerrar los lotes del día con kg de papa cruda, kg a granel y aceite consumido.','Conciliar el stock de producto terminado con las notas de entrega del día.','Revisar el cotejo compra vs producción de la semana.','Arqueo de caja chica y revisión del tablero de control de gestión.'],
      docs:['Reporte de producción del turno','Notas de entrega del día','Acta de arqueo'],
@@ -1417,7 +1422,7 @@ const Svc = {
   async guardarRec(f, calc, prodDoc) {
     const id = await nextId('REC');
     await W.set('recepciones', id, {fecha: HOY_ISO, prov: f.prov, sub: f.tipo === 'papa' ? 'Propia' : 'Insumo', cat: prodDoc.cat, item: prodDoc.n, sk: prodDoc.sk, unidad: 'kg', sacos: +f.sacos, kgSaco: +f.kgSaco, qf: +f.kgFact,
-      kgRec: Math.round(calc.rec * 10) / 10, muestra: f.tipo === 'insumo' ? {n: calc.n, prom: calc.prom, desv: calc.desv} : null, calidad: f.calidad, recibe: f.recibe, fact: '', obs: f.obs || '', motivo: 'Reposición de existencias', entProm: HOY_ISO, entReal: HOY_ISO, estado: 'recibido', compraId: null, ts: Date.now()});
+      kgRec: Math.round(calc.rec * 10) / 10, muestra: {n: calc.n, prom: calc.prom, desv: calc.desv}, calidad: f.calidad, recibe: f.recibe, fact: '', obs: f.obs || '', motivo: 'Reposición de existencias', entProm: HOY_ISO, entReal: HOY_ISO, estado: 'recibido', compraId: null, ts: Date.now()});
     return id;
   },
   /* Validar: una recepción validada genera, en orden y cada paso guardado, compra efectiva, cuenta por pagar (si es a crédito) y entrada al almacén.
@@ -1489,12 +1494,12 @@ const Svc = {
   async abrirLote(compraId, cruda) {
     const c = S.compras.find(x => x.id === compraId); if (!c) throw fail('Elige la compra de papa que alimenta el lote.');
     let id = 'L-' + HOY_ISO.slice(5, 7) + HOY_ISO.slice(8, 10); if (one('lotes', id)) id += '-' + (rows('lotes').filter(l => l.id.startsWith(id)).length + 1);
-    await W.set('lotes', id, {fecha: HOY_ISO, compra: compraId, prov: c.prov, cruda: +cruda, granel: null, aceite: null, estado: 'En proceso', etapa: 'Lavado y pelado'});
+    await W.set('lotes', id, {fecha: HOY_ISO, compra: compraId, prov: c.prov, cruda: +cruda, granel: null, aceite: null, estado: 'En proceso', etapa: 'Lavado y pelado', quien: ROLES[S.rol], ts: Date.now()});
     await W.set('movimientos', 'MV-SAL-' + id, {almacen: 'MP', item: c.sk, tipo: 'salida', cant: +cruda, fecha: HOY_ISO, ref: id});
     return id;
   },
   async avanzarEtapa(id, etapa) { await W.update('lotes', id, {etapa}); },
-  async cerrarLote(id, g, a) { await W.update('lotes', id, {granel: g, aceite: a, estado: 'Cerrado', etapa: null}); },
+  async cerrarLote(id, g, a) { await W.update('lotes', id, {granel: g, aceite: a, estado: 'Cerrado', etapa: null, cerro: ROLES[S.rol], tsCierre: Date.now()}); },
   async addBulto(f) {
     const n = await nextId('BLT', 2, 'BLT-' + f.lote.replace(/^\D+-/, ''), '-');
     await W.set('bultos', n, {lote: f.lote, cont: f.lote.startsWith('C') ? 'Sal refinada para sazonar' : 'Papa frita a granel', kg: +f.kg, ubic: 'R1-A', est: 'Disponible', orden: Date.now()}); return n;
@@ -1516,7 +1521,7 @@ const Svc = {
   /* Mermas por proceso */
   async regMerma(f) {
     const id = await nextId('MR', 4, 'MR');
-    await W.set('mermas', id, {fecha: HOY_ISO, etapa: f.etapa, lote: f.lote || '', rec: f.rec || '', ref: f.ref || '', prod: f.prod || '', pres: f.pres || '', cant: +f.cant, un: f.un, causa: f.causa, rol: S.rol, quien: ROLES[S.rol], obs: (f.obs || '').trim(), usd: round2(+f.usd || 0), estado: f.apr ? 'apr' : 'pend', auto: 0, ent: +f.ent || 0, ts: Date.now()});
+    await W.set('mermas', id, {fecha: HOY_ISO, etapa: f.etapa, lote: f.lote || '', rec: f.rec || '', ref: f.ref || '', prod: f.prod || '', pres: f.pres || '', cant: +f.cant, un: f.un, causa: f.causa, rol: S.rol, quien: ROLES[S.rol], obs: (f.obs || '').trim(), usd: round2(+f.usd || 0), estado: 'apr', auto: 0, ent: +f.ent || 0, ts: Date.now()});
     if (f.mov) await W.set('movimientos', 'MV-' + id, {almacen: f.mov.almacen, item: f.mov.item, tipo: 'salida', cant: +f.mov.cant, fecha: HOY_ISO, ref: id});
     return id;
   },
@@ -1678,7 +1683,7 @@ function buildMermasHist(hist) {
     if (rnd() < 0.45) mk(l, 'almpt', G * rr(0.0015, 0.005), rnd() < 0.5 ? 'Deterioro' : 'Manipulación', addDays(d0, 4), cs.util, 'empaque', {pres: PRES[(i + 1) % PRES.length], prod: 'Bolsas golpeadas en el almacén'});
     if (rnd() < 0.55) { const nt = notas.find(n => n.f >= addDays(d0, 3)); mk(l, 'despacho', G * rr(0.0015, 0.006), 'Manipulación', addDays(d0, 5), cs.util, 'empaque', {ref: nt ? nt.id : '', pres: PRES[(i + 2) % PRES.length], prod: 'Devolución por daño en la entrega'}); }
   });
-  // Línea salsera (kg de salsa que entran a cada etapa; costo supuesto de 1,2 US$/kg)
+  // Línea salsera (kg de salsa que entran a cada etapa; costo supuesto de 1,2 $/kg)
   Z.salsas.forEach(s => {
     const m = /^S-(\d\d)(\d\d)-/.exec(s.lote), f = sd('2026-' + m[1] + '-' + m[2]), ent = Math.round(s.und * parseFloat(String(s.pres).replace(',', '.')));
     mk(null, 'salsa_mezcla', ent * rr(0.012, 0.03), 'Error de proceso', f, MR_POL.mrCostoSalsa, 'jefeprod', {ref: s.lote, prod: s.n, ent, sinLote: 1, obs: 'Salsa que queda en la marmita y las líneas'});
@@ -1765,8 +1770,8 @@ const dias = s => Math.round((D(s) - HOY) / 864e5);
 const addDays = (s, n) => { const d = D(s); d.setDate(d.getDate() + n); return d.toISOString().slice(0,10); };
 const fd = s => s ? D(s).toLocaleDateString('es-VE',{day:'2-digit', month:'short'}).replace('.','') : '—';
 const fdl = s => s ? D(s).toLocaleDateString('es-VE',{day:'2-digit', month:'2-digit', year:'numeric'}) : '—';
-const usd = v => 'US$ ' + N2.format(v);
-const usd0 = v => 'US$ ' + N0.format(v);
+const usd = v => '$ ' + N2.format(v);
+const usd0 = v => '$ ' + N0.format(v);
 const bsOf = v => 'Bs ' + N2.format(v * S.tasa);
 const bs = v => 'Bs ' + N2.format(v);
 const money = v => v == null ? '<span class="muted">Por definir</span>' : `<span class="money"><span class="usd">${usd(v)}</span><span class="bs">${bsOf(v)}</span></span>`;
@@ -1850,7 +1855,7 @@ const chip = (t, tone = 'n') => `<span class="chip c-${tone}">${tone === 'crit' 
 const askTag = (t = 'NECESITA ACLARACIÓN') => `<span class="ask">${ic('info', 14)}[${t}]</span>`;
 function table(cols, rows, o = {}) {
   return `<div class="tw"><table class="${o.cls || ''}"><thead><tr>${cols.map(c => `<th class="${c.r ? 'r' : ''}" scope="col">${c.h}</th>`).join('')}</tr></thead><tbody>${
-    rows.length ? rows.map(r => `<tr class="${o.rowCls ? o.rowCls(r) : ''}">${cols.map(c => `<td class="${c.r ? 'r' : ''}">${c.f(r)}</td>`).join('')}</tr>`).join('')
+    rows.length ? rows.map(r => `<tr class="${o.rowCls ? o.rowCls(r) : ''}"${o.rowAttr ? ' ' + o.rowAttr(r) : ''}>${cols.map(c => `<td class="${c.r ? 'r' : ''}">${c.f(r)}</td>`).join('')}</tr>`).join('')
     : `<tr><td colspan="${cols.length}" class="empty-row">${o.empty || 'Sin registros para este filtro.'}</td></tr>`}${o.foot || ''}</tbody></table></div>`;
 }
 /* Barra de búsqueda de una lista de pantalla (sin tildes ni mayúsculas, con sugerencias). Cada lista recibe SUS datos y SUS campos: no hay búsqueda cruzada. */
@@ -1888,10 +1893,12 @@ const calChip = c => ({A:chip('A · Óptima','ok'), B:chip('B · Aceptable','inf
 
 /* ---------- Reglas de negocio ---------- */
 function recCalc() {
-  const f = S.recForm, nom = (+f.sacos || 0) * (+f.kgSaco || 0);
+  const f = S.recForm;
+  { const mm = f.muestras.map(Number).filter(x => x > 0); if (mm.length) f.kgSaco = Math.round(sum(mm) / mm.length * 100) / 100; } /* peso nominal = promedio de las pesadas */
+  const nom = (+f.sacos || 0) * (+f.kgSaco || 0);
+  f.kgFact = Math.round(nom * 100) / 100; /* kg facturados = sacos × kg nominal, automático */
   const r = {nom};
-  if (f.tipo === 'papa') { r.rec = +f.kgRec || 0; }
-  else {
+  {
     const m = f.muestras.map(Number).filter(x => x > 0);
     r.n = m.length; r.prom = m.length ? sum(m) / m.length : 0;
     r.desv = m.length > 1 ? Math.sqrt(sum(m, x => (x - r.prom) ** 2) / (m.length - 1)) : 0;
@@ -2083,17 +2090,14 @@ function scrRecepcion() {
           <div class="opts o4">${[['A', 'Óptima'], ['B', 'Aceptable'], ['C', 'Con defectos'], ['R', 'Rechazo parcial']].map(([v, t]) => `<button type="button" class="opt q-${v}" aria-pressed="${f.calidad === v}" data-act="recCal" data-v="${v}">${v === 'R' ? 'Rechazo' : v}<small>${t}</small></button>`).join('')}</div>
         </fieldset>
         </div><div>
-        <div class="row3">
+        <div class="row2">
           <div class="fld"><span class="lbl">Sacos o bultos</span>
             <div class="stepper"><button type="button" data-act="step" data-k="recForm.sacos" data-d="-1" aria-label="Restar un saco">−</button>
             <input id="rf-sacos" type="number" inputmode="numeric" min="0" data-k="recForm.sacos" value="${f.sacos}" aria-label="Sacos o bultos">
             <button type="button" data-act="step" data-k="recForm.sacos" data-d="1" aria-label="Sumar un saco">+</button></div></div>
-          <label class="fld">Kg por saco (nominal)<input id="rf-kgs" type="number" inputmode="decimal" step="0.01" data-k="recForm.kgSaco" value="${f.kgSaco}"></label>
-          <label class="fld">Kg facturados<input id="rf-fact" type="number" min="0.1" step="any" inputmode="decimal" data-k="recForm.kgFact" value="${f.kgFact}"><small>Según la factura de compra o nota de entrega del proveedor</small></label>
+          <label class="fld">Kg por saco (nominal)<input id="rf-kgs" type="number" value="${f.kgSaco}" readonly tabindex="-1" data-nodraft="1" style="background:#F1EFEA"><small>Promedio de las pesadas</small></label>
         </div>
-        ${f.tipo === 'papa'
-          ? `<label class="fld">Kg recibidos en la balanza<input id="rf-kgrec" class="big" type="number" inputmode="decimal" data-k="recForm.kgRec" value="${f.kgRec || ''}" placeholder="0"><small>Peso total de la papa descargada</small></label>`
-          : `<fieldset><legend>Pesaje por muestra (media poblacional)</legend>
+        ${`<fieldset><legend>Pesaje por muestra (media poblacional)</legend>
               
               <div class="samples">${f.muestras.map((m, i) => `<label class="fld"><span>Saco ${i + 1}</span><input id="rf-m${i}" type="number" inputmode="decimal" step="0.01" data-k="recForm.muestras.${i}" value="${m}"></label>`).join('')}</div>
               <div class="btnrow"><button type="button" class="btn sm" data-act="addMuestra">${ic('plus', 16)}Agregar pesada</button>${f.muestras.length > 3 ? `<button type="button" class="btn sm ghost" data-act="delMuestra">Quitar la última</button>` : ''}</div>
@@ -2122,12 +2126,11 @@ function recCalcHTML() {
   const msg = !f.kgFact ? '' : a <= tol ? chip('Dentro de la tolerancia (' + tol + ' %)', 'ok') : chip('Diferencia mayor a ' + tol + ' %: se informa a Administración', tone);
   return `<dl class="kv">
     <div><dt>Kg según sacos</dt><dd>${kg(r.nom)}<small>${N0.format(f.sacos || 0)} × ${N2.format(f.kgSaco || 0)} kg</small></dd></div>
-    ${f.tipo === 'insumo' ? `
+    ${`
       <div><dt>Promedio por saco</dt><dd>${kg(r.prom, 2)}<small>${r.n} sacos pesados</small></dd></div>
       <div><dt>Desviación estándar</dt><dd>± ${N2.format(r.desv)} kg<small>Variación ${pct(r.cv)}</small></dd></div>
       <div><dt>Diferencia por saco</dt><dd>${(r.dSaco >= 0 ? '+' : '') + N2.format(r.dSaco)} kg<small>vs ${N2.format(f.kgSaco || 0)} kg nominal</small></dd></div>
-      <div class="hl"><dt>Kg estimados (promedio × sacos)</dt><dd>${kg(r.rec, 1)}</dd></div>`
-    : `<div class="hl"><dt>Kg recibidos (balanza)</dt><dd>${kg(r.rec)}</dd></div>`}
+      <div class="hl"><dt>Kg estimados (promedio × sacos)</dt><dd>${kg(r.rec, 1)}</dd></div>`}
     <div><dt>Kg facturados</dt><dd>${kg(+f.kgFact || 0)}</dd></div>
     <div class="hl"><dt>Diferencia vs facturado</dt><dd>${(r.diff >= 0 ? '+' : '') + N1.format(r.diff)} kg<small>${(r.diffPct >= 0 ? '+' : '') + pct(r.diffPct)}</small></dd></div>
   </dl><p style="margin-top:10px">${msg}</p>`;
@@ -2210,38 +2213,16 @@ function scrAlmLog() {
 
 function scrProduccion() {
   const cerr = S.lotes.filter(l => l.granel), proc = S.lotes.find(l => l.estado === 'En proceso');
-  const f = S.lotForm;
   return `${ph('Producción · planta', 'Producción y rendimiento', 'Turno diurno. Papa cruda que entra a la línea contra papa frita a granel que sale, y el aceite que se consumió.')}
-  <div class="tiles">
-    ${stat('Rendimiento promedio', pct(sum(cerr, l => l.granel) / sum(cerr, l => l.cruda) * 100), 'Últimos ' + cerr.length + ' lotes')}
-    ${stat('Aceite / kg papa frita', pct(sum(cerr, l => l.aceite) / sum(cerr, l => l.granel) * 100), 'Rango esperado 40–45 %')}
-    ${stat('Papa frita a granel', kg(sum(cerr, l => l.granel)), 'Producida en el período')}
-    ${stat('Salsas en línea', N0.format(sum(DATA.salsas, s => s.und)) + ' und', DATA.salsas.length + ' lotes')}
-  </div>
-  <div class="cols c32">
-    ${card('Lotes de papa', table([
-      {h:'Lote', f:l => `<span class="mono">${l.id}</span><br><span class="muted">${fd(l.fecha)}</span>`},
-      {h:'Proveedor', f:l => `${prov(l.prov).nombre}<br><span class="mono muted">${l.compra}</span>`},
-      {h:'Papa cruda', r:1, f:l => kg(l.cruda)},
-      {h:'A granel', r:1, f:l => kg(l.granel)},
-      {h:'Rendimiento', r:1, f:l => l.granel ? `<b>${pct(l.granel / l.cruda * 100)}</b>` : chip('En proceso', 'info')},
-      {h:'Aceite', r:1, f:l => l.aceite ? `${kg(l.aceite)}<br><span class="muted">${pct(l.aceite / l.granel * 100)}</span>` : '—'}], S.lotes.slice().reverse(), {rowCls: l => l.estado === 'En proceso' ? 'hl' : ''}), {sub:'Rendimiento = kg papa frita a granel ÷ kg papa cruda'})}
-    ${proc ? card('Cerrar lote ' + proc.id, `<div class="form">
-        <dl class="kv"><div><dt>Papa cruda que entró</dt><dd>${kg(proc.cruda)}</dd></div><div><dt>Proveedor</dt><dd style="font-size:14px">${prov(proc.prov).nombre}</dd></div></dl>
-        <label class="fld">Kg de papa frita a granel<input id="lf-granel" class="big" type="number" inputmode="decimal" data-k="lotForm.granel" value="${f.granel}"></label>
-        <label class="fld">Kg de aceite consumido<input id="lf-aceite" class="big" type="number" inputmode="decimal" data-k="lotForm.aceite" value="${f.aceite}"></label>
-        <div id="lot-calc">${lotCalcHTML()}</div>
-        ${ETAPAS.indexOf(proc.etapa) < ETAPAS.length - 1 ? `<button type="button" class="btn" data-act="avanzarEtapa" data-id="${proc.id}">Avanzar de «${proc.etapa}» a «${ETAPAS[ETAPAS.indexOf(proc.etapa) + 1]}»</button>` : ''}
-        <button type="button" class="btn pri xl" data-act="cerrarLote">${ic('check')}Cerrar lote y pasar a empaque</button></div>`)
-      : abrirLoteCard()}
-  </div>
+  ${typeof peHTML === 'function' ? peHTML(proc) : ''}
   ${card('Línea salsera · producción del día', table([
     {h:'Producto', f:s => `<b>${s.n}</b>`}, {h:'Presentación', f:s => s.pres}, {h:'Lote', f:s => `<span class="mono">${s.lote}</span>`},
     {h:'Unidades', r:1, f:s => N0.format(s.und)}, {h:'Etapa', f:s => s.etapa === 'Terminado' ? chip('Terminado', 'ok') : chip(s.etapa, 'info')}], DATA.salsas), {sub: isEj() ? 'Mostaza en presentación de 3,75 kg (dato del dueño); el resto son supuestos' : 'Todavía no hay captura de la línea salsera en esta versión.'})}`;
 }
 function lotCalcHTML() {
-  const proc = S.lotes.find(l => l.estado === 'En proceso'); if (!proc) return '';
+  const proc = (typeof lmLote === 'function' && S.lm ? lmLote() : null) || S.lotes.find(l => l.estado === 'En proceso'); if (!proc) return '';
   const g = +S.lotForm.granel || 0, a = +S.lotForm.aceite || 0;
+  if (!g) return `<p class="hint">Escribe los kg de papa frita para ver el rendimiento y el aceite por kg.</p>`;
   const r = g / proc.cruda * 100, ap = g ? a / g * 100 : 0;
   return `<dl class="kv"><div class="hl"><dt>Rendimiento</dt><dd>${pct(r)}</dd></div><div class="hl"><dt>Aceite / kg papa frita</dt><dd>${pct(ap)}</dd></div></dl>
     <p style="margin-top:8px">${r < 24 ? chip('Rendimiento bajo: revisar el lote', 'crit') : chip('Rendimiento normal', 'ok')} ${ap > 45 ? chip('Aceite sobre 45 %', 'warn') : ap ? chip('Aceite en rango', 'ok') : ''}</p>`;
@@ -2297,7 +2278,7 @@ function cotejoBody() {
       ${card('Costo por kg útil por proveedor', hbars(Object.entries(byProv).map(([id, v]) => ({l:prov(id).nombre, v:v.cost / v.gr})), v => usd(v), {max:2}), {sub:'Menos es mejor'})}
     </div>
     ${isEj() ? `<div class="consult"><h3>${ic('info')}Lectura del consultor</h3><ul>
-      <li>Hortícola Valle Alto vende el kg de papa más barato (US$ 0,38–0,39 contra 0,40–0,41), pero entrega 5,8 % menos kg de lo facturado y rinde 24,8 % contra 27,2 %. <b>Su kg útil sale alrededor de 7 % más caro.</b></li>
+      <li>Hortícola Valle Alto vende el kg de papa más barato ($ 0,38–0,39 contra 0,40–0,41), pero entrega 5,8 % menos kg de lo facturado y rinde 24,8 % contra 27,2 %. <b>Su kg útil sale alrededor de 7 % más caro.</b></li>
       <li>Conviene negociar con Hortícola Valle Alto un pago sobre kg recibidos en balanza, no sobre kg facturados.</li>
       <li>Para medir con justicia hace falta que cada lote use la papa de una sola compra. Hoy la compra C-0409 alimenta dos lotes (L-1105 y L-1111).</li></ul></div>` : ''}`;
 }
@@ -2337,7 +2318,7 @@ function scrGestion() {
     ${card('Ventas por vendedor', hbars(vend.map((x, i) => ({...x, c: i < 3 ? '' : i >= vend.length - 2 ? 'lo' : ''})), usd0), {sub:'Ordenado de mayor a menor', act:`<div class="seg" role="group" aria-label="Período">${[['dia', 'Día'], ['sem', 'Semana'], ['mes', 'Mes']].map(([k, t]) => `<button type="button" aria-pressed="${per === k}" data-act="vPer" data-v="${k}">${t}</button>`).join('')}</div>`})}
   </div>
   <div class="cols c2">
-    ${card('Productos más y menos vendidos', `${hbars(prods.slice(0, 5).map(p => ({l:p[0], v:p[1]})), usd0, {max:(prods[0] || [0, 1])[1]})}<p class="hint" style="margin:14px 0 8px">Menos vendidos</p>${hbars(prods.slice(-3).map(p => ({l:p[0], v:p[1], c:'lo'})), usd0, {max:(prods[0] || [0, 1])[1]})}`, {sub:'Ventas en US$ de los últimos 30 días'})}
+    ${card('Productos más y menos vendidos', `${hbars(prods.slice(0, 5).map(p => ({l:p[0], v:p[1]})), usd0, {max:(prods[0] || [0, 1])[1]})}<p class="hint" style="margin:14px 0 8px">Menos vendidos</p>${hbars(prods.slice(-3).map(p => ({l:p[0], v:p[1], c:'lo'})), usd0, {max:(prods[0] || [0, 1])[1]})}`, {sub:'Ventas en $ de los últimos 30 días'})}
     ${card('Inventario de materia prima', `<ul class="meters">${S.stock.slice(0, 7).map(s => { const mx = s.min * 2.2; return `<li><span>${s.k}</span><span class="num"><b>${N0.format(s.q)}</b> ${s.u}</span><div class="meter" data-tip="${esc(s.k + ': ' + N0.format(s.q) + ' ' + s.u + ' · mínimo ' + N0.format(s.min))}"><div class="meter-f ${s.q < s.min ? 'low' : ''}" style="width:${Math.min(100, s.q / mx * 100)}%"></div><span class="meter-min" style="left:${s.min / mx * 100}%"></span></div></li>`; }).join('')}</ul><p class="hint" style="margin-top:10px">La raya vertical marca el mínimo.</p>`)}
   </div>
   <div class="cols c2">
@@ -2395,7 +2376,7 @@ function valCard(c) {
       <div><dt>Calidad</dt><dd>${calChip(c.calidad)}</dd></div>
     </dl>
     ${c.estado === 'recibido' ? (puede ? `<div class="row3">
-      <label class="fld">Precio unitario (US$/kg)<input id="v-pu-${c.rec}" type="number" step="0.01" inputmode="decimal" data-k="val.${c.rec}.pu" value="${v.pu ?? ''}"><small>Precio histórico: ${p.hist != null ? usd(p.hist) : 'sin dato'}</small></label>
+      <label class="fld">Precio unitario ($/kg)<input id="v-pu-${c.rec}" type="number" step="0.01" inputmode="decimal" data-k="val.${c.rec}.pu" value="${v.pu ?? ''}"><small>Precio histórico: ${p.hist != null ? usd(p.hist) : 'sin dato'}</small></label>
       <label class="fld">Condición<select id="v-cond-${c.rec}" data-k="val.${c.rec}.cond"><option ${v.cond === 'Crédito' ? 'selected' : ''}>Crédito</option><option ${v.cond === 'Contado' ? 'selected' : ''}>Contado</option></select><small>Plazo pactado: ${p.plazo || '—'}</small></label>
       <div class="fld"><span class="lbl">Total a pagar</span><p style="font-size:18px;font-weight:600;min-height:46px;display:flex;align-items:center">${money((+v.pu || 0) * base)}</p><small>Sobre ${kg(base)}</small></div></div>
       <div class="btnrow" style="margin-top:12px"><button type="button" class="btn pri" data-act="validar" data-rec="${c.rec}">${ic('check')}Validar y generar compra efectiva</button></div>`
@@ -2418,7 +2399,7 @@ function scrComprasGen() {
       <label class="fld">Qué se compró<input id="cg-desc" type="text" data-k="cgForm.desc" value="${esc(f.desc)}"></label>
       <div class="row2">
         <label class="fld">Proveedor<select id="cg-prov" data-k="cgForm.prov">${DATA.proveedores.filter(p => p.tipo === 'general').map(p => `<option value="${p.id}" ${p.id === f.prov ? 'selected' : ''}>${p.nombre}</option>`).join('')}</select></label>
-        <label class="fld">Monto (US$)<input id="cg-monto" type="number" inputmode="decimal" data-k="cgForm.monto" data-rerender="1" value="${f.monto}"><small>${bsOf(+f.monto || 0)}</small></label>
+        <label class="fld">Monto ($)<input id="cg-monto" type="number" inputmode="decimal" data-k="cgForm.monto" data-rerender="1" value="${f.monto}"><small>${bsOf(+f.monto || 0)}</small></label>
       </div>
       <fieldset><legend>Condición</legend><div class="opts">${['Contado', 'Crédito'].map(k => `<button type="button" class="opt" aria-pressed="${f.cond === k}" data-act="cgCond" data-v="${k}">${k}<small>${k === 'Contado' ? 'Se paga ya' : 'Va a Cuentas por pagar'}</small></button>`).join('')}</div></fieldset>
       <label class="fld">Partida contable<select id="cg-part" data-k="cgForm.partida" data-rerender="1">${DATA.partidas.map(g => `<optgroup label="${g.cod} ${g.n}">${fl.filter(p => p.cod.startsWith(g.cod + '.') && !p.auto).map(p => `<option value="${p.cod}" ${p.cod === f.partida ? 'selected' : ''}>${p.cod} ${p.n}</option>`).join('')}</optgroup>`).join('')}</select></label>
@@ -2552,7 +2533,7 @@ function scrCaja() {
   <div class="cols c2">
     ${card('Arqueo', `<div class="form">
       <p>Fondo = efectivo en caja + comprobantes de gasto + préstamos por cobrar.</p>
-      <label class="fld">Efectivo contado ahora (US$)<input id="arq" class="big" type="number" inputmode="decimal" step="0.01" data-k="arqIn" value="${arq()}"></label>
+      <label class="fld">Efectivo contado ahora ($)<input id="arq" class="big" type="number" inputmode="decimal" step="0.01" data-k="arqIn" value="${arq()}"></label>
       <div id="arq-calc">${arqueoHTML()}</div>
       ${S.arqueos.length ? `<h3 style="margin-top:14px">Últimos arqueos</h3><ul class="list">${S.arqueos.slice(0, 4).map(a => `<li><div class="l-main"><p class="l-t"><span class="mono">${a.id}</span> · ${fdl(a.fecha)}</p><p class="l-s">Contado ${usd(a.contado)} · esperado ${usd(a.esperado)} · ${ROLES[a.rol] || 'ejemplo'}</p></div>${Math.abs(a.contado - a.esperado) < 0.005 ? chip('Cuadrada', 'ok') : chip('Diferencia ' + usd(a.contado - a.esperado), 'warn')}</li>`).join('')}</ul>` : ''}</div>`, {sub:'Cuadre con número finito'})}
     ${card('Qué se hizo con el dinero', `${hbars(Object.entries(cats).sort((a, b) => b[1] - a[1]).map(([l, v]) => ({l, v})), usd)}
@@ -2564,7 +2545,7 @@ function scrCaja() {
       
       <div class="row2"><label class="fld">Número<input id="cc-num" type="text" data-k="ccForm.num" value="${esc(f.num)}" placeholder="N-0000"></label><label class="fld">Fecha<input id="cc-fecha" type="date" data-k="ccForm.fecha" value="${f.fecha}"></label></div>
       <div class="row2"><label class="fld">Proveedor<input id="cc-prov" type="text" data-k="ccForm.prov" value="${esc(f.prov)}"></label><label class="fld">RIF<input id="cc-rif" type="text" data-k="ccForm.rif" value="${esc(f.rif)}" placeholder="J-00000000-0"></label></div>
-      <div class="row2"><label class="fld">Monto (US$)<input id="cc-monto" type="number" inputmode="decimal" step="0.01" data-k="ccForm.monto" value="${f.monto}"><small>Máximo ${usd(S.pol.umbral)}</small></label>
+      <div class="row2"><label class="fld">Monto ($)<input id="cc-monto" type="number" inputmode="decimal" step="0.01" data-k="ccForm.monto" value="${f.monto}"><small>Máximo ${usd(S.pol.umbral)}</small></label>
         <label class="fld">Categoría<select id="cc-cat" data-k="ccForm.cat">${['Mantenimiento', 'Limpieza', 'Combustible', 'Oficina', 'Fletes', 'Atenciones'].map(c => `<option ${c === f.cat ? 'selected' : ''}>${c}</option>`).join('')}</select></label></div>
       <label class="fld">Justificación<textarea id="cc-just" data-k="ccForm.just" rows="2" placeholder="Para qué se usó y por qué no podía esperar">${esc(f.just)}</textarea></label>
       <label class="fld">Foto del comprobante<input id="cc-adj" type="file" accept="image/*,application/pdf" data-act-change="ccAdj"><small>${f.adj ? 'Adjunto: ' + esc(f.adj) : Layer.assets ? 'La foto se guarda junto al gasto' : 'Con este acceso solo se guarda el nombre del archivo'}</small></label>
@@ -2592,7 +2573,7 @@ function scrPrestamos() {
   <div class="cols c23">
     ${card('Nuevo préstamo', `<div class="form">
       <label class="fld">Empleado<select id="pr-emp" data-k="prForm.emp" data-rerender="1">${DATA.empleados.map(e => `<option value="${e.id}" ${e.id === f.emp ? 'selected' : ''}>${e.n} · ${e.area}</option>`).join('')}</select></label>
-      <div class="row3"><label class="fld">Monto (US$)<input id="pr-monto" type="number" inputmode="decimal" data-k="prForm.monto" value="${f.monto}"><small>Tope ${usd(P.tope)}</small></label>
+      <div class="row3"><label class="fld">Monto ($)<input id="pr-monto" type="number" inputmode="decimal" data-k="prForm.monto" value="${f.monto}"><small>Tope ${usd(P.tope)}</small></label>
         <label class="fld">Cuotas<input id="pr-cuotas" type="number" inputmode="numeric" min="1" data-k="prForm.cuotas" value="${f.cuotas}"><small>Máximo ${P.cuotasMax} quincenas</small></label>
         <label class="fld">Fecha de entrega<input id="pr-fecha" type="date" data-k="prForm.fecha" value="${f.fecha}"><small>Días ${P.diasPrestamo}</small></label></div>
       <label class="fld">Motivo<input id="pr-mot" type="text" data-k="prForm.motivo" value="${esc(f.motivo)}"></label>
@@ -2635,12 +2616,12 @@ function scrPoliticas() {
   return `${ph('Administración · caja', 'Políticas', 'Las define quien administra la caja chica y presta, con visto bueno del dueño. Cada cambio se aplica de inmediato en las demás pantallas.')}
   <div class="cols c2">
     ${card('Caja chica', `<div class="form">
-      <div class="row2">${n('fondo', 'Fondo fijo (US$)', 'Monto total de la caja')}${n('umbral', 'Umbral de compra de contado (US$)', 'Por encima, la compra va a Compras generales')}</div>
+      <div class="row2">${n('fondo', 'Fondo fijo ($)', 'Monto total de la caja')}${n('umbral', 'Umbral de compra de contado ($)', 'Por encima, la compra va a Compras generales')}</div>
       <div class="row2">${n('repPct', 'Reponer cuando quede menos de (%)', 'Del fondo en efectivo')}${n('tolRec', 'Tolerancia de peso en recepción (%)', 'Diferencia aceptada vs facturado', 0.5)}</div>
       <label class="toggle"><input id="pol-comp" type="checkbox" data-k="pol.comprobante" ${P.comprobante ? 'checked' : ''}>Exigir nota de entrega con número, RIF, fecha y monto</label></div>`)}
     ${card('Préstamos a empleados', `<div class="form">
       <label class="fld">Días de entrega en el mes<input id="pol-dias" type="text" data-k="pol.diasPrestamo" value="${esc(P.diasPrestamo)}"><small>Separados por coma, por ejemplo: 1, 15</small></label>
-      <div class="row3">${n('tope', 'Tope por empleado (US$)', '')}${n('cuotasMax', 'Cuotas máximas', 'En quincenas')}${n('antig', 'Antigüedad mínima', 'En meses')}</div>
+      <div class="row3">${n('tope', 'Tope por empleado ($)', '')}${n('cuotasMax', 'Cuotas máximas', 'En quincenas')}${n('antig', 'Antigüedad mínima', 'En meses')}</div>
       <label class="toggle"><input id="pol-un" type="checkbox" data-k="pol.unActivo" ${P.unActivo ? 'checked' : ''}>Un solo préstamo activo por empleado</label>
       <p class="note">El descuento se hace en bolívares, a la tasa del día de entrega. ${askTag('A CONFIRMAR')} ¿O a la tasa del día de pago de nómina?</p></div>`)}
     ${card('Cuentas por pagar y ventas', `<div class="form"><div class="row3">${n('alertaCxP', 'Alerta de vencimiento (días antes)', '')}${n('diasPrecioB', 'Precio B si paga antes de (días)', 'Si no, precio FULL')}${n('descB', 'Descuento del precio B (%)', 'Supuesto', 0.5)}</div></div>`)}
@@ -2879,13 +2860,13 @@ const EXP_SETS = {
     cols: ['Fecha', 'Recepción', 'Proveedor', 'Producto', 'Kg recibidos', 'Kg a pagar', 'Calidad', 'Estado'],
     rows: (d, h) => S.compras.filter(c => c.rec && c.fecha >= d && c.fecha <= h).map(c => ({a: 'Almacén', v: [c.fecha, c.rec, un(c.prov), un(c.item), c.kgRec, c.qf, c.calidad || '', c.estado || '']}))},
   cmpmp: {t: 'Compras de materia prima', scr: 'compras-mp', area: 'Administración y ventas', per: true,
-    cols: ['Fecha', 'Compra', 'Proveedor', 'Producto', 'Cantidad a pagar', 'Unidad', 'Precio unitario US$', 'Condición', 'Saldo US$', 'Saldo Bs'],
+    cols: ['Fecha', 'Compra', 'Proveedor', 'Producto', 'Cantidad a pagar', 'Unidad', 'Precio unitario $', 'Condición', 'Saldo $', 'Saldo Bs'],
     rows: (d, h) => S.compras.filter(c => c.fam === 'MP' && c.id && c.fecha >= d && c.fecha <= h).map(c => ({a: 'Administración y ventas', v: [c.fecha, c.id, un(c.prov), un(c.item), c.qf, c.unidad || '', c.pu, c.cond || '', c.saldo, round2(c.saldo * S.tasa)]}))},
   cmpgen: {t: 'Compras generales', scr: 'compras-gen', area: 'Administración y ventas', per: true,
-    cols: ['Fecha', 'Compra', 'Proveedor', 'Concepto', 'Cantidad', 'Unidad', 'Precio unitario US$', 'Saldo US$', 'Saldo Bs'],
+    cols: ['Fecha', 'Compra', 'Proveedor', 'Concepto', 'Cantidad', 'Unidad', 'Precio unitario $', 'Saldo $', 'Saldo Bs'],
     rows: (d, h) => S.compras.filter(c => c.fam === 'GEN' && c.fecha >= d && c.fecha <= h).map(c => ({a: 'Administración y ventas', v: [c.fecha, c.id, un(c.prov), un(c.item), c.qf, c.unidad || '', c.pu, c.saldo, round2(c.saldo * S.tasa)]}))},
   cxp: {t: 'Cuentas por pagar', scr: 'cxp', area: 'Administración y ventas', per: true,
-    cols: ['Fecha', 'Cuenta', 'Proveedor', 'Total US$', 'Vence', 'Saldo US$', 'Saldo Bs'],
+    cols: ['Fecha', 'Cuenta', 'Proveedor', 'Total $', 'Vence', 'Saldo $', 'Saldo Bs'],
     rows: (d, h) => rows('cxp').filter(x => x.fecha >= d && x.fecha <= h).map(x => { const c = S.compras.find(k => k.id === x.compraId); const sd = c ? c.saldo : 0; return {a: 'Administración y ventas', v: [x.fecha, x.id, un(x.prov), x.total, x.vence || '', sd, round2(sd * S.tasa)]}; })},
   lotes: {t: 'Producción: lotes de papa frita', scr: 'produccion', area: 'Producción', per: true,
     cols: ['Fecha', 'Lote', 'Proveedor', 'Kg de papa cruda', 'Kg fritos (granel)', 'Rendimiento %', 'Estado'],
@@ -2900,13 +2881,13 @@ const EXP_SETS = {
     cols: ['Fecha', 'Nota', 'Destino', 'Vehículo', 'Chofer', 'Tipo', 'Estado', 'Unidades'],
     rows: (d, h) => S.notas.filter(n => n.fecha >= d && n.fecha <= h).map(n => ({a: 'Logística', v: [n.fecha, n.id, un(n.dest), un(n.veh), un(n.chofer), n.tipo || '', n.estado || '', sum(n.items, i => i.c)]}))},
   mermas: {t: 'Mermas por proceso', scr: 'mermas', area: 'Producción', per: true,
-    cols: ['Fecha', 'Etapa', 'Lote', 'Producto', 'Cantidad', 'Unidad', 'Causa', 'Costo US$', 'Estado', 'Registró'],
+    cols: ['Fecha', 'Etapa', 'Lote', 'Producto', 'Cantidad', 'Unidad', 'Causa', 'Costo $', 'Estado', 'Registró'],
     rows: (d, h) => S.mermas.filter(m => m.fecha >= d && m.fecha <= h).map(m => ({a: /empaque/i.test(m.etapa) ? 'Empaque' : /salsa/i.test(m.etapa) ? 'Línea salsera' : /almac|recep|mp/i.test(m.etapa) ? 'Almacén' : 'Producción', v: [m.fecha, m.etapa, m.lote || '', un(m.prod || ''), m.cant, m.un, un(m.causa || ''), m.usd || 0, m.estado || '', un(m.quien || '')]}))},
   caja: {t: 'Caja chica: gastos con nota de entrega', scr: 'caja', area: 'Administración y ventas', per: true,
-    cols: ['Fecha', 'Gasto', 'Nota de entrega', 'Proveedor', 'Categoría', 'Monto US$', 'Monto Bs', 'Justificación'],
+    cols: ['Fecha', 'Gasto', 'Nota de entrega', 'Proveedor', 'Categoría', 'Monto $', 'Monto Bs', 'Justificación'],
     rows: (d, h) => S.gastos.filter(g => g.fecha >= d && g.fecha <= h).map(g => ({a: 'Administración y ventas', v: [g.fecha, g.id, un(g.num || ''), un(g.prov || ''), un(g.cat || ''), g.monto, round2(g.monto * S.tasa), un(g.just || '')]}))},
   prestamos: {t: 'Préstamos a empleados', scr: 'prestamos', area: 'Administración y ventas', per: true,
-    cols: ['Fecha', 'Préstamo', 'Empleado', 'Monto US$', 'Cuotas', 'Pagadas', 'Tasa de la entrega', 'Motivo'],
+    cols: ['Fecha', 'Préstamo', 'Empleado', 'Monto $', 'Cuotas', 'Pagadas', 'Tasa de la entrega', 'Motivo'],
     rows: (d, h) => S.prestamos.filter(p => p.fecha >= d && p.fecha <= h).map(p => { const e = (DATA.empleadosAll || []).find(x => x.id === p.emp); return {a: e ? e.area : 'Administración y ventas', v: [p.fecha, p.id, un(e ? e.n : p.emp), p.monto, p.cuotas, p.pagadas, p.tasa, un(p.motivo || '')]}; })},
   nomina: {t: 'Nómina por quincena (Bs)', scr: 'nomina', area: 'Administración y ventas', per: true,
     cols: ['Quincena', 'Empleado', 'Área', 'Cargo', 'Base Bs', 'Horas extra Bs', 'Bonos Bs', 'Deducción de ley Bs', 'Préstamos Bs', 'Neto Bs'],
@@ -2914,13 +2895,13 @@ const EXP_SETS = {
   asistencia: {t: 'Asistencia por quincena', scr: 'asistencia', area: 'Administración y ventas', per: true, cols: asisCols,
     rows: (d, h) => { const o = []; quincenasEn(d, h).forEach(q => (DATA.empleadosAll || []).forEach(e => { const a = asisOf(q, e.id); if (a) o.push({a: e.area, v: [qLabel(q), un(e.n), e.area, un(e.cargo || ''), e.pago === 'hora' ? 'Por hora' : 'Por día', a.dias || 0, a.horas || 0, a.extra || 0, a.bonos || 0]}); })); return o; }},
   calcxp: {t: 'Calendario de cuentas por pagar', scr: 'cxp', area: 'Administración y ventas', per: true,
-    cols: ['Fecha', 'Tipo', 'Proveedor', 'Documento', 'Monto US$', 'Monto Bs', 'Estado'],
+    cols: ['Fecha', 'Tipo', 'Proveedor', 'Documento', 'Monto $', 'Monto Bs', 'Estado'],
     rows: (d, h) => cxpEvents().filter(e => e.date >= d && e.date <= h).sort((a, b) => a.date.localeCompare(b.date)).map(e => ({a: 'Administración y ventas', v: [e.date, CAL_TIPO[e.tipo], un(e.who), e.doc, round2(e.usd), round2(e.usd * S.tasa), CAL_EST[e.estado].t]}))},
   calcxc: {t: 'Calendario de cuentas por cobrar', scr: 'ventas', area: 'Administración y ventas', per: true,
-    cols: ['Fecha', 'Tipo', 'Cliente', 'Vendedor', 'Nota de entrega', 'Monto US$', 'Monto Bs', 'Estado'],
+    cols: ['Fecha', 'Tipo', 'Cliente', 'Vendedor', 'Nota de entrega', 'Monto $', 'Monto Bs', 'Estado'],
     rows: (d, h) => cxcEvents().filter(e => e.date >= d && e.date <= h).sort((a, b) => a.date.localeCompare(b.date)).map(e => ({a: 'Administración y ventas', v: [e.date, CAL_TIPO[e.tipo], un(e.who), un(e.vend || ''), e.doc, round2(e.usd), round2(e.usd * S.tasa), CAL_EST[e.estado].t]}))},
   cxc: {t: 'Cuentas por cobrar (al día de hoy)', scr: 'ventas', area: 'Administración y ventas', per: false, nota: 'Es una foto de la cartera de hoy: no se filtra por periodo.',
-    cols: ['Cliente', 'Nota de entrega', 'Fecha', 'Monto US$', 'Monto Bs'],
+    cols: ['Cliente', 'Nota de entrega', 'Fecha', 'Monto $', 'Monto Bs'],
     rows: () => (DATA.cxc || []).map(c => ({a: 'Administración y ventas', v: [un(c.cli || ''), c.fact || '', c.fecha || '', c.monto || 0, round2((c.monto || 0) * S.tasa)]}))}
 };
 /* Qué conjuntos ofrece cada pantalla. 'todo' = el reporte general con todo lo que el rol puede ver */
@@ -2933,7 +2914,7 @@ function expBuild(keys) {
 }
 function expCabecera() {
   const x = expState(), [d, h] = expRange(x);
-  return [['El Maná JL'], ['Periodo', `${fdl(d)} al ${fdl(h)} (${EXP_TIPOS[x.per]})`], ['Área', x.area || 'Todas'], ['Tasa usada', `Bs ${N2.format(S.tasa)} por US$ 1`], ['Rol', ROLES[S.rol]], ['Generado', new Date().toLocaleString('es-VE')]];
+  return [['El Maná JL'], ['Periodo', `${fdl(d)} al ${fdl(h)} (${EXP_TIPOS[x.per]})`], ['Área', x.area || 'Todas'], ['Tasa usada', `Bs ${N2.format(S.tasa)} por $ 1`], ['Rol', ROLES[S.rol]], ['Generado', new Date().toLocaleString('es-VE')]];
 }
 const csvCell = v => { if (typeof v === 'number') return String(Number.isInteger(v) ? v : round2(v)).replace('.', ','); const s = String(v ?? ''); return /[;"\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
 function expCSV(keys) {
@@ -2974,7 +2955,7 @@ function expBar(scr) {
   const campos = x.per === 'rango' ? `<label class="fld">Desde<input type="date" data-k="exp.desde" data-act-change="expSet" value="${x.desde}"></label><label class="fld">Hasta<input type="date" data-k="exp.hasta" data-act-change="expSet" value="${x.hasta}"></label>` : `<label class="fld">${x.per === 'mes' ? 'Un día del mes' : x.per === 'sem' ? 'Un día de la semana' : 'Día'}<input type="date" data-k="exp.ref" data-act-change="expSet" value="${x.ref}"></label>`;
   return card('Exportar este reporte', `<div class="form"><div class="row3"><label class="fld">Periodo<select data-k="exp.per" data-act-change="expSet">${Object.entries(EXP_TIPOS).map(([k, t]) => `<option value="${k}" ${k === x.per ? 'selected' : ''}>${t}</option>`).join('')}</select></label>${campos}
     <label class="fld">Área<select data-k="exp.area" data-act-change="expSet">${['Todas', ...AREAS].map(a => `<option ${a === x.area ? 'selected' : ''}>${a}</option>`).join('')}</select></label></div>
-    <p class="hint">Del ${fdl(d)} al ${fdl(h)} · tasa Bs ${N2.format(S.tasa)} por US$ 1 · solo lo que tu rol puede ver (${sets.map(s => s.t).join(', ')}).${sets.some(s => s.nota) ? ' ' + sets.filter(s => s.nota).map(s => s.nota).join(' ') : ''}</p>
+    <p class="hint">Del ${fdl(d)} al ${fdl(h)} · tasa Bs ${N2.format(S.tasa)} por $ 1 · solo lo que tu rol puede ver (${sets.map(s => s.t).join(', ')}).${sets.some(s => s.nota) ? ' ' + sets.filter(s => s.nota).map(s => s.nota).join(' ') : ''}</p>
     <div class="btnrow"><button type="button" class="btn pri" data-act="expCSV" data-scr="${scr}">${ic('download', 16)}Descargar CSV (Excel)</button><button type="button" class="btn" data-act="expPrint" data-scr="${scr}">${ic('print', 16)}Imprimir o guardar PDF</button></div></div>`, {cls: 'exp-card', sub: 'CSV con tildes y columnas separadas por punto y coma, listo para Excel'});
 }
 const EXP_ACT = {
@@ -3037,12 +3018,12 @@ function calCard(id) {
   const label = (d, i) => `${d} de ${calMonthLabel(st.mes)}: ${i.mn.length} ${cfg.docs}${i.mn.length ? ', ' + usd(i.tot) : ''}${i.b.length ? ', ' + i.b.length + ' con último día de precio B' : ''}${i.w ? ', ' + CAL_EST[i.w].t : ''}`;
   const cell = d => {
     const i = dayInfo(d), c = iso(d), est = i.w ? CAL_EST[i.w] : null;
-    return `<button type="button" class="${est ? est.cls : ''} ${c === HOY_ISO ? 'today' : ''}" aria-pressed="${st.dia === c}" aria-label="${esc(label(d, i))}" data-act="calDay" data-id="${id}" data-v="${c}"><span class="d">${d}${est ? ic(est.ic, 12) : ''}</span>${i.mn.length ? `<span class="a">US$ ${N0.format(i.tot)}</span><span class="a n">${i.mn.length} ${cfg.docs.slice(0, 4)}.</span>` : ''}${i.b.length ? `<span class="a bb" title="Último día de precio B">B · ${i.b.length}</span>` : ''}</button>`;
+    return `<button type="button" class="${est ? est.cls : ''} ${c === HOY_ISO ? 'today' : ''}" aria-pressed="${st.dia === c}" aria-label="${esc(label(d, i))}" data-act="calDay" data-id="${id}" data-v="${c}"><span class="d">${d}${est ? ic(est.ic, 12) : ''}</span>${i.mn.length ? `<span class="a">$ ${N0.format(i.tot)}</span><span class="a n">${i.mn.length} ${cfg.docs.slice(0, 4)}.</span>` : ''}${i.b.length ? `<span class="a bb" title="Último día de precio B">B · ${i.b.length}</span>` : ''}</button>`;
   };
   const cells = []; for (let k = 0; k < off; k++) cells.push('<button type="button" class="o" tabindex="-1" aria-hidden="true"></button>'); for (let d = 1; d <= nd; d++) cells.push(cell(d));
   const days = Object.keys(byDay).sort();
   const listRow = c => { const l = byDay[c], i = dayInfo(+c.slice(8)), est = CAL_EST[i.w] || CAL_EST.proximo, wd = D(c).toLocaleDateString('es-VE', {weekday: 'short'}).replace('.', '');
-    return `<li><button type="button" class="${est.cls} ${c === HOY_ISO ? 'today' : ''}" aria-pressed="${st.dia === c}" aria-label="${esc(label(+c.slice(8), i))}" data-act="calDay" data-id="${id}" data-v="${c}"><span class="ld"><b>${+c.slice(8)}</b><small>${wd}</small></span><span class="lm">${i.mn.length ? `<b>US$ ${N2.format(i.tot)}</b> · ${i.mn.length} ${cfg.docs}` : ''}${i.b.length ? `<span class="bb">B · ${i.b.length} con último día de precio B</span>` : ''}</span><span class="ls">${ic(est.ic, 14)}${est.t}</span></button></li>`; };
+    return `<li><button type="button" class="${est.cls} ${c === HOY_ISO ? 'today' : ''}" aria-pressed="${st.dia === c}" aria-label="${esc(label(+c.slice(8), i))}" data-act="calDay" data-id="${id}" data-v="${c}"><span class="ld"><b>${+c.slice(8)}</b><small>${wd}</small></span><span class="lm">${i.mn.length ? `<b>$ ${N2.format(i.tot)}</b> · ${i.mn.length} ${cfg.docs}` : ''}${i.b.length ? `<span class="bb">B · ${i.b.length} con último día de precio B</span>` : ''}</span><span class="ls">${ic(est.ic, 14)}${est.t}</span></button></li>`; };
   const filtros = `<div class="cal2-f"><label class="fld">${cfg.whoL}<select data-act-change="calF" data-id="${id}" data-f="who"><option>Todos</option>${[...new Set(all.map(e => e.who).filter(Boolean))].sort().map(w => `<option value="${esc(w)}" ${st.who === w ? 'selected' : ''}>${w}</option>`).join('')}</select></label>
     ${cfg.vend ? `<label class="fld">Vendedor<select data-act-change="calF" data-id="${id}" data-f="vend"><option>Todos</option>${[...new Set(all.map(e => e.vend).filter(Boolean))].sort().map(w => `<option value="${esc(w)}" ${st.vend === w ? 'selected' : ''}>${w}</option>`).join('')}</select></label>` : ''}
     <label class="fld">Estado<select data-act-change="calF" data-id="${id}" data-f="est"><option>Todos</option>${CAL_ORD.map(s => `<option value="${s}" ${st.est === s ? 'selected' : ''}>${CAL_EST[s].t}</option>`).join('')}</select></label></div>`;
@@ -3059,7 +3040,7 @@ function calCard(id) {
   return card(cfg.t, body, {sub: cfg.sub, cls: 'cal2-card'});
 }
 const CAL_CFG = {
-  cxp: {t: 'Calendario de vencimientos', sub: 'Monto en US$ por día (en abonos, la cuota). Los pagos hechos aparecen en verde.', docs: 'documentos', whoL: 'Proveedor', sem: 'Por pagar esta semana', events: cxpEvents, vend: false,
+  cxp: {t: 'Calendario de vencimientos', sub: 'Monto en $ por día (en abonos, la cuota). Los pagos hechos aparecen en verde.', docs: 'documentos', whoL: 'Proveedor', sem: 'Por pagar esta semana', events: cxpEvents, vend: false,
     acts: e => e.estado !== 'hecho' && lvl('cxp') >= 2 ? `<div class="btnrow"><button type="button" class="btn sm pri" data-act="pagar" data-id="${e.doc}">${e.abono ? 'Registrar abono' : 'Registrar pago'}</button></div>` : ''},
   cxc: {t: 'Calendario de cobranza', sub: 'Dos fechas por nota de entrega: fin del crédito (30 días, supuesto) y último día para conservar el precio B.', docs: 'notas de entrega', whoL: 'Cliente', sem: 'Por cobrar esta semana', events: cxcEvents, vend: true,
     acts: e => { if (e.estado === 'hecho' || e.tipo === 'cobro') return ''; const c = e.raw; return `<div class="btnrow">${lvl('ventas') >= 2 ? `<button type="button" class="btn sm pri" data-act="cxcCobro" data-fact="${esc(c.fact)}">Registrar cobro</button>` : ''}${waBtn(c.cli, waMsgCxc({...c, d: -dias(c.fecha)}))}</div>`; }}
@@ -3181,24 +3162,17 @@ function scrCatalogos(m) {
   const F = S.catForm, can2 = k => lvl(k) >= 2, key = m === 'adm' ? 'catalogos' : 'catprod', ed = can2(key);
   if (m === 'adm') {
     const pf = F.prov, cred = pf.cond === 'Crédito';
-    return `${ph('Administración · referencia', 'Proveedores', 'Los proveedores que usan las demás pantallas. Se agregan o se archivan aquí (archivar no borra el historial); «empezar en limpio» los quita. El personal está en su propia pantalla.')}
+    return `${ph('Administración · referencia', 'Proveedores', 'Los proveedores que usan las demás pantallas. Se agregan, editan o desactivan aquí (desactivar no borra el historial); «empezar en limpio» los quita. El personal está en su propia pantalla.')}
     <div class="cols c32">
       ${card('Proveedores', barra('prv', 'Nombre, RIF, código, contacto o rubro', DATA.proveedores, D_PRV) + table([
         {h:'Proveedor', f:p => `<b>${p.nombre}</b><br><span class="mono muted">${p.id} · ${p.rif}${p.contacto ? ' · ' + esc(p.contacto) : ''}</span>`},
         {h:'Tipo', f:p => ({papa:'Papa', insumo:'Insumo', general:'General'})[p.tipo] || p.tipo},
         {h:'Rubro', f:p => p.rubro},
-        {h:'Condición', f:p => p.cond === 'Crédito' ? `${chip('Crédito', 'info')}<br><span class="muted">${p.plazo}</span>` : chip('Contado', 'n')}, {h:'', f:p => ed ? `<button type="button" class="btn sm" data-act="provEditar" data-id="${p.id}">Editar</button> <button type="button" class="btn sm ghost" data-act="archProv" data-id="${p.id}">Archivar</button>` : ''}], barraFiltrar('prv', DATA.proveedores, D_PRV), {empty: (S.bq || {}).prv ? 'Ningún proveedor coincide con la búsqueda.' : 'Todavía no hay proveedores. Agrega el primero con el formulario.'}))}
-      ${entEditCard(['prov'])}${card('Agregar proveedor', ed ? `<div class="form">
-        <label class="fld">Nombre<input id="pv-nom" type="text" data-k="catForm.prov.nombre" value="${esc(pf.nombre)}"></label>
-        <div class="row2"><label class="fld">RIF<input id="pv-rif" type="text" data-k="catForm.prov.rif" value="${esc(pf.rif)}" placeholder="J-00000000-0"></label><label class="fld">Rubro<input id="pv-rub" type="text" data-k="catForm.prov.rubro" value="${esc(pf.rubro)}" placeholder="Ej.: Sal"></label></div>
-        <div class="row2"><label class="fld">Qué vende<select id="pv-tipo" data-k="catForm.prov.tipo">${[['papa', 'Papa (materia prima)'], ['insumo', 'Insumos'], ['general', 'Compras generales']].map(([k, t]) => `<option value="${k}" ${pf.tipo === k ? 'selected' : ''}>${t}</option>`).join('')}</select></label>
-        <label class="fld">Condición<select id="pv-cond" data-k="catForm.prov.cond" data-rerender="1">${['Contado', 'Crédito'].map(k => `<option ${pf.cond === k ? 'selected' : ''}>${k}</option>`).join('')}</select></label></div>
-        ${cred ? `<div class="row2"><label class="fld">Días de plazo<input id="pv-dias" type="number" inputmode="numeric" data-k="catForm.prov.dias" value="${pf.dias}"></label><label class="toggle" style="align-self:end"><input id="pv-ab" type="checkbox" data-k="catForm.prov.abonos" ${pf.abonos ? 'checked' : ''}>Paga en abonos semanales</label></div>` : ''}
-        ${S.catErr && S.catErr.prov ? `<p class="err" role="alert">${ic('alert')}${S.catErr.prov}</p>` : ''}
-        <button type="button" class="btn pri" data-act="addProv">${ic('plus', 16)}Agregar proveedor</button></div>` : `<p class="hint">Tu rol puede ver los proveedores pero no agregarlos.</p>`)}
+        {h:'Condición', f:p => p.cond === 'Crédito' ? `${chip('Crédito', 'info')}<br><span class="muted">${p.plazo}</span>` : chip('Contado', 'n')}, {h:'', f:p => ed ? `<button type="button" class="btn sm" data-act="pvEditar" data-id="${p.id}">Editar</button> <button type="button" class="btn sm ghost" data-act="archProv" data-id="${p.id}">Desactivar</button>` : ''}], barraFiltrar('prv', DATA.proveedores, D_PRV), {empty: (S.bq || {}).prv ? 'Ningún proveedor coincide con la búsqueda.' : 'Todavía no hay proveedores. Agrega el primero con el formulario.'}))}
+      ${card('Nuevo proveedor', ed ? `<p class="hint">Registra un proveedor con su RIF, qué vende y cómo se le paga.</p><button type="button" class="btn pri" data-act="pvNuevo" data-o="cat">${ic('plus', 16)}Nuevo proveedor</button>` : `<p class="hint">Tu rol puede ver los proveedores pero no agregarlos.</p>`)}
     </div>
     ${entHist(['prov'])}
-    ${lvl('catalogos') >= 3 ? card('Proveedores archivados', table([{h: 'Proveedor', f: p => `<b>${p.nombre}</b><br><span class="mono muted">${p.id} · ${p.rif}${p.contacto ? ' · ' + esc(p.contacto) : ''}</span>`}, {h: '', f: p => `<button type="button" class="btn sm" data-act="restProv" data-id="${p.id}">Restaurar</button>`}], DATA.provAll.filter(p => p.arch), {empty: 'No hay proveedores archivados.'}), {sub: 'Solo el Dueño los ve y restaura'}) : ''}
+    ${lvl('catalogos') >= 2 ? card('Proveedores desactivados', table([{h: 'Proveedor', f: p => `<b>${p.nombre}</b><br><span class="mono muted">${p.id} · ${p.rif}${p.contacto ? ' · ' + esc(p.contacto) : ''}</span>`}, {h: '', f: p => `<button type="button" class="btn sm" data-act="restProv" data-id="${p.id}">Activar</button>`}], DATA.provAll.filter(p => p.arch), {empty: 'No hay proveedores desactivados.'}), {sub: 'No salen en la lista de compras; el historial se conserva'}) : ''}
 `;
   }
   return `${ph('Producción · referencia', 'Equipo y flota', 'Quién recibe en la puerta de la planta y los vehículos de despacho. Los usan Recepción y Despachos.')}
@@ -3277,12 +3251,12 @@ function applyPerms() {
 const SCREENS = {
   'mapa':         {mod:'home', g:'Inicio', t:'Mapa de procesos', s:'Inicio', ic:'map', r:scrMapa},
   'planta':      {mod:'prod', g:'Resumen', t:'Resumen de planta', s:'Resumen', ic:'gauge', r:scrPlanta},
-  'recepcion':    {mod:'prod', g:'Entrada', t:'Recepción', s:'Recepción', ic:'clip', r:scrRecepcion, live:() => { const e = $('#rec-calc'); e && (e.innerHTML = recCalcHTML()); }},
+  'recepcion':    {mod:'prod', g:'Entrada', t:'Recepción', s:'Recepción', ic:'clip', r:scrRecepcion, live:() => { const e = $('#rec-calc'); e && (e.innerHTML = recCalcHTML()); const k = $('#rf-kgs'); k && k.readOnly && (k.value = S.recForm.kgSaco); }},
   'alm-mp':       {mod:'prod', g:'Almacenes', t:'Materia prima', s:'Materia prima', ic:'warehouse', r:scrAlmMP},
   'alm-proceso':  {mod:'prod', g:'Almacenes', t:'En proceso', s:'En proceso', ic:'layers', r:scrAlmProceso},
   'alm-pt':       {mod:'prod', g:'Almacenes', t:'Producto terminado', s:'Terminado', ic:'box', r:scrAlmPT},
   'alm-logistica':{mod:'prod', g:'Almacenes', t:'Logística', s:'Logística', ic:'tag', r:scrAlmLog},
-  'produccion':   {mod:'prod', g:'Planta', t:'Producción y rendimiento', s:'Producción', ic:'flame', r:scrProduccion, live:() => { const e = $('#lot-calc'); e && (e.innerHTML = lotCalcHTML()); }},
+  'produccion':   {mod:'prod', g:'Planta', t:'Producción y rendimiento', s:'Producción', ic:'flame', r:scrProduccion, live:() => { const e = $('#lot-calc'); e && (e.innerHTML = lotCalcHTML()); const m = $('#modal #mr-calc'); m && (m.innerHTML = mrCalcHTML()); }},
   'empaque':      {mod:'prod', g:'Planta', t:'Empaque y stock', s:'Empaque', ic:'pack', r:scrEmpaque},
   'despachos':    {mod:'prod', g:'Planta', t:'Despachos', s:'Despachos', ic:'truck', r:scrDespachos},
   'mermas':       {mod:'prod', g:'Planta', t:'Mermas por proceso', s:'Mermas', ic:'alert', r:scrMermas, live:() => { const e = $('#mr-calc'); e && (e.innerHTML = mrCalcHTML()); }},
@@ -3308,18 +3282,18 @@ const SCREENS = {
 const BOTTOM = {prod:['recepcion', 'alm-mp', 'produccion', 'despachos'], adm:['gestion', 'cxp', 'caja', 'analisis']};
 const HOME = {prod:['planta'], adm:['gestion']};
 /* ---------- Roles, módulos visibles y permisos (0 sin acceso · 1 ver · 2 registrar · 3 aprobar) ---------- */
-const ROLES = {dueno:'Dueño', adm:'Administración y compras', custodio:'Custodio de caja chica', recep:'Recepción', jefeprod:'Jefe de producción', produccion:'Producción', empaque:'Empaque y despacho', ventas:'Ventas (vendedor)', cobranza:'Cobranza', rrhh:'Nómina y RRHH'};
+const ROLES = {dueno:'Gerencia', adm:'Administración y compras', custodio:'Custodio de caja chica', recep:'Recepción', jefeprod:'Jefe de producción', produccion:'Producción', empaque:'Empaque y despacho', ventas:'Ventas (vendedor)', cobranza:'Cobranza', rrhh:'Nómina y RRHH'};
 const ROLE_DESC = {
-  dueno:'Ve todo y aprueba todo, en los dos módulos. Es el único que ve el tablero consolidado y edita los roles.',
-  adm:'Valida las recepciones y las convierte en compra efectiva, registra compras generales y pagos a proveedores.',
-  custodio:'Maneja la caja chica: gastos menores, arqueo, reposición y préstamos a empleados.',
-  recep:'Recibe la papa, los insumos y los aditivos en la puerta de la planta y los registra.',
-  jefeprod:'Cierra los lotes del turno, controla el rendimiento y aprueba las reposiciones de empaque.',
-  produccion:'Lleva el turno: anota los kilos de cada etapa y los bultos empacados, y al cerrar suma al inventario.',
-  empaque:'Empaca por presentación, pesa y etiqueta bultos y arma los despachos.',
-  ventas:'Consulta la cartera y las ventas; en la versión completa registrará los pedidos.',
-  cobranza:'Sigue las cuentas por cobrar, el precio B y FULL y los clientes vencidos.',
-  rrhh:'Prepara la nómina en bolívares y ve los préstamos que se descuentan.'
+  dueno:'Visión consolidada de la operación, aprobación de las decisiones clave y administración de roles y permisos.',
+  adm:'Validación de recepciones, gestión de compras, cuentas por pagar y pagos a proveedores.',
+  custodio:'Administración de la caja chica: gastos menores, arqueos, reposiciones y préstamos al personal.',
+  recep:'Recepción y registro de materia prima, insumos y aditivos en el ingreso a planta.',
+  jefeprod:'Cierre de lotes por turno, control del rendimiento y aprobación de reposiciones de empaque.',
+  produccion:'Gestión del turno: registro de kilos por etapa y bultos empacados, y cierre con carga al inventario.',
+  empaque:'Empaque por presentación, pesaje y etiquetado de bultos, y preparación de despachos.',
+  ventas:'Gestión comercial: pedidos, cartera de clientes, precios y seguimiento de ventas.',
+  cobranza:'Seguimiento de cuentas por cobrar, cartera vencida y conciliación de pagos de clientes.',
+  rrhh:'Preparación de la nómina en bolívares y control de los préstamos descontados al personal.'
 };
 /* Módulos visibles por rol (propuesta pendiente de confirmar; el Dueño la edita y se guarda con la matriz) */
 const MODS_DEF = {dueno:['prod', 'adm'], adm:['adm'], custodio:['adm'], recep:['prod'], jefeprod:['prod'], produccion:['prod'], empaque:['prod'], ventas:['adm'], cobranza:['adm'], rrhh:['adm']};
@@ -3330,7 +3304,7 @@ const PERM_DEF = {
   'alm-proceso':'jefeprod:2 empaque:1',
   'alm-pt':'jefeprod:1 empaque:2',
   'alm-logistica':'jefeprod:1 empaque:2',
-  'produccion':'jefeprod:2 empaque:1',
+  'produccion':'jefeprod:2 produccion:2 empaque:1',
   'empaque':'jefeprod:3 empaque:2',
   'despachos':'jefeprod:1 empaque:2',
   'cotejo':'adm:1 jefeprod:1',
@@ -3357,7 +3331,7 @@ S.perm = permInit(); S.mods = clone(MODS_DEF);
 const ACT_REQ = {guardarRec:['recepcion', 2], validar:['compras-mp', 3], pagar:['cxp', 2], abrirLote:['produccion', 2], avanzarEtapa:['produccion', 2], cerrarLote:['produccion', 2],
   pedirRepo:['empaque', 2], aprobarRepo:['empaque', 3], regEmpaque:['empaque', 2], addBulto:['alm-logistica', 2], regNota:['despachos', 2], notaEstado:['despachos', 2],
   regGen:['compras-gen', 2], regGasto:['caja', 2], reponer:['caja', 2], guardarArqueo:['caja', 2], regPrestamo:['prestamos', 2], guardarPol:['politicas', 2], resetPol:['politicas', 2],
-  addProv:['catalogos', 2], archProv:['catalogos', 2], restProv:['catalogos', 3], empGuardar:['personal', 2], empArch:['personal', 3], retiroPedir:['personal', 2], retiroOk:['personal', 3], retiroNo:['personal', 3], asisInc:['asistencia', 2], asisBonos:['asistencia', 2], nomPolGuardar:['nomina', 3], addInsumo:['catprod', 2], addPres:['catprod', 2], addSalsa:['catprod', 2], archivar:['catprod', 2], restaurar:['catprod', 3], addRec:['catprod', 2], delRec:['catprod', 2], addVeh:['catprod', 2], delVeh:['catprod', 2],
+  addProv:['catalogos', 2], archProv:['catalogos', 2], restProv:['catalogos', 2], empGuardar:['personal', 2], empArch:['personal', 3], retiroPedir:['personal', 2], retiroOk:['personal', 3], retiroNo:['personal', 3], asisInc:['asistencia', 2], asisBonos:['asistencia', 2], nomPolGuardar:['nomina', 3], addInsumo:['catprod', 2], addPres:['catprod', 2], addSalsa:['catprod', 2], archivar:['catprod', 2], restaurar:['catprod', 3], addRec:['catprod', 2], delRec:['catprod', 2], addVeh:['catprod', 2], delVeh:['catprod', 2],
   regMerma:['mermas', 2], setTel:['ventas', 2], cxcCobro:['ventas', 2], aprobarMerma:['mermas', 3], guardarTolMerma:['mermas', 3], addCausa:['mermas', 3], delCausa:['mermas', 3]};
 const ACT_LBL = {guardarRec:'guardar recepciones', validar:'validar compras', pagar:'registrar pagos', abrirLote:'abrir lotes', avanzarEtapa:'avanzar etapas', cerrarLote:'cerrar lotes', pedirRepo:'pedir reposiciones', aprobarRepo:'aprobar reposiciones',
   regEmpaque:'registrar empaque', addBulto:'pesar bultos', regNota:'crear notas de entrega', notaEstado:'cambiar el estado de despachos', regGen:'registrar compras', regGasto:'registrar gastos', reponer:'pedir reposición de caja',
@@ -3499,8 +3473,9 @@ function mrCausasRep(a, z) {
   return Object.values(m).sort((p, q) => q.usd - p.usd || q.kg - p.kg);
 }
 const mrAlertas = () => { const w = mr30(); return mrStages(w.a, w.z).filter(x => x.n > 0 && (x.sem.t === 'warn' || x.sem.t === 'crit')); };
-const mrPend = () => (S.mermas || []).filter(m => m.estado === 'pend');
-const mrBadge = () => (lvl('mermas') >= 3 ? mrPend().length : 0) + mrAlertas().filter(x => x.sem.t === 'crit').length;
+const mrPend = () => [];
+const mrNuevas = () => (S.mermas || []).filter(m => !m.auto && (m.ts ? Date.now() - m.ts < 864e5 : m.fecha === HOY_ISO)); /* avisos a Gerencia y Administración: mermas de las últimas 24 h */
+const mrBadge = () => (S.rol === 'dueno' || S.rol === 'adm' ? mrNuevas().length : 0) + mrAlertas().filter(x => x.sem.t === 'crit').length;
 
 /* ---------- Celdas para Cotejo, Análisis y Control de gestión ---------- */
 const mrLoteCell = l => { const m = mrLote(l); return m.n || m.done ? `<b>${pct(m.acum)}</b><br><span class="muted">${money(m.usd)}</span>` : '—'; };
@@ -3593,7 +3568,7 @@ function mrFormCard() {
     <div id="mr-calc">${mrCalcHTML()}</div>
     ${S.mrErr ? `<p class="err" role="alert">${ic('alert')}${S.mrErr}</p>` : ''}
     <button type="button" class="btn pri xl" data-act="regMerma">${ic('check')}Registrar merma</button>
-    <p class="hint">${apr ? 'Como tu rol aprueba, el registro queda aprobado de una vez.' : 'Queda pendiente hasta que el Jefe de producción lo apruebe; mientras tanto ya cuenta en los reportes.'}</p></div></div>`, {sub: 'Quién, cuándo y en qué etapa quedan anotados solos', id: 'mr-reg'});
+    <p class="hint">Al registrarla, se avisa a Gerencia y Administración.</p></div></div>`, {sub: 'Quién, cuándo y en qué etapa quedan anotados solos', id: 'mr-reg'});
 }
 
 /* ---------- Tolerancias (se ven en Políticas y en la pantalla de mermas; las edita quien aprueba mermas) ---------- */
@@ -3601,7 +3576,7 @@ function mrTolCard(enPol) {
   const ed = lvl('mermas') >= 3, P = S.pol;
   const inp = (k, l, h) => `<label class="fld">${l}<input id="mr-tol-${k}" type="number" inputmode="decimal" step="0.1" min="0" data-k="pol.${k}" value="${P[k] ?? ''}" ${ed ? '' : 'disabled'}><small>${h}</small></label>`;
   const body = `<div class="form"><div class="mr-tolg">${MR_ET.filter(e => !(enPol && e.k === 'recepcion')).map(e => e.k === 'recepcion' ? inp('tolRec', e.t, 'Es la tolerancia de peso de Recepción') : inp('mr_' + e.k, e.t, 'Máx. % de lo que entra a la etapa')).join('')}</div>
-    <div class="row2">${inp('mrAlerta', 'Margen de alerta (%)', 'Hasta cuánto por encima de la tolerancia es «alerta»; más allá es «fuera»')}${inp('mrCostoSalsa', 'Costo de la salsa (US$/kg)', 'Supuesto para valorar mermas de la línea salsera')}</div>
+    <div class="row2">${inp('mrAlerta', 'Margen de alerta (%)', 'Hasta cuánto por encima de la tolerancia es «alerta»; más allá es «fuera»')}${inp('mrCostoSalsa', 'Costo de la salsa ($/kg)', 'Supuesto para valorar mermas de la línea salsera')}</div>
     ${enPol ? '' : ''}
     ${ed ? `<button type="button" class="btn pri" data-act="guardarTolMerma">${ic('check')}Guardar tolerancias de merma</button>` : `<p class="hint">${ic('lock', 16)} Solo el Dueño y el Jefe de producción cambian las tolerancias.</p>`}</div>`;
   return card('Tolerancias de merma por proceso', body, {});
@@ -3620,19 +3595,19 @@ function scrMermas() {
   const ca = mrCausasRep(w.a, w.z), caT = sum(ca, c => c.usd) || sum(ca, c => c.kg);
   let cum = 0;
   const par = ca.slice(0, 7).map(c => { cum += (sum(ca, x => x.usd) ? c.usd : c.kg); return {l: esc(c.c), v: sum(ca, x => x.usd) ? c.usd : c.kg, tip: `${c.c}: ${usd(c.usd)} · ${kg(c.kg)} · acumulado ${pct(caT ? cum / caT * 100 : 0, 0)}`}; });
-  const est = m => m.estado === 'apr' ? chip(m.auto ? 'Automática' : 'Aprobada', 'ok') : chip('Pendiente', 'warn');
+  const est = m => chip(m.auto ? 'Automática' : 'Registrada', 'ok');
   const recientes = (S.mermas || []).slice(0, 12);
   return `${ph('Producción · control', 'Mermas por proceso', 'Lo que se pierde en cada etapa, desde que llega la papa hasta que se entrega al cliente: cuánto, por qué, cuánto cuesta y si pasa la tolerancia.')}
   <div class="tiles">
     ${stat('Costo de mermas (30 días)', money(usdT), 'Peso perdido: ' + kg(kgT))}
     ${stat('Etapas fuera de tolerancia', String(st.filter(x => x.n > 0 && x.sem.t === 'crit').length), al.length ? 'En alerta o fuera: ' + al.map(x => x.t).slice(0, 3).join(', ') : 'Todas dentro', al.length ? 'warn' : 'ok')}
-    ${stat('Pendientes de aprobar', String(pend.length), pend.length ? 'Los aprueba el Jefe de producción' : 'Nada por aprobar', pend.length ? 'warn' : '')}
+    ${stat('Mermas de las últimas 24 h', String(mrNuevas().length), 'Gerencia y Administración reciben el aviso', mrNuevas().length ? 'warn' : '')}
     ${stat('Registros guardados', String((S.mermas || []).length), 'Más la diferencia de peso de Recepción')}
   </div>
   ${al.length ? card('Alertas de merma', `<ul class="alerts">${al.map(x => `<li class="${x.sem.t}">${ic('alert')}<div><b>${x.t}:</b> ${pct(x.pct)} de lo que entró, con tolerancia de ${pct(x.tol)}. ${x.sem.t === 'crit' ? 'Fuera de tolerancia: revisar la causa.' : 'En alerta.'}</div></li>`).join('')}</ul>`) : ''}
   <div class="cols c2">
     ${mrFormCard()}
-    ${lvl('mermas') >= 3 && pend.length ? card('Pendientes de aprobación', `<ul class="list">${pend.map(m => `<li><div class="l-main"><p class="l-t"><span class="mono">${m.id}</span> · ${(mrEt(m.etapa) || {t: m.etapa}).t}</p><p class="l-s">${N1.format(m.cant)} ${m.un === 'und' ? 'und' : 'kg'} · ${m.causa} · ${m.quien} · ${usd(m.usd)}${m.obs ? ' · ' + m.obs : ''}</p></div><button type="button" class="btn sm pri" data-act="aprobarMerma" data-id="${m.id}">Aprobar</button></li>`).join('')}</ul>`, {sub: 'Mientras esperan, ya cuentan en los reportes'}) : card('Cómo se mide', `<ul class="list"><li><div class="l-main"><p class="l-t">Merma % de una etapa</p><p class="l-s">Perdido ÷ lo que entró a esa etapa.</p></div></li><li><div class="l-main"><p class="l-t">Merma acumulada del lote</p><p class="l-s">Qué parte de la papa se perdió en total, de Recepción a Despacho.</p></div></li><li><div class="l-main"><p class="l-t">Rendimiento neto</p><p class="l-s">Rendimiento medido al cerrar el lote, menos lo perdido después de pesar la papa frita (sazonado, quebrado, empaque, almacén y despacho).</p></div></li><li><div class="l-main"><p class="l-t">Costo</p><p class="l-s">Kg perdidos × costo promedio de ese kg (papa: lo pagado por el lote).</p></div></li></ul>`)}
+    ${(S.rol === 'dueno' || S.rol === 'adm') && mrNuevas().length ? card('Mermas nuevas (últimas 24 h)', `<ul class="list">${mrNuevas().map(m => `<li><div class="l-main"><p class="l-t"><span class="mono">${m.id}</span> · ${(mrEt(m.etapa) || {t: m.etapa}).t}</p><p class="l-s">${N1.format(m.cant)} ${m.un === 'und' ? 'und' : 'kg'} · ${esc(m.causa)} · ${esc(m.quien)} · ${usd(m.usd)}${m.obs ? ' · ' + esc(m.obs) : ''}</p></div></li>`).join('')}</ul>`, {sub: 'Aviso: lo que pasó, sin necesidad de aprobar'}) : card('Cómo se mide', `<ul class="list"><li><div class="l-main"><p class="l-t">Merma % de una etapa</p><p class="l-s">Perdido ÷ lo que entró a esa etapa.</p></div></li><li><div class="l-main"><p class="l-t">Merma acumulada del lote</p><p class="l-s">Qué parte de la papa se perdió en total, de Recepción a Despacho.</p></div></li><li><div class="l-main"><p class="l-t">Rendimiento neto</p><p class="l-s">Rendimiento medido al cerrar el lote, menos lo perdido después de pesar la papa frita (sazonado, quebrado, empaque, almacén y despacho).</p></div></li><li><div class="l-main"><p class="l-t">Costo</p><p class="l-s">Kg perdidos × costo promedio de ese kg (papa: lo pagado por el lote).</p></div></li></ul>`)}
   </div>
   ${card('Merma por etapa', table([
     {h:'Etapa', f:x => `<b>${x.t}</b>`},
@@ -3644,7 +3619,7 @@ function scrMermas() {
     {h:'Estado', f:x => chip(x.sem.l, x.sem.t)},
     {h:'Costo', r:1, f:x => x.usd ? money(x.usd) : '—'}], st, {foot: `<tr class="tsum"><td colspan="7">Costo total de mermas</td><td class="r">${money(usdT)}</td></tr>`, rowCls: x => x.sem.t === 'crit' ? 'hl' : ''}), {})}
   <div class="cols c2">
-    ${card('Causas principales (Pareto)', par.length ? `${hbars(par, v => sum(ca, x => x.usd) ? usd(v) : kg(v))}<p class="hint" style="margin-top:8px">Las ${Math.min(3, par.length)} primeras causas explican ${pct(caT ? sum(ca.slice(0, 3), c => sum(ca, x => x.usd) ? c.usd : c.kg) / caT * 100 : 0, 0)} del costo.</p>` : emptyState('Sin mermas en 30 días', 'Cuando se registren, aquí se ve por qué se pierde más.'), {sub: 'Ordenadas por costo en US$'})}
+    ${card('Causas principales (Pareto)', par.length ? `${hbars(par, v => sum(ca, x => x.usd) ? usd(v) : kg(v))}<p class="hint" style="margin-top:8px">Las ${Math.min(3, par.length)} primeras causas explican ${pct(caT ? sum(ca.slice(0, 3), c => sum(ca, x => x.usd) ? c.usd : c.kg) / caT * 100 : 0, 0)} del costo.</p>` : emptyState('Sin mermas en 30 días', 'Cuando se registren, aquí se ve por qué se pierde más.'), {sub: 'Ordenadas por costo en $'})}
     ${card('Lotes con más merma acumulada', table([
       {h:'Lote', f:m => `<span class="mono">${m.l.id}</span><br><span class="muted">${prov(m.l.prov).nombre.replace(' (ejemplo)', '')}</span>`},
       {h:'Merma acum.', r:1, f:m => `<b>${pct(m.acum)}</b>`},
@@ -3685,13 +3660,13 @@ const MR_ACT = {
     else if (p.e.decl && !(+f.ent > 0)) err = 'Indica cuántos kg entraron a la etapa.';
     else if (!f.causa) err = 'Elige la causa.';
     else if (p.pct != null && p.pct > 100) err = 'No se puede perder más de lo que entró a la etapa.';
-    S.mrErr = err; if (err) return render();
+    S.mrErr = err; if (err) { if (typeof lmPintar === 'function' && S.lm) lmPintar(); return render(); }
     const r = p.rec ? one('recepciones', p.rec) : null;
     let mov = null;
     if (f.etapa === 'almmp' && r && r.sk) mov = {almacen: 'MP', item: r.sk, cant: p.kgv};
     if (f.etapa === 'almpt' && f.un === 'und' && f.pres) mov = {almacen: 'PT', item: f.pres, cant: p.cant};
     const body = {etapa: f.etapa, lote: p.lote, rec: p.rec, ref: p.ref, prod: r ? r.item : (p.e.item || ''), pres: f.un === 'und' ? f.pres : '', cant: p.cant, un: f.un, causa: f.causa, obs: f.obs, usd: p.usd, ent: p.e.decl ? +f.ent : 0, apr: lvl('mermas') >= 3, mov};
-    run('mr', () => Svc.regMerma(body), id => { const t = p.e.t; mrReset(); return `Merma ${id} registrada en ${t}: ${N1.format(p.kgv)} kg, ${usd(p.usd)}.${body.apr ? '' : ' Queda pendiente de aprobación.'}`; });
+    run('mr', () => Svc.regMerma(body), id => { const t = p.e.t; mrReset(); if (typeof lmTrasMerma === 'function' && S.lm) lmTrasMerma(id); return `Merma ${id} registrada en ${t}: ${N1.format(p.kgv)} kg, ${usd(p.usd)}.${' Se avisó a Gerencia y Administración.'}`; });
   },
   aprobarMerma: el => run('mra:' + el.dataset.id, () => Svc.aprobarMerma(el.dataset.id), 'Merma aprobada.'),
   guardarTolMerma: () => run('pol', async () => { await Svc.guardarPol(S.pol); S.polDirty = false; }, 'Tolerancias de merma guardadas. Ya se aplican en los semáforos y alertas.'),
@@ -3758,41 +3733,41 @@ const provN = id => esc((DATA.proveedores.find(p => p.id === id) || {nombre: id}
 /* Definiciones. mode: serie (por periodo, actual vs anterior) · cat (por categoría, actual vs anterior) · multi (varias medidas, periodo actual) · snap (foto de hoy)
    scr = pantalla cuyo permiso decide quién ve la gráfica · ex = cifras de ejemplo sin captura */
 const CH = {
-  ventas_total: {t: 'Ventas totales', sub: 'US$ vendidos por periodo', scr: 'ventas', ex: 1, mode: 'serie', u: 'usd', get: (s, a, z) => s.vh ? sum(vhRows(s.vh, a, z), d => d[1]) : null},
+  ventas_total: {t: 'Ventas totales', sub: '$ vendidos por periodo', scr: 'ventas', ex: 1, mode: 'serie', u: 'usd', get: (s, a, z) => s.vh ? sum(vhRows(s.vh, a, z), d => d[1]) : null},
   ventas_vend: {t: 'Ventas por vendedor', sub: 'Los 8 que más vendieron en el periodo actual', scr: 'ventas', ex: 1, mode: 'cat', u: 'usd', lim: 8, get: (s, a, z) => s.vh ? vhBy(s.vh, a, z, 2, s.vh.vend) : null},
   ventas_prod: {t: 'Productos más y menos vendidos', sub: '5 más vendidos y 3 menos vendidos del periodo actual', scr: 'ventas', ex: 1, mode: 'cat', u: 'usd', lim: 5, tail: 3, get: (s, a, z) => s.vh ? vhBy(s.vh, a, z, 3, s.vh.prod) : null},
-  compras_serie: {t: 'Compras por periodo', sub: 'Todo lo comprado, en US$', scr: 'compras-mp', mode: 'serie', u: 'usd', get: (s, a, z) => cpSum(s.compras, a, z)},
-  compras_tipo: {t: 'Materia prima frente a compras generales', sub: 'US$ comprados por tipo', scr: 'analisis', mode: 'cat', u: 'usd', vert: 1, get: (s, a, z) => { const m = cpGroup(s.compras, a, z, c => c.fam === 'MP' ? 'Materia prima' : 'Generales'); return {'Materia prima': m['Materia prima'] || 0, 'Generales': m['Generales'] || 0}; }},
-  compras_cond: {t: 'Compras de contado frente a crédito', sub: 'US$ comprados según la condición de pago', scr: 'analisis', mode: 'cat', u: 'usd', vert: 1, get: (s, a, z) => { const m = cpGroup(s.compras, a, z, c => c.cond === 'Crédito' ? 'Crédito' : 'Contado'); return {'Contado': m['Contado'] || 0, 'Crédito': m['Crédito'] || 0}; }},
-  compras_prov: {t: 'Compras por proveedor', sub: 'Los 6 mayores del periodo actual, en US$', scr: 'analisis', mode: 'cat', u: 'usd', lim: 6, get: (s, a, z) => cpGroup(s.compras, a, z, c => provN(c.prov))},
-  gastos_total: {t: 'Gastos por periodo', sub: 'Compras generales más caja chica, en US$', scr: 'compras-gen', mode: 'serie', u: 'usd', get: (s, a, z) => cpSum(s.compras.filter(c => c.fam === 'GEN'), a, z) + cpSum(s.gastos, a, z)},
-  gen_cat: {t: 'Compras generales por rubro', sub: 'Los 6 mayores del periodo actual, en US$', scr: 'compras-gen', mode: 'cat', u: 'usd', lim: 6, get: (s, a, z) => cpGroup(s.compras.filter(c => c.fam === 'GEN'), a, z, c => c.cat)},
+  compras_serie: {t: 'Compras por periodo', sub: 'Todo lo comprado, en $', scr: 'compras-mp', mode: 'serie', u: 'usd', get: (s, a, z) => cpSum(s.compras, a, z)},
+  compras_tipo: {t: 'Materia prima frente a compras generales', sub: '$ comprados por tipo', scr: 'analisis', mode: 'cat', u: 'usd', vert: 1, get: (s, a, z) => { const m = cpGroup(s.compras, a, z, c => c.fam === 'MP' ? 'Materia prima' : 'Generales'); return {'Materia prima': m['Materia prima'] || 0, 'Generales': m['Generales'] || 0}; }},
+  compras_cond: {t: 'Compras de contado frente a crédito', sub: '$ comprados según la condición de pago', scr: 'analisis', mode: 'cat', u: 'usd', vert: 1, get: (s, a, z) => { const m = cpGroup(s.compras, a, z, c => c.cond === 'Crédito' ? 'Crédito' : 'Contado'); return {'Contado': m['Contado'] || 0, 'Crédito': m['Crédito'] || 0}; }},
+  compras_prov: {t: 'Compras por proveedor', sub: 'Los 6 mayores del periodo actual, en $', scr: 'analisis', mode: 'cat', u: 'usd', lim: 6, get: (s, a, z) => cpGroup(s.compras, a, z, c => provN(c.prov))},
+  gastos_total: {t: 'Gastos por periodo', sub: 'Compras generales más caja chica, en $', scr: 'compras-gen', mode: 'serie', u: 'usd', get: (s, a, z) => cpSum(s.compras.filter(c => c.fam === 'GEN'), a, z) + cpSum(s.gastos, a, z)},
+  gen_cat: {t: 'Compras generales por rubro', sub: 'Los 6 mayores del periodo actual, en $', scr: 'compras-gen', mode: 'cat', u: 'usd', lim: 6, get: (s, a, z) => cpGroup(s.compras.filter(c => c.fam === 'GEN'), a, z, c => c.cat)},
   prod_kg: {t: 'Papa frita producida', sub: 'Kg de papa frita a granel de los lotes cerrados', scr: 'produccion', mode: 'serie', u: 'kg', get: (s, a, z) => cpSum(s.lotes, a, z, l => l.kg)},
   prod_rend: {t: 'Rendimiento de los lotes', sub: 'Kg de papa frita ÷ kg de papa cruda', scr: 'produccion', mode: 'serie', u: 'pct', get: (s, a, z) => pctOf(cpSum(s.lotes, a, z, l => l.kg), cpSum(s.lotes, a, z, l => l.cr))},
   prod_aceite: {t: 'Consumo de aceite', sub: 'Aceite usado como % de la papa frita (supuesto de base: papa frita)', scr: 'produccion', mode: 'serie', u: 'pct', get: (s, a, z) => pctOf(cpSum(s.lotes, a, z, l => l.ac), cpSum(s.lotes, a, z, l => l.kg))},
   recep_kg: {t: 'Kg facturados frente a kg recibidos', sub: 'Lo que dice la factura de compra y lo que marcó la balanza, por periodo actual', scr: 'recepcion', mode: 'multi', u: 'kg', gets: [['Facturado', (s, a, z) => cpSum(s.recs, a, z, r => r.qf)], ['Recibido en balanza', (s, a, z) => cpSum(s.recs, a, z, r => r.kr)]]},
   recep_dif: {t: 'Diferencia de peso por proveedor', sub: '% que falta entre lo facturado y lo recibido (menos es mejor)', scr: 'recepcion', mode: 'cat', u: 'pct', lim: 6, get: (s, a, z) => { const q = cpGroup(s.recs, a, z, r => provN(r.prov), r => r.qf), k = cpGroup(s.recs, a, z, r => provN(r.prov), r => r.kr), m = {}; Object.keys(q).forEach(p => { m[p] = pctOf(q[p] - k[p], q[p]) || 0; }); return m; }},
-  cxp_pagado: {t: 'Pagado a proveedores', sub: 'US$ pagados por periodo', scr: 'cxp', mode: 'serie', u: 'usd', get: (s, a, z) => cpSum(s.pagos, a, z)},
-  caja_gastos: {t: 'Gastos de caja chica', sub: 'US$ gastados por periodo', scr: 'caja', mode: 'serie', u: 'usd', get: (s, a, z) => cpSum(s.gastos, a, z)},
-  caja_cmp: {t: 'Gastos frente a reposición de caja', sub: 'US$ gastados y US$ repuestos al fondo', scr: 'caja', mode: 'cat', u: 'usd', vert: 1, get: (s, a, z) => ({'Gastos': cpSum(s.gastos, a, z), 'Reposición': cpSum(s.repos, a, z)})},
-  caja_cat: {t: 'Gastos de caja chica por destino', sub: 'En qué se gastó, en US$', scr: 'caja', mode: 'cat', u: 'usd', lim: 6, get: (s, a, z) => cpGroup(s.gastos, a, z, g => g.cat)},
-  nomina: {t: 'Nómina pagada', sub: 'Se paga en Bs; aquí en US$ a la tasa de la cabecera', scr: 'nomina', ex: 1, mode: 'serie', u: 'usd', get: (s, a, z) => s.nh.length ? cpSum(s.nh, a, z, x => x.bs) / S.tasa : null},
+  cxp_pagado: {t: 'Pagado a proveedores', sub: '$ pagados por periodo', scr: 'cxp', mode: 'serie', u: 'usd', get: (s, a, z) => cpSum(s.pagos, a, z)},
+  caja_gastos: {t: 'Gastos de caja chica', sub: '$ gastados por periodo', scr: 'caja', mode: 'serie', u: 'usd', get: (s, a, z) => cpSum(s.gastos, a, z)},
+  caja_cmp: {t: 'Gastos frente a reposición de caja', sub: '$ gastados y $ repuestos al fondo', scr: 'caja', mode: 'cat', u: 'usd', vert: 1, get: (s, a, z) => ({'Gastos': cpSum(s.gastos, a, z), 'Reposición': cpSum(s.repos, a, z)})},
+  caja_cat: {t: 'Gastos de caja chica por destino', sub: 'En qué se gastó, en $', scr: 'caja', mode: 'cat', u: 'usd', lim: 6, get: (s, a, z) => cpGroup(s.gastos, a, z, g => g.cat)},
+  nomina: {t: 'Nómina pagada', sub: 'Se paga en Bs; aquí en $ a la tasa de la cabecera', scr: 'nomina', ex: 1, mode: 'serie', u: 'usd', get: (s, a, z) => s.nh.length ? cpSum(s.nh, a, z, x => x.bs) / S.tasa : null},
   desp_veh: {t: 'Despachos por vehículo', sub: 'Unidades despachadas por cada vehículo', scr: 'despachos', mode: 'cat', u: 'und', get: (s, a, z) => cpGroup(s.desp, a, z, n => n.veh, n => n.und)},
   desp_tipo: {t: 'Despachos por tipo de destino', sub: 'Unidades despachadas según el cliente', scr: 'despachos', mode: 'cat', u: 'und', vert: 1, get: (s, a, z) => cpGroup(s.desp, a, z, n => n.tipo, n => n.und)},
   mr_pct: {t: 'Merma % por proceso', sub: 'Perdido ÷ lo que entró a cada etapa (menos es mejor)', scr: 'mermas', mode: 'cat', u: 'pct', lim: 12, get: (s, a, z) => { const m = {}; mrStages(a, z).forEach(x => { if (x.pct != null) m[x.t] = x.pct; }); return m; }},
   mr_causa_kg: {t: 'Merma en kg por causa', sub: 'Peso perdido según la causa registrada', scr: 'mermas', mode: 'cat', u: 'kg', lim: 8, get: (s, a, z) => cpGroup(s.mer, a, z, e => e.causa, e => e.kg)},
-  mr_causa_usd: {t: 'Merma en US$ por causa', sub: 'Costo de lo perdido según la causa', scr: 'mermas', mode: 'cat', u: 'usd', lim: 8, get: (s, a, z) => cpGroup(s.mer, a, z, e => e.causa, e => e.usd)},
-  mr_lote: {t: 'Merma por lote', sub: 'Los 8 lotes con más costo de merma, en US$', scr: 'mermas', mode: 'cat', u: 'usd', lim: 8, get: (s, a, z) => cpGroup(s.mer.filter(e => e.lote), a, z, e => e.lote, e => e.usd)},
+  mr_causa_usd: {t: 'Merma en $ por causa', sub: 'Costo de lo perdido según la causa', scr: 'mermas', mode: 'cat', u: 'usd', lim: 8, get: (s, a, z) => cpGroup(s.mer, a, z, e => e.causa, e => e.usd)},
+  mr_lote: {t: 'Merma por lote', sub: 'Los 8 lotes con más costo de merma, en $', scr: 'mermas', mode: 'cat', u: 'usd', lim: 8, get: (s, a, z) => cpGroup(s.mer.filter(e => e.lote), a, z, e => e.lote, e => e.usd)},
   mr_prov: {t: 'Merma por proveedor', sub: 'Kg de materia prima perdidos por proveedor', scr: 'mermas', mode: 'cat', u: 'kg', lim: 6, get: (s, a, z) => cpGroup(s.mer.filter(e => e.prov && MR_RAW.includes(e.et)), a, z, e => provN(e.prov), e => e.kg)},
   mr_serie: {t: 'Merma en kg por periodo', sub: 'Peso perdido en todas las etapas', scr: 'mermas', mode: 'serie', u: 'kg', get: (s, a, z) => cpSum(s.mer, a, z, e => e.kg)},
-  mr_usd: {t: 'Costo de las mermas por periodo', sub: 'US$ perdidos en todas las etapas', scr: 'mermas', mode: 'serie', u: 'usd', get: (s, a, z) => cpSum(s.mer, a, z, e => e.usd)},
+  mr_usd: {t: 'Costo de las mermas por periodo', sub: '$ perdidos en todas las etapas', scr: 'mermas', mode: 'serie', u: 'usd', get: (s, a, z) => cpSum(s.mer, a, z, e => e.usd)},
   mr_flujo: {t: 'Flujo de pérdida por etapa', sub: 'Kg que entran a cada etapa y kg que salen, en el periodo actual', scr: 'mermas', mode: 'snap', build: win => { const L = mrStages(win.ca, win.cz).filter(x => x.ent > 0); return {u: 'kg', labels: L.map(x => x.t), ds: [{k: 'Entró', v: L.map(x => x.ent), tone: 'cur'}, {k: 'Salió', v: L.map(x => x.ent - x.kg), tone: 'b'}], x: L.map(x => 'Merma ' + N1.format(x.pct) + ' % · tolerancia ' + N1.format(x.tol) + ' %')}; }},
   mr_lote_acum: {t: 'Merma acumulada por lote', sub: '% de la papa perdido desde Recepción hasta Despacho · los 10 últimos lotes cerrados', scr: 'mermas', mode: 'snap', build: () => { const L = S.lotes.filter(l => l.granel).slice(-10).map(mrLote); return {u: 'pct', vert: 1, labels: L.map(m => m.l.id), ds: [{k: 'Merma acumulada', v: L.map(m => m.acum), tone: 'cur'}, {k: 'Rendimiento perdido (puntos)', v: L.map(m => m.rPot - m.rNet), tone: 'b'}], x: L.map(m => 'Rend. medido ' + N1.format(m.rMed) + ' % · neto ' + N1.format(m.rNet) + ' %')}; }},
   // ---- fotos de hoy ----
   cxp_aging: {t: 'Cuentas por pagar: vencido y por vencer', sub: 'Saldo a hoy según el vencimiento · el vencido en rojo', scr: 'cxp', mode: 'snap', build: () => { const b = cxpBuckets(); return {u: 'usd', vert: 1, labels: ['Vencido', 'Vence en 7 días', '8 a 30 días', 'Más de 30 días'], ds: [{k: 'Saldo', v: [b.venc, b.hoy + b.sem, b.d30, b.mas], cols: ['crit', 'bar', 'bar', 'bar']}]}; }},
-  cxp_prov: {t: 'Saldo por pagar a cada proveedor', sub: 'Los 8 con más saldo, en US$', scr: 'cxp', mode: 'snap', build: () => { const m = {}; cxpList().forEach(c => { const k = provN(c.prov); m[k] = (m[k] || 0) + c.saldo; }); return cpTop('usd', m, 8, 'Saldo'); }},
-  cobranza_aging: {t: 'Cobranza: antigüedad de lo que deben los clientes', sub: 'US$ por cobrar según los días desde la nota de entrega · más de 30 días en rojo', scr: 'ventas', ex: 1, mode: 'snap', build: () => { const v = [0, 0, 0, 0]; DATA.cxc.forEach(c => { const d = -dias(c.fecha); v[d <= 7 ? 0 : d <= 14 ? 1 : d <= 30 ? 2 : 3] += c.monto; }); return {u: 'usd', vert: 1, labels: ['0 a 7 días', '8 a 14 días', '15 a 30 días', 'Más de 30 días'], ds: [{k: 'Por cobrar', v, cols: ['bar', 'bar', 'bar', 'crit']}]}; }},
-  cobranza_vend: {t: 'Por cobrar por vendedor', sub: 'US$ que deben los clientes de cada vendedor', scr: 'ventas', ex: 1, mode: 'snap', build: () => { const m = {}; DATA.cxc.forEach(c => { m[c.vend] = (m[c.vend] || 0) + c.monto; }); return cpTop('usd', m, 8, 'Por cobrar'); }},
+  cxp_prov: {t: 'Saldo por pagar a cada proveedor', sub: 'Los 8 con más saldo, en $', scr: 'cxp', mode: 'snap', build: () => { const m = {}; cxpList().forEach(c => { const k = provN(c.prov); m[k] = (m[k] || 0) + c.saldo; }); return cpTop('usd', m, 8, 'Saldo'); }},
+  cobranza_aging: {t: 'Cobranza: antigüedad de lo que deben los clientes', sub: '$ por cobrar según los días desde la nota de entrega · más de 30 días en rojo', scr: 'ventas', ex: 1, mode: 'snap', build: () => { const v = [0, 0, 0, 0]; DATA.cxc.forEach(c => { const d = -dias(c.fecha); v[d <= 7 ? 0 : d <= 14 ? 1 : d <= 30 ? 2 : 3] += c.monto; }); return {u: 'usd', vert: 1, labels: ['0 a 7 días', '8 a 14 días', '15 a 30 días', 'Más de 30 días'], ds: [{k: 'Por cobrar', v, cols: ['bar', 'bar', 'bar', 'crit']}]}; }},
+  cobranza_vend: {t: 'Por cobrar por vendedor', sub: '$ que deben los clientes de cada vendedor', scr: 'ventas', ex: 1, mode: 'snap', build: () => { const m = {}; DATA.cxc.forEach(c => { m[c.vend] = (m[c.vend] || 0) + c.monto; }); return cpTop('usd', m, 8, 'Por cobrar'); }},
   precio_bf: {t: 'Precio FULL frente a precio B', sub: 'Lo que se cobra si el cliente no paga a tiempo y lo que se cobra si paga hoy (supuesto de descuento)', scr: 'ventas', ex: 1, mode: 'snap', build: () => { const P = S.pol, L = DATA.cxc.slice().sort((a, b) => b.monto - a.monto).slice(0, 7); return {u: 'usd', labels: L.map(c => esc(c.cli).replace(' (ejemplo)', '')), ds: [{k: 'Precio FULL', v: L.map(c => c.monto), tone: 'cur'}, {k: 'Si paga hoy', v: L.map(c => -dias(c.fecha) <= P.diasPrecioB ? c.monto * (1 - P.descB / 100) : c.monto), tone: 'b'}]}; }},
   prov_puntaje: {t: 'Puntaje de proveedores', sub: '0 a 100 · 80 o más: mantener · menos de 65: sustituir', scr: 'analisis', mode: 'snap', build: () => { const R = provStats(S.anFam).rows; return {u: 'pts', labels: R.map(r => provN(r.id)), ds: [{k: 'Puntaje', v: R.map(r => r.score), cols: R.map(r => r.score >= 80 ? 'bar' : r.score >= 65 ? 'bar' : 'crit')}], max: 100}; }},
   prov_merma: {t: 'Merma y rechazo por proveedor', sub: '% de kg que faltan y % de lo rechazado', scr: 'analisis', mode: 'snap', build: () => { const R = provStats(S.anFam).rows.filter(r => r.merma != null || r.rech != null); return {u: 'pct', labels: R.map(r => provN(r.id)), ds: [{k: 'Merma de peso', v: R.map(r => r.merma || 0), tone: 'cur'}, {k: 'Rechazo', v: R.map(r => r.rech || 0), tone: 'b'}]}; }},
@@ -3800,7 +3775,7 @@ const CH = {
   prov_plazo: {t: 'Plazo de crédito por proveedor', sub: 'Días que da cada proveedor para pagar (más es mejor)', scr: 'analisis', mode: 'snap', build: () => { const R = provStats(S.anFam).rows; return {u: 'd', labels: R.map(r => provN(r.id)), ds: [{k: 'Días de plazo', v: R.map(r => r.plazo || 0), tone: 'cur'}]}; }},
   cotejo_kg: {t: 'Compra frente a producción, lote por lote', sub: 'Kg de papa cruda que entraron al lote y kg de papa frita obtenidos', scr: 'cotejo', mode: 'snap', build: () => { const L = S.lotes.filter(l => l.granel).slice(-8); return {u: 'kg', labels: L.map(l => l.id), ds: [{k: 'Papa cruda al lote', v: L.map(l => l.cruda), tone: 'cur'}, {k: 'Papa frita', v: L.map(l => l.granel), tone: 'b'}]}; }},
   cotejo_rend: {t: 'Rendimiento por proveedor', sub: '% de papa frita sobre papa cruda (más es mejor)', scr: 'cotejo', mode: 'snap', build: () => { const m = cpLotesProv(), k = Object.keys(m); return {u: 'pct', vert: k.length < 4, labels: k.map(provN), ds: [{k: 'Rendimiento', v: k.map(p => m[p].gr / m[p].cr * 100), tone: 'cur'}]}; }},
-  cotejo_costo: {t: 'Costo por kg útil por proveedor', sub: 'US$ pagados por cada kg de papa frita obtenido (menos es mejor)', scr: 'cotejo', mode: 'snap', build: () => { const m = cpLotesProv(), k = Object.keys(m).filter(p => m[p].cost > 0); return {u: 'usd2', vert: k.length < 4, labels: k.map(provN), ds: [{k: 'Costo por kg útil', v: k.map(p => m[p].cost / m[p].gr), tone: 'cur'}]}; }},
+  cotejo_costo: {t: 'Costo por kg útil por proveedor', sub: '$ pagados por cada kg de papa frita obtenido (menos es mejor)', scr: 'cotejo', mode: 'snap', build: () => { const m = cpLotesProv(), k = Object.keys(m).filter(p => m[p].cost > 0); return {u: 'usd2', vert: k.length < 4, labels: k.map(provN), ds: [{k: 'Costo por kg útil', v: k.map(p => m[p].cost / m[p].gr), tone: 'cur'}]}; }},
   stock_mp: {t: 'Materia prima: existencia frente al mínimo', sub: '100 % es el mínimo · en rojo, por debajo', scr: 'alm-mp', mode: 'snap', build: () => ({u: 'pct0', labels: S.stock.map(s => s.k), ds: [{k: 'Existencia (% del mínimo)', v: S.stock.map(s => s.min ? s.q / s.min * 100 : 0), cols: S.stock.map(s => s.q < s.min ? 'crit' : 'bar')}], x: S.stock.map(s => N0.format(s.q) + ' ' + s.u + ' · mínimo ' + N0.format(s.min))})},
   stock_pt: {t: 'Producto terminado: existencia frente al mínimo', sub: '100 % es el mínimo · en rojo, por debajo', scr: 'alm-pt', mode: 'snap', build: () => ({u: 'pct0', labels: S.pres.map(p => p.n), ds: [{k: 'Existencia (% del mínimo)', v: S.pres.map(p => p.min ? p.stock / p.min * 100 : 0), cols: S.pres.map(p => p.stock < p.min ? 'crit' : 'bar')}], x: S.pres.map(p => N0.format(p.stock) + ' und · mínimo ' + N0.format(p.min))})},
   stock_sal: {t: 'Salsas: existencia frente al mínimo', sub: '100 % es el mínimo · en rojo, por debajo', scr: 'alm-pt', mode: 'snap', build: () => ({u: 'pct0', labels: DATA.stockSalsas.map(s => s.n), ds: [{k: 'Existencia (% del mínimo)', v: DATA.stockSalsas.map(s => s.min ? s.stock / s.min * 100 : 0), cols: DATA.stockSalsas.map(s => s.stock < s.min ? 'crit' : 'bar')}], x: DATA.stockSalsas.map(s => N0.format(s.stock) + ' und · mínimo ' + N0.format(s.min))})},
@@ -3808,11 +3783,11 @@ const CH = {
   alm_log: {t: 'Bultos por estado', sub: 'Kg pesados y etiquetados según su estado', scr: 'alm-logistica', mode: 'snap', build: () => { const m = {}; S.bultos.forEach(b => { m[b.est] = (m[b.est] || 0) + b.kg; }); return cpTop('kg', m, 6, 'Kg', true); }},
   emp_hoy: {t: 'Empacado hoy por presentación', sub: 'Unidades empacadas en el día', scr: 'empaque', mode: 'snap', build: () => { const m = {}; DATA.empaqueHoy.forEach(e => { const p = S.pres.find(x => x.cod === e.pres), k = p ? p.n : e.pres; m[k] = (m[k] || 0) + e.und; }); return cpTop('und', m, 8, 'Unidades'); }},
   emp_repo: {t: 'Reposiciones de empaque pedidas', sub: 'Unidades pedidas por presentación, pendientes y aprobadas', scr: 'empaque', mode: 'snap', build: () => { const k = [...new Set(S.repos.map(r => r.pres))], nm = c => (S.pres.find(p => p.cod === c) || {n: c}).n, f = e => k.map(c => sum(S.repos.filter(r => r.pres === c && r.estado === e), r => r.cant)); return {u: 'und', labels: k.map(nm), ds: [{k: 'Pendiente', v: f('Pendiente'), tone: 'cur'}, {k: 'Aprobada', v: f('Aprobada'), tone: 'b'}]}; }},
-  arq: {t: 'Arqueos de caja chica', sub: 'Efectivo y comprobantes contados frente a lo esperado, en US$', scr: 'caja', mode: 'snap', build: () => { const A = S.arqueos.slice().sort((a, b) => a.fecha.localeCompare(b.fecha)).slice(-8); return {u: 'usd', vert: 1, labels: A.map(a => fd(a.fecha)), ds: [{k: 'Contado', v: A.map(a => a.contado), tone: 'cur'}, {k: 'Esperado', v: A.map(a => a.esperado), tone: 'prev'}], x: A.map(a => 'Diferencia ' + usd(a.contado - a.esperado))}; }},
-  prest_saldo: {t: 'Saldo de préstamos por empleado', sub: 'US$ que falta descontar por nómina', scr: 'prestamos', mode: 'snap', build: () => { const m = {}; S.prestamos.forEach(p => { const e = DATA.empleados.find(x => x.id === p.emp); const k = e ? e.n : p.emp; m[k] = (m[k] || 0) + p.monto / p.cuotas * (p.cuotas - p.pagadas); }); return cpTop('usd', m, 8, 'Saldo por cobrar'); }},
-  prest_recup: {t: 'Prestado frente a recuperado', sub: 'Por cada préstamo, lo entregado y lo ya descontado, en US$', scr: 'prestamos', mode: 'snap', build: () => ({u: 'usd', vert: 1, labels: S.prestamos.map(p => p.id), ds: [{k: 'Entregado', v: S.prestamos.map(p => p.monto), tone: 'cur'}, {k: 'Descontado', v: S.prestamos.map(p => p.monto / p.cuotas * p.pagadas), tone: 'b'}]})},
+  arq: {t: 'Arqueos de caja chica', sub: 'Efectivo y comprobantes contados frente a lo esperado, en $', scr: 'caja', mode: 'snap', build: () => { const A = S.arqueos.slice().sort((a, b) => a.fecha.localeCompare(b.fecha)).slice(-8); return {u: 'usd', vert: 1, labels: A.map(a => fd(a.fecha)), ds: [{k: 'Contado', v: A.map(a => a.contado), tone: 'cur'}, {k: 'Esperado', v: A.map(a => a.esperado), tone: 'prev'}], x: A.map(a => 'Diferencia ' + usd(a.contado - a.esperado))}; }},
+  prest_saldo: {t: 'Saldo de préstamos por empleado', sub: '$ que falta descontar por nómina', scr: 'prestamos', mode: 'snap', build: () => { const m = {}; S.prestamos.forEach(p => { const e = DATA.empleados.find(x => x.id === p.emp); const k = e ? e.n : p.emp; m[k] = (m[k] || 0) + p.monto / p.cuotas * (p.cuotas - p.pagadas); }); return cpTop('usd', m, 8, 'Saldo por cobrar'); }},
+  prest_recup: {t: 'Prestado frente a recuperado', sub: 'Por cada préstamo, lo entregado y lo ya descontado, en $', scr: 'prestamos', mode: 'snap', build: () => ({u: 'usd', vert: 1, labels: S.prestamos.map(p => p.id), ds: [{k: 'Entregado', v: S.prestamos.map(p => p.monto), tone: 'cur'}, {k: 'Descontado', v: S.prestamos.map(p => p.monto / p.cuotas * p.pagadas), tone: 'b'}]})},
   nom_area: {t: 'Nómina de la quincena por área', sub: 'Bs: sueldo base, horas extra y bonos', scr: 'nomina', ex: 1, mode: 'snap', build: () => ({u: 'bs', stacked: 1, labels: DATA.nomina.map(n => n.area), ds: [{k: 'Base', v: DATA.nomina.map(n => n.base), tone: 'cur'}, {k: 'Extras', v: DATA.nomina.map(n => n.extras), tone: 'b'}, {k: 'Bonos', v: DATA.nomina.map(n => n.bonos), tone: 'prev'}]})},
-  gastos_fv: {t: 'Gastos fijos y variables del mes', sub: 'US$ por concepto', scr: 'nomina', ex: 1, mode: 'snap', build: () => { const F = DATA.gastosFijos, V = DATA.gastosVar, L = [...F, ...V]; return {u: 'usd', stacked: 1, labels: L.map(x => x[0]), ds: [{k: 'Fijos', v: L.map((x, i) => i < F.length ? x[1] : null), tone: 'cur'}, {k: 'Variables', v: L.map((x, i) => i >= F.length ? x[1] : null), tone: 'b'}]}; }}
+  gastos_fv: {t: 'Gastos fijos y variables del mes', sub: '$ por concepto', scr: 'nomina', ex: 1, mode: 'snap', build: () => { const F = DATA.gastosFijos, V = DATA.gastosVar, L = [...F, ...V]; return {u: 'usd', stacked: 1, labels: L.map(x => x[0]), ds: [{k: 'Fijos', v: L.map((x, i) => i < F.length ? x[1] : null), tone: 'cur'}, {k: 'Variables', v: L.map((x, i) => i >= F.length ? x[1] : null), tone: 'b'}]}; }}
 };
 function cpLotesProv() {
   const m = {}; S.lotes.filter(l => l.granel && (c => c && c.kgRec)(S.compras.find(x => x.id === l.compra))).forEach(l => { const o = (m[l.prov] ||= {cr: 0, gr: 0, cost: 0}); o.cr += l.cruda; o.gr += l.granel; o.cost += lotCosto(l) || 0; });
@@ -3834,9 +3809,9 @@ const CP_SCR = {
   ventas: ['ventas_total', 'ventas_vend', 'ventas_prod', 'cobranza_aging', 'cobranza_vend', 'precio_bf'], nomina: ['nomina', 'nom_area', 'gastos_fv', 'gastos_total']
 };
 /* Formatos: texto plano (tooltip, eje) y HTML (tabla) */
-const cpTxt = (u, v) => v == null ? '—' : u === 'usd' ? 'US$ ' + N0.format(v) : u === 'usd2' ? 'US$ ' + N2.format(v) : u === 'bs' ? 'Bs ' + N0.format(v) : u === 'kg' ? N0.format(v) + ' kg' : u === 'pct' ? N1.format(v) + ' %' : u === 'pct0' ? N0.format(v) + ' %' : u === 'und' ? N0.format(v) + ' und' : u === 'd' ? N0.format(v) + ' d' : N0.format(v);
-const cpTip = (u, v) => v == null ? '—' : u === 'usd' ? 'US$ ' + N2.format(v) + ' · Bs ' + N0.format(v * S.tasa) : u === 'usd2' ? 'US$ ' + N2.format(v) + ' · Bs ' + N2.format(v * S.tasa) : u === 'bs' ? 'Bs ' + N0.format(v) + ' · US$ ' + N2.format(v / S.tasa) : cpTxt(u, v);
-const cpHtml = (u, v) => v == null ? '<span class="muted">—</span>' : (u === 'usd' || u === 'usd2') ? money(v) : u === 'bs' ? `<span class="money"><span class="usd">Bs ${N0.format(v)}</span><span class="bs">US$ ${N2.format(v / S.tasa)}</span></span>` : cpTxt(u, v);
+const cpTxt = (u, v) => v == null ? '—' : u === 'usd' ? '$ ' + N0.format(v) : u === 'usd2' ? '$ ' + N2.format(v) : u === 'bs' ? 'Bs ' + N0.format(v) : u === 'kg' ? N0.format(v) + ' kg' : u === 'pct' ? N1.format(v) + ' %' : u === 'pct0' ? N0.format(v) + ' %' : u === 'und' ? N0.format(v) + ' und' : u === 'd' ? N0.format(v) + ' d' : N0.format(v);
+const cpTip = (u, v) => v == null ? '—' : u === 'usd' ? '$ ' + N2.format(v) + ' · Bs ' + N0.format(v * S.tasa) : u === 'usd2' ? '$ ' + N2.format(v) + ' · Bs ' + N2.format(v * S.tasa) : u === 'bs' ? 'Bs ' + N0.format(v) + ' · $ ' + N2.format(v / S.tasa) : cpTxt(u, v);
+const cpHtml = (u, v) => v == null ? '<span class="muted">—</span>' : (u === 'usd' || u === 'usd2') ? money(v) : u === 'bs' ? `<span class="money"><span class="usd">Bs ${N0.format(v)}</span><span class="bs">$ ${N2.format(v / S.tasa)}</span></span>` : cpTxt(u, v);
 
 /* Construcción de los datos de una gráfica (null = sin datos) */
 function cpBuild(id, s, win) {
@@ -4090,7 +4065,7 @@ function modal(title, body) {
   m.innerHTML = `<div class="mbox" role="dialog" aria-modal="true" aria-labelledby="mt"><div class="mbox-h"><h2 id="mt">${title}</h2><button type="button" class="iconbtn" data-act="closeModal" aria-label="Cerrar">${ic('x')}</button></div><div class="mbox-b">${body}</div></div>`;
   m.hidden = false; m.querySelector('[data-act="closeModal"]').focus();
 }
-function closeModal() { $('#modal').hidden = true; $('#modal').innerHTML = ''; }
+function closeModal() { $('#modal').hidden = true; $('#modal').innerHTML = ''; if (typeof lmAlCerrar === 'function') lmAlCerrar(); }
 function toast(t, kind) {
   const el = document.createElement('div'); el.className = 'toast' + (kind ? ' ' + kind : '');
   el.setAttribute('role', kind === 'err' ? 'alert' : 'status');
@@ -4415,7 +4390,7 @@ const INV_ACT = {
 };
 ACT_LBL.invRepo = 'pedir reposiciones'; ACT_LBL.invLimGuardar = 'cambiar los límites';
 EXP_SETS.inv = {t: 'Inventario actual', scr: 'inventario', area: 'Producción', per: false, nota: 'Es una foto del inventario de hoy: no se filtra por periodo.',
-  cols: ['Almacén', 'Área', 'Ítem', 'Unidad', 'Existencia', 'Mínimo', 'Máximo', 'Estado', 'Cobertura (días)', 'Se agota', 'Valor US$', 'Valor Bs', 'Último movimiento'],
+  cols: ['Almacén', 'Área', 'Ítem', 'Unidad', 'Existencia', 'Mínimo', 'Máximo', 'Estado', 'Cobertura (días)', 'Se agota', 'Valor $', 'Valor Bs', 'Último movimiento'],
   rows: () => invItems().map(i => ({a: i.aA || 'Producción', v: [i.alm, i.area, un(i.nombre), i.u, i.q == null ? '' : round2(i.q), i.min, i.max, INV_EST[i.est][0], i.cob == null ? '' : round2(i.cob), i.agota, i.valor == null ? '' : round2(i.valor), i.valor == null ? '' : round2(i.valor * S.tasa), i.ult]}))};
 EXP_SETS.inva = {...EXP_SETS.inv, scr: 'inventario-adm'};
 EXP_SCR.inventario = ['inv']; EXP_SCR['inventario-adm'] = ['inva'];
@@ -4485,7 +4460,7 @@ const ACT = {
   drawer: () => openDrawer(), closeDrawer: () => closeDrawer(), closeModal: () => closeModal(),
   /* recepción */
   recTipo: el => { resetRecForm(el.dataset.v); S.recErr = ''; render(); },
-  recProd: el => { const t = S.recForm.tipo, p = (t === 'papa' ? DATA.productosPapa : DATA.insumos).find(x => x.n === el.value); if (!p) return; Object.assign(S.recForm, {prod: p.n, prov: provDe(p, t), kgSaco: p.kgSaco, kgFact: p.kgSaco * S.recForm.sacos}); if (t === 'insumo') S.recForm.muestras = S.recForm.muestras.map(() => p.kgSaco); render(); },
+  recProd: el => { const t = S.recForm.tipo, p = (t === 'papa' ? DATA.productosPapa : DATA.insumos).find(x => x.n === el.value); if (!p) return; Object.assign(S.recForm, {prod: p.n, prov: provDe(p, t), kgSaco: p.kgSaco, kgFact: p.kgSaco * S.recForm.sacos}); S.recForm.muestras = S.recForm.muestras.map(() => p.kgSaco); render(); },
   recCal: el => { S.recForm.calidad = el.dataset.v; render(); },
   step: el => { const v = Math.max(0, (+getPath(el.dataset.k) || 0) + +el.dataset.d); setPath(el.dataset.k, v); render(); },
   addMuestra: () => { S.recForm.muestras.push(S.recForm.kgSaco); render(); const i = S.recForm.muestras.length - 1; const inp = $('#rf-m' + i); inp && inp.focus(); },
@@ -4494,10 +4469,9 @@ const ACT = {
     const f = S.recForm, r = recCalc();
     if (!f.prod || !f.prov) { S.recErr = 'Falta el producto o el proveedor. Se registran en Catálogos.'; return render(); }
     if (!f.recibe) { S.recErr = 'Indica quién recibe (se agrega en Equipo y flota).'; return render(); }
-    if (!f.sacos || !f.kgFact) { S.recErr = 'Indica la cantidad de sacos y los kg facturados.'; return render(); }
+    if (!f.sacos || !f.kgFact) { S.recErr = 'Indica la cantidad de sacos y las pesadas.'; return render(); }
     if (!(+f.kgFact > 0) || !(+f.sacos > 0)) { S.recErr = 'Los sacos y los kg facturados deben ser mayores que cero.'; toast(S.recErr, 'warn'); return render(); }
-    if (f.tipo === 'papa' && !f.kgRec) { S.recErr = 'Indica los kg recibidos en la balanza.'; return render(); }
-    if (f.tipo === 'insumo' && r.n < 3) { S.recErr = 'Pesa al menos 3 sacos para estimar el promedio.'; return render(); }
+    if (r.n < 3) { S.recErr = 'Pesa al menos 3 sacos para estimar el promedio.'; return render(); }
     const p = [...DATA.productosPapa, ...DATA.insumos].find(x => x.n === f.prod);
     S.recErr = '';
     run('rec', () => Svc.guardarRec(f, r, p), id => { S.recForm.obs = ''; return `${id} guardada y enviada a Administración para validar.`; });
@@ -4565,18 +4539,18 @@ const ACT = {
     const q = (S.stock.find(s => s.k === 'Papa cruda') || {q: 0}).q;
     if (cruda > q) { S.lotMsg = `En el almacén solo hay ${kg(q)} de papa cruda.`; return render(); }
     S.lotMsg = '';
-    run('lote', () => Svc.abrirLote(f.compra, cruda), id => { S.lotForm.cruda = ''; return `Lote ${id} abierto con ${kg(cruda)} de papa cruda.`; });
+    return run('lote', () => Svc.abrirLote(f.compra, cruda), id => { S.lotForm.cruda = ''; return `Lote ${id} abierto con ${kg(cruda)} de papa cruda.`; });
   },
   avanzarEtapa: el => {
     const l = S.lotes.find(x => x.id === el.dataset.id); if (!l) return;
     const i = ETAPAS.indexOf(l.etapa); if (i >= ETAPAS.length - 1) return toast('El lote ya está en la última etapa: ciérralo con los kg obtenidos.', 'warn');
-    run('et:' + l.id, () => Svc.avanzarEtapa(l.id, ETAPAS[i + 1]), `Lote ${l.id}: ahora en ${ETAPAS[i + 1]}.`);
+    return run('et:' + l.id, async () => { await Svc.avanzarEtapa(l.id, ETAPAS[i + 1]); return true; }, `Lote ${l.id}: ahora en ${ETAPAS[i + 1]}.`).then(ok => { if (ok && typeof lmTrasAvanzar === 'function') lmTrasAvanzar(l.id, ETAPAS[i + 1]); });
   },
   cerrarLote: () => {
-    const l = S.lotes.find(x => x.estado === 'En proceso'), g = +S.lotForm.granel, a = +S.lotForm.aceite;
-    if (!l) return;
+    const l = (typeof lmLote === 'function' && S.lm ? lmLote() : null) || S.lotes.find(x => x.estado === 'En proceso'), g = +S.lotForm.granel, a = +S.lotForm.aceite;
+    if (!l || l.estado !== 'En proceso') return;
     if (!(g > 0) || !(a > 0)) return toast('Indica los kg a granel y el aceite consumido.', 'warn');
-    run('cierre:' + l.id, () => Svc.cerrarLote(l.id, g, a), () => { S.lotForm.granel = ''; S.lotForm.aceite = ''; return `Lote ${l.id} cerrado: rendimiento ${pct(g / l.cruda * 100)}. Pasa a empaque.`; });
+    return run('cierre:' + l.id, async () => { await Svc.cerrarLote(l.id, g, a); return true; }, () => { S.lotForm.granel = ''; S.lotForm.aceite = ''; return `Lote ${l.id} cerrado: rendimiento ${pct(g / l.cruda * 100)}. Pasa a empaque.`; }).then(ok => { if (ok && typeof lmTrasCerrar === 'function') lmTrasCerrar(l.id, g, a); });
   },
   addBulto: () => { const f = S.bltForm; if (!f.lote || !(+f.kg > 0)) return toast('Elige el origen y escribe el peso del bulto.', 'warn'); run('blt', () => Svc.addBulto(f), id => `Bulto ${id} pesado (${N1.format(f.kg)} kg). Etiqueta lista.`); },
   regEmpaque: () => {
@@ -4612,8 +4586,8 @@ const ACT = {
   },
   resetPerm: () => { if (S.rol !== 'dueno') return; S.perm = permInit(); S.mods = clone(MODS_DEF); saveMatriz(); toast('Matriz y módulos restaurados a la propuesta inicial.'); renderAll(); },
   /* catálogos */
-  archProv: el => run('arch', () => Svc.archivar('proveedores', el.dataset.id, true), 'Proveedor archivado. El Dueño puede restaurarlo.'),
-  restProv: el => run('arch', () => Svc.archivar('proveedores', el.dataset.id, false), 'Proveedor restaurado.'),
+  archProv: el => run('arch', () => Svc.archivar('proveedores', el.dataset.id, true), 'Proveedor desactivado: ya no sale en la lista de compras. Puedes activarlo de nuevo en Proveedores.'),
+  restProv: el => run('arch', () => Svc.archivar('proveedores', el.dataset.id, false), 'Proveedor activado.'),
   addProv: () => {
     const f = S.catForm.prov; S.catErr = {};
     if (!f.nombre.trim() || !f.rif.trim()) { S.catErr.prov = 'Escribe el nombre y el RIF del proveedor.'; return render(); }
@@ -4652,7 +4626,7 @@ function reciboModal(id) {
   const fechas = []; let y = D(p.fecha).getFullYear(), mo = D(p.fecha).getMonth(), q = D(p.fecha).getDate() < 15 ? 0 : 1;
   for (let i = 0; i < p.cuotas; i++) { const day = q === 0 ? 15 : new Date(y, mo + 1, 0).getDate(); fechas.push(`${y}-${String(mo + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`); if (q === 1) { mo++; if (mo > 11) { mo = 0; y++; } } q = 1 - q; }
   modal('Recibo de préstamo ' + p.id, `<div class="doc"><div class="dh"><div class="dh-id">${logoImg("doc-logo")}<div><h3>El Maná JL</h3><p>Recibo de préstamo a empleado</p></div></div><div style="text-align:right"><p class="mono">${p.id}</p><p>${fdl(p.fecha)}</p></div></div>
-    <p>Recibí de la caja chica de El Maná JL la cantidad de <b>${usd(p.monto)}</b> (${bs(p.monto * p.tasa)} a la tasa de ${N2.format(p.tasa)} Bs/US$) en calidad de préstamo, por concepto de: ${p.motivo}.</p>
+    <p>Recibí de la caja chica de El Maná JL la cantidad de <b>${usd(p.monto)}</b> (${bs(p.monto * p.tasa)} a la tasa de ${N2.format(p.tasa)} Bs/$) en calidad de préstamo, por concepto de: ${p.motivo}.</p>
     <p style="margin-top:8px">Autorizo que se descuente de mi nómina en <b>${p.cuotas} cuotas quincenales de ${bs(cuota * p.tasa)}</b>.</p>
     <div class="meta" style="margin-top:12px"><div><b>Empleado</b>${e.n}</div><div><b>Área</b>${e.area}</div><div><b>Cédula</b>________________</div><div><b>Entregado por</b>Custodio de caja chica</div></div>
     ${table([{h:'Cuota', f:x => x.i}, {h:'Quincena', f:x => fdl(x.f)}, {h:'Descuento', r:1, f:x => bs(cuota * p.tasa)}], fechas.map((f, i) => ({i:i + 1, f})))}

@@ -3,6 +3,7 @@
    · /api/v/portal/*  → el EQUIPO, con su rol en x-rol (igual que el resto de Ventas). */
 import * as S from './servicio.js';
 import * as VR from '../ventas/repo.js';
+import * as VS from '../ventas/servicio.js';
 import {ROL_TXT} from '../ventas/permisos.js';
 
 const json = (o, status = 200, extra = {}) => new Response(JSON.stringify(o), {status, headers: {'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', 'x-content-type-options': 'nosniff', 'referrer-policy': 'no-referrer', ...extra}});
@@ -27,6 +28,7 @@ export async function rutasPortal(req, env, url) {
     if (m === 'GET') {
       if (p === '/yo') return json(await S.perfil(ctx));
       if (p === '/catalogo') return json(await S.catalogo(ctx));
+      if ((r = p.match(/^\/productos\/(\d{1,12})\/imagen$/))) return await VS.respuestaImagen(db, +r[1]);
       if (p === '/bancos') return json(await S.bancosParaCliente(ctx));
       if (p === '/pedidos') return json(await S.misPedidos(ctx));
       if (p === '/cuenta') return json(await S.cuenta(ctx));

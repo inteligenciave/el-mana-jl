@@ -2,6 +2,8 @@
 .cp-3{display:grid;gap:12px;grid-template-columns:minmax(0,1fr);align-items:start}
 .cp-3>.card{margin:0;min-width:0}
 .cp-3 .card-h h2{font-size:18px}
+.cp-pvb{display:flex;flex-wrap:wrap;gap:8px;margin:2px 0 8px}
+.cp-pvb .btn{text-decoration:none}
 .cp-h3{font-size:14px;margin:14px 0 6px}
 .cp-ped{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;font-size:14px}
 .cp-ped li{border:1px solid var(--line);border-radius:9px;padding:6px 10px;line-height:1.3}

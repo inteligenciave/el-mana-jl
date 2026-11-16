@@ -25,7 +25,7 @@ const ElManaPDF = (() => {
     if (cur) out.push(cur); return out.length ? out : [''];
   }
   const N = (n, d = 2) => (n == null || isNaN(n)) ? '—' : Number(n).toLocaleString('es-VE', {minimumFractionDigits: d, maximumFractionDigits: d});
-  const usd = n => 'US$ ' + N(n);
+  const usd = n => '$ ' + N(n);
   const bs = n => 'Bs ' + N(n);
   const fecha = f => { const m = String(f || '').match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? m[3] + '/' + m[2] + '/' + m[1] : String(f || ''); };
 
@@ -108,7 +108,7 @@ const ElManaPDF = (() => {
     if (cli.vendedor) yA = campo(M + 8, yA, 'Vendedor', cli.vendedor, colW - 16) + 3;
     const ub = [envio.estado && 'Estado: ' + envio.estado, envio.zona && 'Zona: ' + envio.zona, envio.direccion && 'Dirección: ' + envio.direccion].filter(Boolean).join('  ·  ');
     yA = campo(M + 8, yA, 'Ubicación de envío', ub || 'Falta completar la zona y la dirección de entrega', colW - 16) + 3;
-    yB = campo(xB + 8, yB, 'Tasa BCV del día de emisión', d.tasa ? `${N(d.tasa.valor, 4)} Bs por US$ 1  (${fecha(d.tasa.fecha)})` : 'Sin tasa guardada para esa fecha', colW - 16) + 3;
+    yB = campo(xB + 8, yB, 'Tasa BCV del día de emisión', d.tasa ? `${N(d.tasa.valor, 4)} Bs por $ 1  (${fecha(d.tasa.fecha)})` : 'Sin tasa guardada para esa fecha', colW - 16) + 3;
     yB = campo(xB + 8, yB, 'Condición de pago', [d.condicion, d.plazo].filter(Boolean).join(' · ') + (d.vence ? ' · vence el ' + fecha(d.vence) : ''), colW - 16) + 3;
     const bk = d.banco ? [d.banco.nombre, d.banco.cuenta && 'Cuenta ' + d.banco.cuenta, d.banco.titular && 'Titular: ' + d.banco.titular].filter(Boolean).join(' · ') : 'No se eligió un banco';
     yB = campo(xB + 8, yB, 'Cuenta bancaria para el pago', bk, colW - 16) + 3;
@@ -116,7 +116,7 @@ const ElManaPDF = (() => {
     L.rectAntes(posCajas, xB, filaTop, colW, alto, SOFT, LINE); L.rectAntes(posCajas, M, filaTop, colW, alto, SOFT, LINE);
     y = filaTop + alto + 14;
     /* tabla */
-    const cols = [{h: 'Producto', x: M + 6, w: 214, al: 'l'}, {h: 'Bultos', x: M + 290, al: 'r'}, {h: 'Kilos', x: M + 352, al: 'r'}, {h: 'Precio x bulto', x: M + 432, al: 'r'}, {h: 'Total US$', x: W - M - 6, al: 'r'}];
+    const cols = [{h: 'Producto', x: M + 6, w: 214, al: 'l'}, {h: 'Bultos', x: M + 290, al: 'r'}, {h: 'Kilos', x: M + 352, al: 'r'}, {h: 'Precio x bulto', x: M + 432, al: 'r'}, {h: 'Total $', x: W - M - 6, al: 'r'}];
     const cabTabla = () => { L.rect(M, y, W - 2 * M, 18, RED); for (const c of cols) L.texto(c.h, c.x, y + 12.5, 8.5, {b: 1, al: c.al, color: [1, 1, 1]}); y += 18; };
     cabTabla();
     const limite = () => H - 150;
@@ -136,7 +136,7 @@ const ElManaPDF = (() => {
     const y0 = y;
     L.texto('Bultos: ' + N(T.bultos, 0), M, y + 11, 9.5, {b: 1}); L.texto('Kilos totales: ' + (T.kilos != null ? N(T.kilos, 2) + ' kg' : '—'), M, y + 27, 9.5, {b: 1});
     fila('Subtotal', usd(T.subtotal)); if (T.descuento) fila('Descuento' + (T.descuento_pct ? ' ' + N(T.descuento_pct, 2) + ' %' : ''), '- ' + usd(T.descuento));
-    fila('IVA', usd(T.iva)); L.rect(tx, y - 1, tw, 24, RED); y += 1; fila('TOTAL US$', usd(T.total), {b: 1, color: [1, 1, 1], sz: 11, h: 24});
+    fila('IVA', usd(T.iva)); L.rect(tx, y - 1, tw, 24, RED); y += 1; fila('TOTAL $', usd(T.total), {b: 1, color: [1, 1, 1], sz: 11, h: 24});
     fila('Total en Bs' + (d.tasa ? ' (tasa ' + N(d.tasa.valor, 2) + ')' : ''), T.total_bs != null ? bs(T.total_bs) : '—', {b: 1});
     L.linea(tx, y0 - 2, tx + tw, y0 - 2, YEL, 1.5);
     y += 6;

@@ -5,6 +5,7 @@
 /* ruta -> [nombre de pestaña, [inicios de título de lo que lleva (o selector si empieza con «.»)], opciones]. Lo que no se nombra va a su propia pestaña. */
 const G = ['Gráficas', 'Comparar', 'Kg facturados'];
 const CFG = {
+  produccion: [['Lotes', ['.pe-wrap']], ['Línea salsera', ['Línea salsera']], ['Mermas', ['Mermas de esta etapa']], ['Gráficas', ['Gráficas', 'Comparar', 'Papa frita producida']], ['Exportar', ['Exportar']]],
   recepcion: [['Nueva recepción', ['Nueva recepción']], ['Recientes', ['Recorrido', 'Recepciones recientes'], 'g2'], ['Mermas', ['Mermas de esta etapa']], ['Gráficas', G], ['Exportar', ['Exportar']]],
   empaque: [['Empaque de hoy', ['Empaque de hoy', 'Anotar lo empacado', 'Existencias']], ['Mermas', ['Mermas de esta etapa']], ['Gráficas', ['Gráficas', 'Comparar', 'Empacado hoy']], ['Exportar', ['Exportar']]],
   despachos: [['Notas de entrega', ['.fleet', 'Notas de entrega', 'Despachar un pedido']], ['Mermas', ['Mermas de esta etapa']], ['Gráficas', ['Gráficas', 'Comparar', 'Despachos por vehículo']], ['Exportar', ['Exportar']]],

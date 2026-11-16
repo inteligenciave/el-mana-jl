@@ -216,3 +216,17 @@ export const csvCelda = v => {
   const s = String(v ?? ''); return /[;"\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
 };
 export const aCSV = (cabeceras, filas) => '﻿' + [cabeceras, ...filas].map(r => r.map(csvCelda).join(';')).join('\r\n');
+
+/* Imagen de producto: tope de 180 KB ya decodificada y debe ser un JPEG válido (el navegador la comprime antes de enviarla). */
+export const IMG_PRODUCTO_MAX = 180 * 1024;
+export function validarImagenProducto(b64) {
+  if (typeof b64 !== 'string' || b64.length < 100) return {ok: false, status: 400, msg: 'No llegó ninguna imagen.'};
+  if (b64.length > IMG_PRODUCTO_MAX * 1.4) return {ok: false, status: 413, msg: 'La imagen pesa demasiado: el máximo es 180 KB.'};
+  if (!/^[A-Za-z0-9+/]+={0,2}$/.test(b64) || b64.length % 4) return {ok: false, status: 400, msg: 'La imagen no es válida.'};
+  const bytes = Math.floor(b64.length * 3 / 4) - (b64.endsWith('==') ? 2 : b64.endsWith('=') ? 1 : 0);
+  if (bytes > IMG_PRODUCTO_MAX) return {ok: false, status: 413, msg: 'La imagen pesa demasiado: el máximo es 180 KB.'};
+  const ini = atob(b64.slice(0, 8)), fin = atob(b64.slice(-8));
+  if (ini.charCodeAt(0) !== 0xFF || ini.charCodeAt(1) !== 0xD8 || ini.charCodeAt(2) !== 0xFF || fin.charCodeAt(fin.length - 2) !== 0xFF || fin.charCodeAt(fin.length - 1) !== 0xD9) return {ok: false, status: 400, msg: 'La imagen debe ser una foto JPG válida.'};
+  return {ok: true, bytes};
+}
+export const esImagenInterna = u => typeof u === 'string' && /^\/api\/v\/productos\/\d+\/imagen/.test(u);
