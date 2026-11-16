@@ -4068,13 +4068,37 @@ function restorePref() {
   } catch (e) {}
 }
 
+/* ---------- Botón «atrás» del celular (gesto de deslizar o botón del sistema) ----------
+   Cada ventana abierta (modal o menú) agrega un paso al historial: «atrás» la cierra y se queda en la pantalla. Cada pantalla ya es un paso (#ruta).
+   En el inicio del puesto «atrás» NO saca de la app: se queda ahí y avisa una vez. «Cambiar rol» sí vuelve a la entrada. */
+const Nav = {ov: false, t: 0, quiet: false, pop: false, aviso: false,
+  abierta: () => !$('#modal').hidden || !$('#drawer').hidden,
+  abre() { if (Nav.t) { clearTimeout(Nav.t); Nav.t = 0; Nav.ov = true; return; } if (Nav.ov) return; Nav.ov = true; try { history.pushState({elmanaOv: 1}, '', location.href); } catch (e) { /* sin historial */ } },
+  cierra() {
+    if (!Nav.ov || Nav.abierta()) return; Nav.ov = false; if (Nav.pop) return;
+    Nav.t = setTimeout(() => { Nav.t = 0; if (!Nav.ov && history.state && history.state.elmanaOv) { Nav.quiet = true; history.back(); } }, 0);
+  },
+  guardia() { try { const st = history.state; if (st && (st.elmanaBase || st.elmanaTop)) return; history.replaceState({elmanaBase: 1}, '', location.href); history.pushState({elmanaTop: 1}, '', location.href); } catch (e) { /* sin historial */ } }
+};
+window.addEventListener('popstate', e => {
+  if (Nav.quiet) { Nav.quiet = false; return; }
+  if (Nav.abierta()) { Nav.pop = true; try { closeModal(); closeDrawer(); } finally { Nav.pop = false; } Nav.ov = false; return; }
+  const st = e.state;
+  if (st && st.elmanaOv) { history.back(); return; } /* paso de una ventana que ya se cerró: se salta */
+  if (st && st.elmanaBase) {
+    const h = S.entry === 'in' ? '#' + homeRoute() : location.hash;
+    try { history.replaceState({elmanaBase: 1}, '', h || location.pathname); history.pushState({elmanaTop: 1}, '', h || location.pathname); } catch (x) { /* sin historial */ }
+    if (S.entry === 'in') { go(h.slice(1)); if (!Nav.aviso) { Nav.aviso = true; toast('Ya estás en el inicio. Para cambiar de puesto usa «Cambiar rol».'); } }
+  }
+});
+
 /* ---------- Modal, aviso, menú ---------- */
 function modal(title, body) {
   const m = $('#modal');
   m.innerHTML = `<div class="mbox" role="dialog" aria-modal="true" aria-labelledby="mt"><div class="mbox-h"><h2 id="mt">${title}</h2><button type="button" class="iconbtn" data-act="closeModal" aria-label="Cerrar">${ic('x')}</button></div><div class="mbox-b">${body}</div></div>`;
-  m.hidden = false; m.querySelector('[data-act="closeModal"]').focus();
+  m.hidden = false; m.querySelector('[data-act="closeModal"]').focus(); Nav.abre();
 }
-function closeModal() { $('#modal').hidden = true; $('#modal').innerHTML = ''; if (typeof lmAlCerrar === 'function') lmAlCerrar(); }
+function closeModal() { $('#modal').hidden = true; $('#modal').innerHTML = ''; if (typeof lmAlCerrar === 'function') lmAlCerrar(); Nav.cierra(); }
 function toast(t, kind) {
   const el = document.createElement('div'); el.className = 'toast' + (kind ? ' ' + kind : '');
   el.setAttribute('role', kind === 'err' ? 'alert' : 'status');
@@ -4086,9 +4110,9 @@ function openDrawer() {
   d.innerHTML = `<div class="drawer-p nav" role="dialog" aria-modal="true" aria-label="Menú"><div class="drawer-h"><b>${typeof pantNombre === 'function' ? pantNombre() : modLabel(S.mod)} · ${ROLES[S.rol]}</b><button type="button" class="iconbtn" data-act="closeDrawer" aria-label="Cerrar menú">${ic('x')}</button></div>${navHTML()}
     <div class="nav-g ses"><p class="nav-gt">Sesión</p><a href="#" data-act="cambiarRol">${ic('users')}Cambiar de puesto</a><a href="#" data-act="inicio">${ic('map')}Inicio</a></div>
     </div>`;
-  d.hidden = false;
+  d.hidden = false; Nav.abre();
 }
-function closeDrawer() { $('#drawer').hidden = true; $('#drawer').innerHTML = ''; }
+function closeDrawer() { $('#drawer').hidden = true; $('#drawer').innerHTML = ''; Nav.cierra(); }
 /* Un clic sobre la barra de desplazamiento del fondo NO debe cerrar la ventana: solo cierra el clic fuera, en la zona sin barra */
 const clicEnBarra = (e, el) => e.clientX >= el.getBoundingClientRect().left + el.clientWidth || e.clientY >= el.getBoundingClientRect().top + el.clientHeight;
 $('#drawer').addEventListener('click', e => { if (e.target.id === 'drawer' && !clicEnBarra(e, e.target)) closeDrawer(); });
@@ -4696,7 +4720,7 @@ function finishBoot() {
   if (Boot.state === 'ready') return;
   Boot.state = 'ready'; hydrate(); fixForms(); restorePref(); try { if (window.Borrador) Borrador.sesion(); } catch (e) { /* sin borrador */ }
   if (S.entry === 'in') { const h = location.hash.slice(1); S.route = SCREENS[h] && can(h) ? h : homeRoute(); if (location.hash.slice(1) !== S.route) history.replaceState(null, '', '#' + S.route); S.last[S.mod] = S.route; }
-  renderAll();
+  Nav.guardia(); renderAll();
 }
 let chT = null;
 function onChange() {
