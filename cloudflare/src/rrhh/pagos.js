@@ -63,7 +63,7 @@ export async function pagar(ctx, b) {
 /* Franja de resumen de Nómina (siempre visible arriba): quién está en planta, total y pendientes del período y préstamos activos */
 export async function resumen(ctx, tipo, ref) {
   exigir(ctx); const hoy = hoyVE(), p = elegirPeriodo(tipo, ref, hoy), C = await cargar(ctx.db, p);
-  const abiertas = (await R.delDia(ctx.db, hoy)).filter(m => !m.salida_ts), pt = Object.fromEntries(D.TURNOS.map(t => [t, abiertas.filter(m => m.turno === t).length]));
+  const porE = new Map(C.emps.map(e => [e.id, e])), abiertas = (await R.delDia(ctx.db, hoy)).filter(m => !m.salida_ts && D.cuentaEnPlanta(porE.get(m.empleado_id))), pt = Object.fromEntries(D.TURNOS.map(t => [t, abiertas.filter(m => m.turno === t).length]));
   const ids = new Set(C.pagos.map(x => x.empleado_id)); let total = 0, pendientes = 0, personas = 0;
   for (const e of C.emps.filter(e => D.activo(e) || ids.has(e.id))) {
     const c = calcDe(C, e, p.tipo), pag = C.pagos.find(x => x.empleado_id === e.id);

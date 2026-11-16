@@ -42,6 +42,7 @@ function scrPlanta() {
   const col = t => { const L = (d.presentes || []).filter(p => p.turno === t);
     return `<section class="card hp-turno"><div class="card-b"><h2>${t} <span class="hp-n">${L.length}</span></h2>${L.length ? L.map(p => `<div class="hp-p"><div><b>${esc(p.nombre)}</b><span>${esc(p.cargo || '—')} · ${esc(hpArea(p.area))}</span></div><time>Entró ${hpHora(p.entrada_ts)}</time></div>`).join('') : '<p class="hp-vacio">Nadie en este turno</p>'}</div></section>`; };
   return `<div class="hp-top">${turnos.map(t => `<div class="hp-tn"><b>${pt[t] || 0}</b><span>${t}</span></div>`).join('')}
+    <span class="muted hp-nota">Personal activo hoy: sin choferes ni administración</span>
     ${can('rh-pagar') ? '<a class="btn pri hp-pagar" href="#rh-pagar">Pagar nómina</a>' : ''}</div>
   ${HP.error ? `<p class="err" role="alert">${esc(HP.error)}</p>` : ''}
   <div class="hp-grid"><div class="hp-izq">${d.total ? turnos.map(col).join('') : card('', emptyState('Nadie ha marcado entrada hoy', 'Cuando alguien llegue, márcalo en la lista de al lado.'))}</div>
@@ -150,7 +151,7 @@ function hpCab(act) {
   if (!HP.resCarg && (HP.resClave !== hpClave() || Date.now() - (HP.resTs || 0) > 5000)) hpResCargar();
   const R = HP.res, ok = R && HP.resClave === hpClave(), v = f => ok ? f(R) : '…', pt = ok ? R.en_planta.por_turno : {};
   const c = (t, n, s, tono) => '<div class="rh-c' + (tono ? ' rh-' + tono : '') + '"><span>' + t + '</span><b>' + n + '</b><small>' + (s || '&nbsp;') + '</small></div>';
-  return '<div class="rh-cab"><div class="rh-franja">' + c('En planta hoy', v(r => r.en_planta.total), ok ? 'Mañana ' + (pt['Mañana'] || 0) + ' · Tarde ' + (pt['Tarde'] || 0) : '') +
+  return '<div class="rh-cab"><div class="rh-franja">' + c('Personal activo hoy', v(r => r.en_planta.total), (ok ? 'Mañana ' + (pt['Mañana'] || 0) + ' · Tarde ' + (pt['Tarde'] || 0) + '<br>' : '') + 'sin choferes ni administración') +
     c('Total a pagar', v(r => hpBs(r.nomina.total_pagar)), ok ? esc(R.periodo.etiqueta) : '') + c('Préstamos activos', v(r => r.prestamos.activos), ok ? 'Saldo ' + hpBs(R.prestamos.saldo_bs) : '') +
     c('Pagos pendientes', v(r => r.nomina.pendientes), ok ? 'de ' + R.nomina.personas + (R.nomina.personas === 1 ? ' persona' : ' personas') : '', ok && R.nomina.pendientes > 0 ? 'amb' : ok ? 'ver' : '') + '</div></div>';
 }

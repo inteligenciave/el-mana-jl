@@ -16,7 +16,7 @@ export async function hoy(ctx) {
   if (!D.puedeVer(ctx.rol)) throw err(403, D.MSG_SIN_VER);
   const fecha = hoyVE(), [emps, marcas] = await Promise.all([R.empleados(ctx.db), R.delDia(ctx.db, fecha)]);
   const por = new Map(emps.map(e => [e.id, e]));
-  const presentes = marcas.filter(m => !m.salida_ts).map(m => ({...persona(por.get(m.empleado_id), m), turno: m.turno, entrada_ts: m.entrada_ts}));
+  const presentes = marcas.filter(m => !m.salida_ts && D.cuentaEnPlanta(por.get(m.empleado_id))).map(m => ({...persona(por.get(m.empleado_id), m), turno: m.turno, entrada_ts: m.entrada_ts}));
   const ult = new Map(); for (const m of marcas) ult.set(m.empleado_id, m);
   const trabajadores = emps.filter(D.activo).sort((a, b) => String(a.n || '').localeCompare(String(b.n || ''), 'es')).map(e => {
     const m = ult.get(e.id);
@@ -27,7 +27,8 @@ export async function hoy(ctx) {
 /* Solo cifras: total y por turno */
 export async function conteo(ctx) {
   if (!D.puedeContar(ctx.rol)) throw err(403, D.MSG_SIN_CONTEO);
-  const fecha = hoyVE(), abiertas = (await R.delDia(ctx.db, fecha)).filter(m => !m.salida_ts);
+  const fecha = hoyVE(), [emps, marcas] = await Promise.all([R.empleados(ctx.db), R.delDia(ctx.db, fecha)]), por = new Map(emps.map(e => [e.id, e]));
+  const abiertas = marcas.filter(m => !m.salida_ts && D.cuentaEnPlanta(por.get(m.empleado_id)));
   return {fecha, ...cuenta(abiertas)};
 }
 const idValido = b => { const id = String((b && b.empleado_id) ?? '').trim(); return /^[A-Za-z0-9_.~:@+-]{1,120}$/.test(id) ? id : null; };

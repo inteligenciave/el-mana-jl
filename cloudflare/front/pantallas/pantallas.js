@@ -194,7 +194,7 @@ function gZonas() {
 /* En planta hoy: solo el conteo (total y por turno), de solo lectura; el enlace solo si el puesto tiene la pantalla */
 function gPlanta() {
   const P = GER.pl, ok = P && typeof P.total === 'number', pt = (P && P.por_turno) || {}, v = ok ? P.total : (GER.est === 'ok' ? 'Sin datos' : '…');
-  const cuerpo = '<span>En planta hoy:</span> <b class="' + (ok ? '' : 'muted') + '">' + v + '</b>' + (ok ? '<small>Mañana ' + (pt['Mañana'] || 0) + ' · Tarde ' + (pt['Tarde'] || 0) + '</small>' : '');
+  const cuerpo = '<span>Personal activo hoy:</span> <b class="' + (ok ? '' : 'muted') + '">' + v + '</b>' + (ok ? '<small>Mañana ' + (pt['Mañana'] || 0) + ' · Tarde ' + (pt['Tarde'] || 0) + '</small>' : '') + '<small>sin choferes ni administración</small>';
   return gVa('rh-planta') ? '<a class="gr-pl" href="#rh-planta">' + cuerpo + '</a>' : '<div class="gr-pl">' + cuerpo + '</div>';
 }
 function scrGerencia(modo) {
