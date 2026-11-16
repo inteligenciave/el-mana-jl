@@ -1785,11 +1785,12 @@ const dias = s => Math.round((D(s) - HOY) / 864e5);
 const addDays = (s, n) => { const d = D(s); d.setDate(d.getDate() + n); return d.toISOString().slice(0,10); };
 const fd = s => s ? D(s).toLocaleDateString('es-VE',{day:'2-digit', month:'short'}).replace('.','') : '—';
 const fdl = s => s ? D(s).toLocaleDateString('es-VE',{day:'2-digit', month:'2-digit', year:'numeric'}) : '—';
-const usd = v => '$ ' + N2.format(v);
-const usd0 = v => '$ ' + N0.format(v);
-const bsOf = v => 'Bs ' + N2.format(v * S.tasa);
-const bs = v => 'Bs ' + N2.format(v);
-const money = v => v == null ? '<span class="muted">Por definir</span>' : `<span class="money"><span class="usd">${usd(v)}</span><span class="bs">${bsOf(v)}</span></span>`;
+const sinDin = () => typeof S !== 'undefined' && S.rol === 'empaque'; /* Logística no ve dinero */
+const usd = v => sinDin() ? '—' : '$ ' + N2.format(v);
+const usd0 = v => sinDin() ? '—' : '$ ' + N0.format(v);
+const bsOf = v => sinDin() ? '—' : 'Bs ' + N2.format(v * S.tasa);
+const bs = v => sinDin() ? '—' : 'Bs ' + N2.format(v);
+const money = v => sinDin() ? '<span class="muted">—</span>' : v == null ? '<span class="muted">Por definir</span>' : `<span class="money"><span class="usd">${usd(v)}</span><span class="bs">${bsOf(v)}</span></span>`;
 const kg = (v, d = 0) => v == null ? '—' : nf(d).format(v) + ' kg';
 const pct = (v, d = 1) => (v == null || isNaN(v)) ? '—' : nf(d).format(v) + ' %';
 const sum = (a, f = x => x) => a.reduce((t, x) => t + (+f(x) || 0), 0);

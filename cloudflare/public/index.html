@@ -1808,11 +1808,12 @@ const dias = s => Math.round((D(s) - HOY) / 864e5);
 const addDays = (s, n) => { const d = D(s); d.setDate(d.getDate() + n); return d.toISOString().slice(0,10); };
 const fd = s => s ? D(s).toLocaleDateString('es-VE',{day:'2-digit', month:'short'}).replace('.','') : '—';
 const fdl = s => s ? D(s).toLocaleDateString('es-VE',{day:'2-digit', month:'2-digit', year:'numeric'}) : '—';
-const usd = v => '$ ' + N2.format(v);
-const usd0 = v => '$ ' + N0.format(v);
-const bsOf = v => 'Bs ' + N2.format(v * S.tasa);
-const bs = v => 'Bs ' + N2.format(v);
-const money = v => v == null ? '<span class="muted">Por definir</span>' : `<span class="money"><span class="usd">${usd(v)}</span><span class="bs">${bsOf(v)}</span></span>`;
+const sinDin = () => typeof S !== 'undefined' && S.rol === 'empaque'; /* Logística no ve dinero */
+const usd = v => sinDin() ? '—' : '$ ' + N2.format(v);
+const usd0 = v => sinDin() ? '—' : '$ ' + N0.format(v);
+const bsOf = v => sinDin() ? '—' : 'Bs ' + N2.format(v * S.tasa);
+const bs = v => sinDin() ? '—' : 'Bs ' + N2.format(v);
+const money = v => sinDin() ? '<span class="muted">—</span>' : v == null ? '<span class="muted">Por definir</span>' : `<span class="money"><span class="usd">${usd(v)}</span><span class="bs">${bsOf(v)}</span></span>`;
 const kg = (v, d = 0) => v == null ? '—' : nf(d).format(v) + ' kg';
 const pct = (v, d = 1) => (v == null || isNaN(v)) ? '—' : nf(d).format(v) + ' %';
 const sum = (a, f = x => x) => a.reduce((t, x) => t + (+f(x) || 0), 0);
@@ -8035,7 +8036,7 @@ const EN = {
 };
 const eHTTP = () => !!window.__EM_HTTP;
 const etxt = s => esc(s == null ? '' : s);
-const eUsd = x => x == null ? '—' : '$ ' + N2.format(x);
+const eUsd = x => x == null || (typeof S !== 'undefined' && S.rol === 'empaque') ? '—' : '$ ' + N2.format(x);
 const eBs = x => x == null ? '—' : 'Bs ' + N2.format(x);
 const eFechaHora = s => { if (!s) return '—'; const d = new Date(s); return isNaN(d) ? '—' : d.toLocaleString('es-VE', {day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'}); };
 const eTs = ts => ts ? eFechaHora(new Date(ts).toISOString()) : '—';
@@ -9123,8 +9124,8 @@ function scrZonas() {
   const T = PR.tab, tj = z => `<article class="pr-card ${z.semaforo.color === 'verde' ? 'ok' : z.semaforo.color === 'ambar' ? 'warn' : ''} ${z.pausada ? 'pausa' : ''}"><button type="button" class="pr-card-b" data-act="prZona" data-z="${prT(z.zona)}" aria-label="Abrir la zona ${prT(z.zona)}">
     <h3>${prT(z.zona)}</h3><p class="pr-big">${prKg(z.kilos)}</p>${prBarra(z.kilos, T.meta_kg)}<p class="pr-sub">${T.meta_kg > 0 ? 'Meta ' + prKg(T.meta_kg) + (z.falta_kg ? ' · faltan ' + prKg(z.falta_kg) : '') : ''}</p>
     <p>${z.pausada ? '<span class="chip c-warn">Pausada: ' + prT(z.pausa_motivo) + '</span>' : prSem(z)}</p>
-    <dl class="pr-dl"><div><dt>Pedidos</dt><dd>${prN(z.pedidos)}</dd></div><div><dt>Espera</dt><dd>${z.espera_dias ? prN(z.espera_dias) + ' día(s)' : 'hoy'}</dd></div><div><dt>Por cobrar o despachar</dt><dd>$ ${prN(z.monto, 2)}</dd></div></dl></button></article>`;
-  return `${ph('Producción', 'Pedidos por zona', 'Cada zona espera ' + prKg(T.meta_kg) + ' para salir. Primero va la que tiene más kilos, luego la que espera más y luego la de más dinero.', '')}
+    <dl class="pr-dl"><div><dt>Pedidos</dt><dd>${prN(z.pedidos)}</dd></div><div><dt>Espera</dt><dd>${z.espera_dias ? prN(z.espera_dias) + ' día(s)' : 'hoy'}</dd></div>${S.rol === 'empaque' ? '' : `<div><dt>Por cobrar o despachar</dt><dd>$ ${prN(z.monto, 2)}</dd></div>`}</dl></button></article>`;
+  return `${ph('Producción', 'Pedidos por zona', 'Cada zona espera ' + prKg(T.meta_kg) + ' para salir. Primero va la que tiene más kilos, luego la que espera más' + (S.rol === 'empaque' ? '.' : ' y luego la de más dinero.'), '')}
     ${T.activas.length ? `<div class="pr-grid">${T.activas.map(tj).join('')}</div>` : card('', emptyState('No hay pedidos por despachar', 'Cuando Ventas registre pedidos, cada zona aparece aquí.'))}
     ${T.pausadas.length ? `<h3 class="pr-h">Zonas pausadas</h3><div class="pr-grid">${T.pausadas.map(tj).join('')}</div>` : ''}`;
 }

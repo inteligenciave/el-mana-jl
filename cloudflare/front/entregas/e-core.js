@@ -7,7 +7,7 @@ const EN = {
 };
 const eHTTP = () => !!window.__EM_HTTP;
 const etxt = s => esc(s == null ? '' : s);
-const eUsd = x => x == null ? '—' : '$ ' + N2.format(x);
+const eUsd = x => x == null || (typeof S !== 'undefined' && S.rol === 'empaque') ? '—' : '$ ' + N2.format(x);
 const eBs = x => x == null ? '—' : 'Bs ' + N2.format(x);
 const eFechaHora = s => { if (!s) return '—'; const d = new Date(s); return isNaN(d) ? '—' : d.toLocaleString('es-VE', {day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'}); };
 const eTs = ts => ts ? eFechaHora(new Date(ts).toISOString()) : '—';

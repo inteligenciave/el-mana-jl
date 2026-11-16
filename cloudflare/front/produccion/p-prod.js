@@ -35,8 +35,8 @@ function scrZonas() {
   const T = PR.tab, tj = z => `<article class="pr-card ${z.semaforo.color === 'verde' ? 'ok' : z.semaforo.color === 'ambar' ? 'warn' : ''} ${z.pausada ? 'pausa' : ''}"><button type="button" class="pr-card-b" data-act="prZona" data-z="${prT(z.zona)}" aria-label="Abrir la zona ${prT(z.zona)}">
     <h3>${prT(z.zona)}</h3><p class="pr-big">${prKg(z.kilos)}</p>${prBarra(z.kilos, T.meta_kg)}<p class="pr-sub">${T.meta_kg > 0 ? 'Meta ' + prKg(T.meta_kg) + (z.falta_kg ? ' · faltan ' + prKg(z.falta_kg) : '') : ''}</p>
     <p>${z.pausada ? '<span class="chip c-warn">Pausada: ' + prT(z.pausa_motivo) + '</span>' : prSem(z)}</p>
-    <dl class="pr-dl"><div><dt>Pedidos</dt><dd>${prN(z.pedidos)}</dd></div><div><dt>Espera</dt><dd>${z.espera_dias ? prN(z.espera_dias) + ' día(s)' : 'hoy'}</dd></div><div><dt>Por cobrar o despachar</dt><dd>$ ${prN(z.monto, 2)}</dd></div></dl></button></article>`;
-  return `${ph('Producción', 'Pedidos por zona', 'Cada zona espera ' + prKg(T.meta_kg) + ' para salir. Primero va la que tiene más kilos, luego la que espera más y luego la de más dinero.', '')}
+    <dl class="pr-dl"><div><dt>Pedidos</dt><dd>${prN(z.pedidos)}</dd></div><div><dt>Espera</dt><dd>${z.espera_dias ? prN(z.espera_dias) + ' día(s)' : 'hoy'}</dd></div>${S.rol === 'empaque' ? '' : `<div><dt>Por cobrar o despachar</dt><dd>$ ${prN(z.monto, 2)}</dd></div>`}</dl></button></article>`;
+  return `${ph('Producción', 'Pedidos por zona', 'Cada zona espera ' + prKg(T.meta_kg) + ' para salir. Primero va la que tiene más kilos, luego la que espera más' + (S.rol === 'empaque' ? '.' : ' y luego la de más dinero.'), '')}
     ${T.activas.length ? `<div class="pr-grid">${T.activas.map(tj).join('')}</div>` : card('', emptyState('No hay pedidos por despachar', 'Cuando Ventas registre pedidos, cada zona aparece aquí.'))}
     ${T.pausadas.length ? `<h3 class="pr-h">Zonas pausadas</h3><div class="pr-grid">${T.pausadas.map(tj).join('')}</div>` : ''}`;
 }
