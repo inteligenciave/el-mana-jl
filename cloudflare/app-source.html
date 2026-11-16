@@ -3959,10 +3959,9 @@ function renderTop() {
   const inn = S.entry === 'in' && Boot.state === 'ready', mod = S.mod, mods = modsOf(S.rol);
   document.body.classList.toggle('entry', !inn);
   if (inn) tasaCargar();
-  const sub = Layer.modo() === 'ejemplo' ? 'Seguimiento productivo · datos de ejemplo' : Layer.modo() === 'limpio' ? 'Seguimiento productivo · datos propios' : 'Seguimiento productivo';
-  $('#top').innerHTML = `${inn ? `<button type="button" class="btn-menu" data-act="menuLat" aria-pressed="${menuOculto() ? 'false' : 'true'}" aria-label="${menuOculto() ? 'Mostrar menú' : 'Ocultar menú'}" title="${menuOculto() ? 'Mostrar menú' : 'Ocultar menú'}">${ic('menu', 22)}</button>` : ''}<a class="brand" href="#" data-act="inicio" aria-label="El Maná JL: volver a la pantalla de inicio"><span class="brand-mark">${logoImg("brand-logo")}</span><div><p class="brand-t">El Maná JL</p><p class="brand-s">${sub}</p></div></a>
-        ${inn ? `<div class="who" aria-label="Módulo y rol actual"><span class="who-t"><b>${typeof pantNombre === 'function' ? pantNombre() : modLabel(mod)}</b> · ${ROLES[S.rol]}</span><button type="button" class="btn sm ghost" data-act="inicio">Inicio</button></div>
-    <div class="hctl hctl-tasa" id="tasa-box" role="status" title="${esc(tasaTitulo())}"><span class="tl">Tasa BCV<br>USD → Bs</span><b class="tv">${S.tasa > 0 ? N2.format(S.tasa) : '—'}</b>${tasaPie()}</div>` : ''}`;
+  $('#top').innerHTML = `${inn ? `<button type="button" class="btn-menu" data-act="menuLat" aria-pressed="${menuOculto() ? 'false' : 'true'}" aria-label="${menuOculto() ? 'Mostrar menú' : 'Ocultar menú'}" title="${menuOculto() ? 'Mostrar menú' : 'Ocultar menú'}">${ic('menu', 22)}</button>` : ''}<a class="brand" href="#" data-act="inicio" aria-label="El Maná JL: volver a la pantalla de inicio"><span class="brand-mark">${logoImg("brand-logo")}</span><div><p class="brand-t">El Maná JL</p></div></a>
+        ${inn ? `<div class="who" aria-label="Módulo y rol actual"><span class="who-t"><b>${typeof pantNombre === 'function' ? pantNombre() : modLabel(mod)}</b><span class="who-r"> · ${ROLES[S.rol]}</span></span><button type="button" class="btn sm ghost btn-ini" data-act="inicio">Inicio</button></div>
+    <div class="hctl hctl-tasa" id="tasa-box" role="status" aria-label="Tasa BCV, dólares a bolívares: ${S.tasa > 0 ? N2.format(S.tasa) : 'sin tasa'}" title="${esc(tasaTitulo())}"><span class="tl">Tasa BCV<br>USD → Bs</span><span class="tl-s" aria-hidden="true">BCV</span><b class="tv">${S.tasa > 0 ? N2.format(S.tasa) : '—'}</b>${tasaPie()}</div>` : ''}`;
 }
 function navHTML() {
   const mod = S.mod, B = badges(), groups = {'Inicio': ['mapa']};

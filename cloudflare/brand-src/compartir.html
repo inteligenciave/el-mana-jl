@@ -1,0 +1,20 @@
+<!doctype html><meta charset="utf-8"><title>compartir</title>
+<!-- Generador de public/img/compartir.png (1200x630) y compartir-cuadrado.png (600x600). Uso: compartir.html?w=1200&h=630 -->
+<style>
+@font-face{font-family:Alfa;src:url(fonts/alfa.woff2)}
+html,body{margin:0;overflow:hidden;background:#C92121}
+.b{position:relative;background:#C92121;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.f{position:absolute;left:0;right:0;height:var(--f);background:#F2B72E}
+.ring{border-radius:50%;background:#fff;border:var(--bd) solid #F2B72E;overflow:hidden;aspect-ratio:990/555;width:var(--lw)}
+.ring img{width:100%;display:block}
+h1{font:var(--ft)/1 Alfa;color:#fff;margin:var(--gap) 0 0;text-align:center}
+</style>
+<div class="b" id="b"><div class="f" style="top:0"></div><div class="f" style="bottom:0"></div>
+<div class="ring"><img src="logo.jpg"></div><h1>El Maná JL</h1></div>
+<script>
+const q=new URLSearchParams(location.search),w=+q.get('w')||1200,h=+q.get('h')||630,s=w/1200,sq=w===h;
+const b=document.getElementById('b'),st=b.style;
+st.width=w+'px';st.height=h+'px';
+st.setProperty('--f',(sq?10:10)+'px');st.setProperty('--bd',(sq?7:10)+'px');
+st.setProperty('--lw',(sq?w*.86:w*.5)+'px');st.setProperty('--ft',(sq?w*.095:w*.085)+'px');st.setProperty('--gap',(sq?w*.05:w*.035)+'px');
+</script>

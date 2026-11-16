@@ -1,9 +1,9 @@
 /* Etiquetas de marca para el <head>: vista previa al compartir (WhatsApp/redes), iconos y app instalable.
    Las usan build.js (index), build-cliente.js y build-entregas.js. */
 const SITE = 'https://elmana-jl.talosbot.workers.dev';
-const TITLE = 'El Maná JL — Seguimiento productivo';
-const DESC = 'Sistema de seguimiento productivo de El Maná JL';
-const ALT = 'El Maná JL, seguimiento productivo';
+const TITLE = 'El Maná JL';
+const DESC = 'Sistema de El Maná JL';
+const ALT = 'El Maná JL';
 const esc = t => t.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
 /* opts.manifest: enlaza la app instalable (solo la app del equipo; el portal del cliente no se instala) */
 module.exports = function metasMarca(opts = {}) {

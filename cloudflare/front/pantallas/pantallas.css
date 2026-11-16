@@ -211,3 +211,23 @@ a.gr-pl:hover{border-color:#C92121}
 .pp-para{color:var(--muted)}
 .pp-ir{white-space:nowrap}
 @media (max-width:640px){.pp-paso{grid-template-columns:auto 1fr}.pp-ir{grid-column:1 / -1;width:100%}}
+
+/* Cabecera compacta en celular: una sola fila */
+.tl-s{display:none}
+@media (max-width:600px){
+  header.top{flex-wrap:nowrap;gap:4px;padding-block:6px;padding-left:max(8px,env(safe-area-inset-left,0px));padding-right:max(8px,env(safe-area-inset-right,0px));border-bottom-width:4px;min-height:0}
+  header.top .brand{flex:none;margin:0;gap:0}
+  header.top .brand-t,header.top .brand-s{display:none}
+  header.top .brand-logo{height:30px}
+  header.top .who{flex:1 1 auto;min-width:0;flex-wrap:nowrap;gap:4px;justify-content:flex-end}
+  header.top .who-t{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;letter-spacing:-.1px}
+  header.top .who-r,header.top .btn-ini{display:none}
+  header.top .top-fijos{flex-wrap:nowrap;gap:4px;flex:none}
+  header.top .top-fijos .btn{position:relative;width:40px;height:40px;min-height:40px;padding:0;border-radius:50%;justify-content:center}
+  header.top .top-fijos .btn>span:not(.badge){display:none}
+  header.top .top-fijos .badge{position:absolute;top:-4px;right:-4px;min-width:18px;height:18px;padding:0 4px;font-size:11px;line-height:18px;border-radius:9px;text-align:center}
+  header.top .hctl-tasa{flex:none;min-height:34px;padding:2px 6px;gap:3px}
+  header.top .hctl-tasa .tl,header.top .hctl-tasa .tf{display:none}
+  header.top .hctl-tasa .tl-s{display:inline;font-size:11px;color:var(--band-muted)}
+  header.top .hctl-tasa .tv{font-size:14px}
+}

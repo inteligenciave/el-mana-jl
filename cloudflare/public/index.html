@@ -1,6 +1,6 @@
 <!doctype html><html lang="es" data-theme="light"><head><script>window.__EM_HTTP = true;</script>
-<title>El Maná JL — Seguimiento productivo</title>
-<meta name="description" content="Sistema de seguimiento productivo de El Maná JL">
+<title>El Maná JL</title>
+<meta name="description" content="Sistema de El Maná JL">
 <meta name="theme-color" content="#C92121">
 <link rel="icon" href="/favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
@@ -14,20 +14,20 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="El Maná JL">
-<meta property="og:title" content="El Maná JL — Seguimiento productivo">
-<meta property="og:description" content="Sistema de seguimiento productivo de El Maná JL">
+<meta property="og:title" content="El Maná JL">
+<meta property="og:description" content="Sistema de El Maná JL">
 <meta property="og:locale" content="es_VE">
 <meta property="og:url" content="https://elmana-jl.talosbot.workers.dev/">
 <meta property="og:image" content="https://elmana-jl.talosbot.workers.dev/img/compartir.png">
 <meta property="og:image:type" content="image/png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="El Maná JL, seguimiento productivo">
+<meta property="og:image:alt" content="El Maná JL">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="El Maná JL — Seguimiento productivo">
-<meta name="twitter:description" content="Sistema de seguimiento productivo de El Maná JL">
+<meta name="twitter:title" content="El Maná JL">
+<meta name="twitter:description" content="Sistema de El Maná JL">
 <meta name="twitter:image" content="https://elmana-jl.talosbot.workers.dev/img/compartir.png">
-<meta name="twitter:image:alt" content="El Maná JL, seguimiento productivo">
+<meta name="twitter:image:alt" content="El Maná JL">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="claude:viewport-fit-sides" content="cover">
@@ -3988,10 +3988,9 @@ function renderTop() {
   const inn = S.entry === 'in' && Boot.state === 'ready', mod = S.mod, mods = modsOf(S.rol);
   document.body.classList.toggle('entry', !inn);
   if (inn) tasaCargar();
-  const sub = Layer.modo() === 'ejemplo' ? 'Seguimiento productivo · datos de ejemplo' : Layer.modo() === 'limpio' ? 'Seguimiento productivo · datos propios' : 'Seguimiento productivo';
-  $('#top').innerHTML = `${inn ? `<button type="button" class="btn-menu" data-act="menuLat" aria-pressed="${menuOculto() ? 'false' : 'true'}" aria-label="${menuOculto() ? 'Mostrar menú' : 'Ocultar menú'}" title="${menuOculto() ? 'Mostrar menú' : 'Ocultar menú'}">${ic('menu', 22)}</button>` : ''}<a class="brand" href="#" data-act="inicio" aria-label="El Maná JL: volver a la pantalla de inicio"><span class="brand-mark">${logoImg("brand-logo")}</span><div><p class="brand-t">El Maná JL</p><p class="brand-s">${sub}</p></div></a>
-        ${inn ? `<div class="who" aria-label="Módulo y rol actual"><span class="who-t"><b>${typeof pantNombre === 'function' ? pantNombre() : modLabel(mod)}</b> · ${ROLES[S.rol]}</span><button type="button" class="btn sm ghost" data-act="inicio">Inicio</button></div>
-    <div class="hctl hctl-tasa" id="tasa-box" role="status" title="${esc(tasaTitulo())}"><span class="tl">Tasa BCV<br>USD → Bs</span><b class="tv">${S.tasa > 0 ? N2.format(S.tasa) : '—'}</b>${tasaPie()}</div>` : ''}`;
+  $('#top').innerHTML = `${inn ? `<button type="button" class="btn-menu" data-act="menuLat" aria-pressed="${menuOculto() ? 'false' : 'true'}" aria-label="${menuOculto() ? 'Mostrar menú' : 'Ocultar menú'}" title="${menuOculto() ? 'Mostrar menú' : 'Ocultar menú'}">${ic('menu', 22)}</button>` : ''}<a class="brand" href="#" data-act="inicio" aria-label="El Maná JL: volver a la pantalla de inicio"><span class="brand-mark">${logoImg("brand-logo")}</span><div><p class="brand-t">El Maná JL</p></div></a>
+        ${inn ? `<div class="who" aria-label="Módulo y rol actual"><span class="who-t"><b>${typeof pantNombre === 'function' ? pantNombre() : modLabel(mod)}</b><span class="who-r"> · ${ROLES[S.rol]}</span></span><button type="button" class="btn sm ghost btn-ini" data-act="inicio">Inicio</button></div>
+    <div class="hctl hctl-tasa" id="tasa-box" role="status" aria-label="Tasa BCV, dólares a bolívares: ${S.tasa > 0 ? N2.format(S.tasa) : 'sin tasa'}" title="${esc(tasaTitulo())}"><span class="tl">Tasa BCV<br>USD → Bs</span><span class="tl-s" aria-hidden="true">BCV</span><b class="tv">${S.tasa > 0 ? N2.format(S.tasa) : '—'}</b>${tasaPie()}</div>` : ''}`;
 }
 function navHTML() {
   const mod = S.mod, B = badges(), groups = {'Inicio': ['mapa']};
@@ -5036,6 +5035,20 @@ select.v-falta{outline:2px solid var(--red,#C92121);outline-offset:1px}
 /* celular: los botones de pedido no deben ensanchar la pantalla */
 .v-p3-f .v-acc{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
 .v-p3-f .v-acc .btn{min-width:0;white-space:normal;line-height:1.15;text-align:center}
+/* Reportes de ventas (Registro de ventas) */
+.rv-per{display:grid;gap:10px;margin:0 0 10px}
+.rv-rapidos{display:flex;flex-wrap:wrap;gap:6px}
+.rv-rap{min-height:40px}
+.rv-rap[aria-pressed="true"]{background:var(--pri);border-color:var(--pri);color:var(--pri-ink)}
+.rv-fechas{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;max-width:420px}
+.rv-fecha{min-height:44px;width:100%;box-sizing:border-box}
+.rv-barra{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;margin:0 0 10px}
+.rv-bus{flex:1 1 220px;min-width:0}
+.rv-q{width:100%;min-height:44px;box-sizing:border-box}
+.rv-quien{max-width:320px;margin:0 0 10px}
+.rv-tabla{max-height:46vh;overflow:auto}
+@media (max-width:640px){.rv-barra .btnrow{width:100%}.rv-barra .btnrow .btn{flex:1 1 140px}}
+.rv-periodo{margin:0 0 8px;font-size:1.02rem}
 /* Entregas */
 /* Entregas con foto y plazos. Colores de marca (rojo #C92121, amarillo #F2B72E, blanco); verde y ámbar solo como semáforo. Reusa las clases de Ventas (.v-cat, .v-alerta, .v-stats, .v-pk-list, .v-dl). */
 .e-2c{display:grid;gap:14px;grid-template-columns:minmax(0,1fr);align-items:start}
@@ -5623,6 +5636,26 @@ a.gr-pl:hover{border-color:#C92121}
 .pp-para{color:var(--muted)}
 .pp-ir{white-space:nowrap}
 @media (max-width:640px){.pp-paso{grid-template-columns:auto 1fr}.pp-ir{grid-column:1 / -1;width:100%}}
+
+/* Cabecera compacta en celular: una sola fila */
+.tl-s{display:none}
+@media (max-width:600px){
+  header.top{flex-wrap:nowrap;gap:4px;padding-block:6px;padding-left:max(8px,env(safe-area-inset-left,0px));padding-right:max(8px,env(safe-area-inset-right,0px));border-bottom-width:4px;min-height:0}
+  header.top .brand{flex:none;margin:0;gap:0}
+  header.top .brand-t,header.top .brand-s{display:none}
+  header.top .brand-logo{height:30px}
+  header.top .who{flex:1 1 auto;min-width:0;flex-wrap:nowrap;gap:4px;justify-content:flex-end}
+  header.top .who-t{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;letter-spacing:-.1px}
+  header.top .who-r,header.top .btn-ini{display:none}
+  header.top .top-fijos{flex-wrap:nowrap;gap:4px;flex:none}
+  header.top .top-fijos .btn{position:relative;width:40px;height:40px;min-height:40px;padding:0;border-radius:50%;justify-content:center}
+  header.top .top-fijos .btn>span:not(.badge){display:none}
+  header.top .top-fijos .badge{position:absolute;top:-4px;right:-4px;min-width:18px;height:18px;padding:0 4px;font-size:11px;line-height:18px;border-radius:9px;text-align:center}
+  header.top .hctl-tasa{flex:none;min-height:34px;padding:2px 6px;gap:3px}
+  header.top .hctl-tasa .tl,header.top .hctl-tasa .tf{display:none}
+  header.top .hctl-tasa .tl-s{display:inline;font-size:11px;color:var(--band-muted)}
+  header.top .hctl-tasa .tv{font-size:14px}
+}
 /* Compacto (va al final) */
 /* COMPACTO (pedido del Gerente): menos espacio en blanco en computador. Va al FINAL de la hoja para ganar a las demás.
    Solo en pantalla ancha (>=1024px); el celular queda como estaba. Ajustar aquí las medidas, no pantalla por pantalla. */
@@ -5774,6 +5807,11 @@ legend{margin-bottom:4px}
 .v-p3-f .v-acc,.v-acc{display:flex;flex-direction:column;grid-template-columns:minmax(0,1fr);gap:8px}
 .v-p3-f .v-acc .btn,.v-acc .btn{width:100%;max-width:100%;min-width:0;white-space:normal;line-height:1.2;text-align:center;justify-content:center}
 .v-bar{left:0;right:0;max-width:100%;box-sizing:border-box}
+}
+@media (max-width:600px){
+.rh-c small,.rh-c b{white-space:normal;overflow:visible;overflow-wrap:anywhere}
+.cc-x span{overflow:visible;white-space:nowrap}
+.em-cli{white-space:normal;overflow-wrap:anywhere;text-overflow:clip}
 }
 </style>
 <script>
@@ -6215,7 +6253,7 @@ window.Busca = Busca;
    Fuentes estándar Helvetica (vienen en todo lector de PDF); logo JPEG incrustado. El texto queda legible/extraíble. */
 const ElManaPDF = (() => {
   const RED = [0.788, 0.129, 0.129], YEL = [0.949, 0.718, 0.18], INK = [0.1, 0.1, 0.1], GRY = [0.42, 0.42, 0.42], LINE = [0.8, 0.8, 0.8], SOFT = [0.97, 0.95, 0.9];
-  const W = 595.28, H = 841.89, M = 40;
+  let W = 595.28, H = 841.89; const M = 40; /* W y H cambian solo mientras se arma un reporte horizontal */
   /* Anchos Helvetica / Helvetica-Bold (AFM) de los caracteres 32..126, en milésimas de punto */
   const WR = [278,278,355,556,556,889,667,191,333,333,389,584,278,333,278,278,556,556,556,556,556,556,556,556,556,556,278,278,584,584,584,556,1015,667,667,722,722,667,611,778,722,278,500,667,556,833,722,778,667,778,722,667,611,722,667,944,667,667,611,278,278,278,469,556,333,556,556,500,556,556,278,556,556,222,222,500,222,833,556,556,556,556,333,500,278,556,500,722,500,500,500,334,260,334,584];
   const WB = [278,333,474,556,556,889,722,238,333,333,389,584,278,333,278,278,556,556,556,556,556,556,556,556,556,556,333,333,584,584,584,611,975,722,722,722,722,667,611,778,722,278,556,722,611,833,722,778,667,778,722,667,611,722,667,944,667,667,611,333,278,333,584,556,333,556,611,556,611,556,333,611,611,278,278,556,278,889,611,611,611,611,389,556,333,611,556,778,556,556,500,389,280,389,584];
@@ -6390,7 +6428,133 @@ const ElManaPDF = (() => {
   async function descargar(d, logoSrc) {
     const bytes = generar(d, await cargarLogo(logoSrc)); bajar(bytes, d.archivo || 'Documento.pdf'); return bytes;
   }
-  return {generar, descargar, cargarLogo};
+
+  /* ---- reporte en tabla (ventas por rubro, vendedor, zona o producto): logo, título, periodo, encabezado repetido, totales y paginado.
+     d = {titulo, subtitulo, cols: [{h, al: 'l'|'r', w: peso relativo}], filas: [[texto,…]], totales: [texto,…] | null, nota, archivo}.
+     Más de 5 columnas → hoja horizontal. */
+  function generarTabla(d, logo) {
+    const horiz = d.cols.length > 5, W0 = W, H0 = H;
+    if (horiz) { W = 841.89; H = 595.28; }
+    try {
+      const L = Lienzo(), E = d.empresa || {}, anchoT = W - 2 * M, suma = d.cols.reduce((a, c) => a + (c.w || 1), 0);
+      let xa = M; const cols = d.cols.map(c => { const w = anchoT * (c.w || 1) / suma, o = {...c, x0: xa, w}; xa += w; o.x = c.al === 'r' ? o.x0 + w - 6 : o.x0 + 6; return o; });
+      const franja = () => { L.rect(0, 0, W, 9, RED); L.rect(0, 9, W, 3.5, YEL); };
+      const cab = () => { L.rect(M, y, anchoT, 20, RED); for (const c of cols) L.texto(c.h, c.x, y + 13.5, 9, {b: 1, al: c.al === 'r' ? 'r' : 'l', color: [1, 1, 1]}); y += 20; };
+      let y = 0;
+      L.nueva(); franja();
+      let x0 = M; if (logo) { L.imagen(M, 26, 46, 46 * logo.h / logo.w); x0 = M + 56; }
+      L.texto(E.razon || 'El Maná JL', x0, 44, 14, {b: 1, color: RED});
+      L.texto(d.titulo, x0, 62, 12, {b: 1}); if (d.subtitulo) L.texto(d.subtitulo, x0, 75, 9.5, {color: GRY});
+      L.texto('Generado el ' + fecha(new Date().toISOString().slice(0, 10)), W - M, 44, 8.5, {al: 'r', color: GRY});
+      y = 92; cab();
+      const limite = H - 60, pintarFila = (f, i, tot) => {
+        const lns = f.map((v, k) => envolver(v, 9, tot, cols[k].w - 12)), n = Math.max(...lns.map(l => l.length)), h = n * 11 + 8;
+        if (y + h > limite) { L.nueva(); franja(); y = 30; cab(); }
+        if (tot) L.rect(M, y, anchoT, h, [0.99, 0.93, 0.7]); else if (i % 2) L.rect(M, y, anchoT, h, [0.985, 0.985, 0.985]);
+        lns.forEach((ls, k) => ls.forEach((t, j) => L.texto(t, cols[k].x, y + 12 + j * 11, 9, {al: cols[k].al === 'r' ? 'r' : 'l', b: tot})));
+        L.linea(M, y + h, W - M, y + h); y += h;
+      };
+      if (!d.filas.length) { L.texto('No hay ventas en este periodo.', M + 6, y + 16, 9.5, {color: GRY}); y += 28; }
+      d.filas.forEach((f, i) => pintarFila(f, i, false));
+      if (d.totales) pintarFila(d.totales, 0, true);
+      if (d.nota) for (const ln of envolver(d.nota, 8, 0, anchoT)) { if (y + 12 > limite) { L.nueva(); franja(); y = 30; } y += 11; L.texto(ln, M, y, 8, {color: GRY}); }
+      const total = L.pags.length;
+      for (let i = 0; i < total; i++) {
+        L.pags[i].push('BT ' + RED.map(v => v.toFixed(3)).join(' ') + ' rg /F1 7.5 Tf ' + M + ' ' + f2(24) + ' Td (' + esc(bytesTxt(d.titulo + ' · ' + (E.razon || 'El Maná JL'))) + ') Tj ET');
+        const pg = 'Página ' + (i + 1) + ' de ' + total; L.pags[i].push('BT 0.42 0.42 0.42 rg /F1 7.5 Tf ' + f2(W - M - ancho(pg, 7.5)) + ' ' + f2(24) + ' Td (' + esc(bytesTxt(pg)) + ') Tj ET');
+      }
+      return armar(L.pags.map(p => p.map(String)), logo, d.titulo);
+    } finally { W = W0; H = H0; }
+  }
+  async function descargarTabla(d, logoSrc) { const bytes = generarTabla(d, await cargarLogo(logoSrc)); bajar(bytes, d.archivo || 'Reporte.pdf'); return bytes; }
+  return {generar, descargar, cargarLogo, generarTabla, descargarTabla};
+})();
+;/* Generador mínimo de .xlsx (hoja de cálculo real de Excel), sin librerías ni internet.
+   Un .xlsx es un ZIP con XML dentro: aquí se arma el ZIP «sin compresión» (store) con CRC32 y los XML mínimos.
+   d = {hoja, titulo, subtitulo, cols: [{h, tipo: 'txt'|'usd'|'kg'|'int'|'pct', w}], filas: [[valor,…]], totales: [valor,…] | null, nota}
+   Con título, periodo, encabezado en negrita con los colores de la marca, columnas anchas, formatos de número y fila de totales. */
+const ElManaXLSX = (() => {
+  const enc = new TextEncoder();
+  const tabla = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+  const crc32 = u => { let c = 0xFFFFFFFF; for (let i = 0; i < u.length; i++) c = tabla[(c ^ u[i]) & 255] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; };
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, m => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[m])).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '');
+  const letra = i => { let s = ''; for (i++; i > 0; i = Math.floor((i - 1) / 26)) s = String.fromCharCode(65 + (i - 1) % 26) + s; return s; };
+
+  /* ZIP sin compresión */
+  function zip(archivos) {
+    const partes = [], central = []; let pos = 0;
+    const u16 = n => [n & 255, (n >> 8) & 255], u32 = n => [n & 255, (n >>> 8) & 255, (n >>> 16) & 255, (n >>> 24) & 255];
+    const fecha = new Date(), dosT = (fecha.getHours() << 11) | (fecha.getMinutes() << 5) | (fecha.getSeconds() >> 1), dosF = ((fecha.getFullYear() - 1980) << 9) | ((fecha.getMonth() + 1) << 5) | fecha.getDate();
+    for (const [nombre, texto] of archivos) {
+      const nom = enc.encode(nombre), dat = enc.encode(texto), crc = crc32(dat);
+      const cab = [0x50, 0x4B, 3, 4, ...u16(20), ...u16(0x0800), ...u16(0), ...u16(dosT), ...u16(dosF), ...u32(crc), ...u32(dat.length), ...u32(dat.length), ...u16(nom.length), ...u16(0)];
+      partes.push(new Uint8Array(cab), nom, dat);
+      central.push({nom, crc, n: dat.length, pos});
+      pos += cab.length + nom.length + dat.length;
+    }
+    const iniC = pos;
+    for (const c of central) {
+      const cab = [0x50, 0x4B, 1, 2, ...u16(20), ...u16(20), ...u16(0x0800), ...u16(0), ...u16(dosT), ...u16(dosF), ...u32(c.crc), ...u32(c.n), ...u32(c.n), ...u16(c.nom.length), ...u16(0), ...u16(0), ...u16(0), ...u16(0), ...u32(0), ...u32(c.pos)];
+      partes.push(new Uint8Array(cab), c.nom); pos += cab.length + c.nom.length;
+    }
+    partes.push(new Uint8Array([0x50, 0x4B, 5, 6, 0, 0, 0, 0, ...u16(central.length), ...u16(central.length), ...u32(pos - iniC), ...u32(iniC), 0, 0]));
+    const total = partes.reduce((a, p) => a + p.length, 0), out = new Uint8Array(total); let o = 0; for (const p of partes) { out.set(p, o); o += p.length; } return out;
+  }
+
+  const ESTILO = {txt: 4, usd: 5, kg: 6, int: 7, pct: 8}, ESTILO_TOT = {txt: 9, usd: 10, kg: 11, int: 12, pct: 13};
+  const ESTILOS = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+    '<numFmts count="3"><numFmt numFmtId="164" formatCode="&quot;$&quot;\\ #,##0.00"/><numFmt numFmtId="165" formatCode="#,##0.00"/><numFmt numFmtId="166" formatCode="0.00&quot;%&quot;"/></numFmts>' +
+    '<fonts count="5"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="15"/><color rgb="FFC92121"/><name val="Calibri"/></font><font><i/><sz val="10"/><color rgb="FF6B6B6B"/><name val="Calibri"/></font><font><b/><sz val="11"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font><font><b/><sz val="11"/><color rgb="FF1A1A1A"/><name val="Calibri"/></font></fonts>' +
+    '<fills count="4"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFC92121"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFF2B72E"/><bgColor indexed="64"/></patternFill></fill></fills>' +
+    '<borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border><border><left style="thin"><color rgb="FFCCCCCC"/></left><right style="thin"><color rgb="FFCCCCCC"/></right><top style="thin"><color rgb="FFCCCCCC"/></top><bottom style="thin"><color rgb="FFCCCCCC"/></bottom><diagonal/></border></borders>' +
+    '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="14">' +
+    '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>' +
+    '<xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/>' +
+    '<xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1"/>' +
+    '<xf numFmtId="0" fontId="3" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>' +
+    '<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1"/>' +
+    '<xf numFmtId="164" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyBorder="1"/>' +
+    '<xf numFmtId="165" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyBorder="1"/>' +
+    '<xf numFmtId="3" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyBorder="1"/>' +
+    '<xf numFmtId="166" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyBorder="1"/>' +
+    '<xf numFmtId="0" fontId="4" fillId="3" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1"/>' +
+    '<xf numFmtId="164" fontId="4" fillId="3" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1"/>' +
+    '<xf numFmtId="165" fontId="4" fillId="3" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1"/>' +
+    '<xf numFmtId="3" fontId="4" fillId="3" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1"/>' +
+    '<xf numFmtId="166" fontId="4" fillId="3" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1"/>' +
+    '</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
+
+  function hoja(d) {
+    const nc = d.cols.length, filas = []; let r = 0;
+    const celda = (c, f, valor, estilo, num) => num && valor !== '' && valor != null && isFinite(valor) ? `<c r="${letra(c)}${f}" s="${estilo}"><v>${+valor}</v></c>` : `<c r="${letra(c)}${f}" s="${estilo}" t="inlineStr"><is><t xml:space="preserve">${esc(valor)}</t></is></c>`;
+    const fila = (cells, alto) => { filas.push(`<row r="${++r}"${alto ? ` ht="${alto}" customHeight="1"` : ''}>${cells}</row>`); return r; };
+    fila(celda(0, r + 1, d.titulo, 1), 24);
+    fila(celda(0, r + 1, d.subtitulo || '', 2));
+    fila('');
+    const filaCab = fila(d.cols.map((c, i) => celda(i, r + 1, c.h, 3)).join(''), 30);
+    d.filas.forEach(f => { const n = r + 1; fila(d.cols.map((c, i) => celda(i, n, f[i], ESTILO[c.tipo] || 4, c.tipo !== 'txt')).join('')); });
+    if (d.totales) { const n = r + 1; fila(d.cols.map((c, i) => celda(i, n, d.totales[i], ESTILO_TOT[c.tipo] || 9, c.tipo !== 'txt')).join('')); }
+    if (d.nota) { fila(''); fila(celda(0, r + 1, d.nota, 2)); }
+    const anchos = d.cols.map((c, i) => `<col min="${i + 1}" max="${i + 1}" width="${c.w || 16}" customWidth="1"/>`).join('');
+    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><dimension ref="A1:${letra(nc - 1)}${r}"/><sheetViews><sheetView workbookViewId="0" showGridLines="0"><pane ySplit="${filaCab}" topLeftCell="A${filaCab + 1}" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews><sheetFormatPr defaultRowHeight="15"/><cols>${anchos}</cols><sheetData>${filas.join('')}</sheetData><pageMargins left="0.5" right="0.5" top="0.6" bottom="0.6" header="0.3" footer="0.3"/><pageSetup orientation="${nc > 5 ? 'landscape' : 'portrait'}"/></worksheet>`;
+  }
+
+  function generar(d) {
+    const nombreHoja = esc(String(d.hoja || 'Reporte').replace(/[\\/?*\[\]:]/g, ' ').slice(0, 31));
+    return zip([
+      ['[Content_Types].xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>'],
+      ['_rels/.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>'],
+      ['xl/workbook.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="${nombreHoja}" sheetId="1" r:id="rId1"/></sheets></workbook>`],
+      ['xl/_rels/workbook.xml.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>'],
+      ['xl/styles.xml', ESTILOS],
+      ['xl/worksheets/sheet1.xml', hoja(d)]
+    ]);
+  }
+  function descargar(d, nombre) {
+    const bytes = generar(d), blob = new Blob([bytes], {type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}), url = URL.createObjectURL(blob), a = document.createElement('a');
+    a.href = url; a.download = nombre; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 15000); return bytes;
+  }
+  return {generar, descargar};
 })();
 
 </script>
@@ -7402,15 +7566,12 @@ function scrRegVentas() {
     /* una nota que ya se facturó cuenta una sola vez (como factura); las anuladas no cuentan */
     const docs = R.docs.filter(d => !/^ANULAD/.test(d.estado || '') && d.estado !== 'FACTURADO_DESDE_NE');
     const hoy = vHoy(), lunes = vLunes(hoy), suma = f => docs.filter(f).reduce((a, d) => a + d.total_cents, 0) / 100;
-    const por = {}; docs.forEach(d => { const k = d.vendedor_nombre || 'Sin vendedor', o = por[k] ||= {n: k, dia: 0, sem: 0, mes: 0, cli: new Set()}; const u = d.total_cents / 100; o.mes += u; o.cli.add(d.id_cliente); if (d.fecha_emision >= lunes) o.sem += u; if (d.fecha_emision === hoy) o.dia += u; });
-    const vend = Object.values(por).sort((a, b) => b.mes - a.mes).slice(0, 5);
-    const ult = docs.slice(0, 5), deu = R.deuda || {clientes: [], total: 0};
+    const ult = docs.slice(0, 5);
     const peds = (R.peds || []).slice(0, 8);
     return `${vph('Ventas y liquidación', 'Registro de ventas', 'Lo vendido en los últimos 30 días, con los datos reales del sistema.')}
     ${R.err ? `<p class="v-alerta">${ic('alert', 16)}No se pudo leer todo. Vuelve a entrar en un momento.</p>` : ''}
-    <div class="v-stats">${stat('Ventas de hoy', vusd(suma(d => d.fecha_emision === hoy)), 'Total del día')}${stat('Ventas de la semana', vusd(suma(d => d.fecha_emision >= lunes)), 'Desde el lunes')}${stat('Ventas de 30 días', vusd(suma(() => true)), docs.length + (docs.length === 1 ? ' venta' : ' ventas'))}${stat('Por cobrar', vusd(deu.total || 0), (deu.clientes || []).length + ' cliente(s)')}</div>
-    <div class="v-2c">${card('Por vendedor', table([{h: 'Vendedor', f: v => `<b>${vtxt(v.n)}</b>`}, {h: 'Hoy', r: 1, f: v => vusd(v.dia)}, {h: 'Semana', r: 1, f: v => vusd(v.sem)}, {h: '30 días', r: 1, f: v => vusd(v.mes)}, {h: 'Clientes', r: 1, f: v => v.cli.size}], vend, {empty: 'Todavía no hay ventas en estos días.'}))}
-    ${card('Últimas ventas', table([{h: 'Fecha', f: d => vfecha(d.fecha_emision)}, {h: 'Documento', f: d => `<button type="button" class="btn sm ghost" data-act="vVerDoc" data-id="${d.id_documento}">${vtxt(d.numero_externo || d.nro_control_interno)}</button>`}, {h: 'Cliente', f: d => vtxt(d.razon_social)}, {h: 'Total', r: 1, f: d => `<b>${vusd(d.total_cents / 100)}</b>`}], ult, {empty: 'Todavía no hay ventas en estos días.'}))}</div>
+    ${rvPanel()}
+    <div class="v-2c">${card('Últimas ventas', table([{h: 'Fecha', f: d => vfecha(d.fecha_emision)}, {h: 'Documento', f: d => `<button type="button" class="btn sm ghost" data-act="vVerDoc" data-id="${d.id_documento}">${vtxt(d.numero_externo || d.nro_control_interno)}</button>`}, {h: 'Cliente', f: d => vtxt(d.razon_social)}, {h: 'Total', r: 1, f: d => `<b>${vusd(d.total_cents / 100)}</b>`}], ult, {empty: 'Todavía no hay ventas en estos días.'}))}</div>
     ${card('Pedidos recientes (PDF al vender)', table([{h: 'Pedido', f: p => `<b>${vtxt(p.nro)}</b>`}, {h: 'Fecha', f: p => vfecha(p.fecha)}, {h: 'Cliente', f: p => vtxt(p.razon_social)}, {h: 'Bultos', r: 1, f: p => N0.format(p.bultos)}, {h: 'Estado', f: p => vtxt(p.estado.toLowerCase())}, {h: '', f: p => `<button type="button" class="btn sm acc" data-act="vPdfPed" data-id="${p.id_pedido}">${ic('download', 14)}PDF de la ${p.tipo === 'FACTURA' ? 'factura' : 'nota'}</button>`}], peds, {empty: 'Todavía no hay pedidos.'}))}`;
   });
 }
@@ -7728,6 +7889,113 @@ function scrImportar() {
     return `${vph('Ventas y liquidación', 'Importar del Excel de cobranza', 'Carga única del historial: notas por cobrar y pagos ya recibidos, con vista previa antes de guardar.')}${cuerpo}`;
   });
 }
+
+/* ---- v-rep-ventas.js ---- */
+/* Reportes de ventas dentro de «Registro de ventas»: Por rubro, Por vendedor, Por zona y Por producto.
+   Los datos los arma el servidor (/api/v/reportes/ventas) con los mismos documentos que el Registro. Aquí: periodo, buscador, tabla y descargas (Excel y PDF propios). */
+const RV_TABS = [['rubro', 'Por rubro', 'Rubro', 'ventas-por-rubro'], ['vendedor', 'Por vendedor', 'Vendedor', 'ventas-por-vendedor'], ['zona', 'Por zona', 'Zona', 'ventas-por-zona'], ['producto', 'Por producto', 'Producto', 'ventas-por-producto']];
+const RV_RANGOS = [['hoy', 'Hoy'], ['semana', 'Esta semana'], ['quincena', 'Quincena'], ['mes', 'Este mes'], ['pasado', 'Mes pasado']];
+const rvVe = () => ['dueno', 'adm', 'ventas'].includes(S.rol);
+const rvEstado = () => V.rv ||= {tab: 'rubro', rango: 'mes', desde: '', hasta: '', q: '', cache: {}, cargando: '', err: null, vend: (() => { try { return localStorage.getItem('elmana:miVendedor') || ''; } catch (e) { return ''; } })()};
+const rv2 = n => String(n).padStart(2, '0');
+function rvFijar(k) {
+  const R = rvEstado(), h = vHoy(), [y, m, d] = h.split('-').map(Number); R.rango = k;
+  if (k === 'hoy') [R.desde, R.hasta] = [h, h];
+  else if (k === 'semana') [R.desde, R.hasta] = [vLunes(h), h];
+  else if (k === 'quincena') [R.desde, R.hasta] = [h.slice(0, 8) + (d <= 15 ? '01' : '16'), h];
+  else if (k === 'pasado') { const py = m === 1 ? y - 1 : y, pm = m === 1 ? 12 : m - 1; [R.desde, R.hasta] = [py + '-' + rv2(pm) + '-01', VD.sumarDias(h.slice(0, 8) + '01', -1)]; }
+  else [R.desde, R.hasta] = [h.slice(0, 8) + '01', h];
+}
+const rvClave = R => [R.tab, R.desde, R.hasta, S.rol === 'ventas' ? R.vend : ''].join('|');
+async function rvCargar() {
+  const R = rvEstado(); if (!R.desde) rvFijar(R.rango);
+  if (R.desde > R.hasta) return;
+  if (S.rol === 'ventas' && !R.vend) return;
+  const k = rvClave(R), c = R.cache[k]; if (c && Date.now() - c.ts < 20000) return; if (R.cargando === k) return;
+  R.cargando = k; R.err = null;
+  try {
+    const d = await vApi('GET', '/reportes/ventas' + vQS({agrupar: R.tab, desde: R.desde, hasta: R.hasta, vendedor: S.rol === 'ventas' ? R.vend : ''}));
+    d.idx = d.filas.map(f => Busca.norm(f.nombre)); /* índice normalizado (sin tildes ni mayúsculas), construido UNA vez por carga */ d.ts = Date.now(); R.cache[k] = d;
+  } catch (e) { R.err = e; }
+  if (R.cargando === k) R.cargando = '';
+  render();
+}
+function rvVisibles(d) {
+  const q = Busca.norm(rvEstado().q); if (!q) return d.filas;
+  const t = q.split(' ').filter(Boolean); return d.filas.filter((f, i) => t.every(w => d.idx[i].includes(w)));
+}
+function rvFilasTotales(d, vis) {
+  const completo = vis.length === d.filas.length, ex = ['vendedor', 'zona'].includes(rvEstado().tab);
+  if (completo) return {total: d.totales.total, kilos: d.totales.kilos, bultos: d.totales.bultos, pedidos: d.totales.pedidos, pct: d.totales.pct};
+  const s = k => vis.reduce((a, f) => a + f[k], 0);
+  return {total: Math.round(s('total') * 100) / 100, kilos: Math.round(s('kilos') * 1000) / 1000, bultos: s('bultos'), pedidos: ex ? s('pedidos') : null, pct: Math.round(s('pct') * 100) / 100};
+}
+function rvTablaHTML() {
+  const R = rvEstado(), d = R.cache[rvClave(R)], t = RV_TABS.find(x => x[0] === R.tab);
+  if (R.desde > R.hasta) return '<p class="v-alerta">La fecha «Desde» no puede ser posterior a «Hasta».</p>';
+  if (S.rol === 'ventas' && !R.vend) return '<p class="hint">Elige tu nombre arriba para ver tus ventas.</p>';
+  if (R.err) return `<p class="v-alerta">${ic('alert', 16)}${esc(R.err.message || 'No se pudo cargar el reporte.')}</p>`;
+  if (!d) return '<p class="hint">Cargando el reporte…</p>';
+  const vis = rvVisibles(d), T = rvFilasTotales(d, vis);
+  return table([{h: t[2], f: f => `<b>${vtxt(f.nombre)}</b>`}, {h: 'Total vendido $', r: 1, f: f => vusd(f.total)}, {h: 'Kilos', r: 1, f: f => N2.format(f.kilos)}, {h: 'Bultos', r: 1, f: f => N0.format(f.bultos)}, {h: 'Pedidos', r: 1, f: f => N0.format(f.pedidos)}, {h: '% del total', r: 1, f: f => N2.format(f.pct) + ' %'}], vis,
+    {empty: Busca.norm(R.q) ? 'Nada coincide con lo que escribiste.' : 'No hay ventas en este periodo.', foot: vis.length ? `<tr class="v-foot"><td>${vis.length === d.filas.length ? 'Total' : 'Total de lo que se ve'}</td><td class="r">${vusd(T.total)}</td><td class="r">${N2.format(T.kilos)}</td><td class="r">${N0.format(T.bultos)}</td><td class="r">${T.pedidos == null ? '—' : N0.format(T.pedidos)}</td><td class="r">${N2.format(T.pct)} %</td></tr>` : ''});
+}
+const rvFechaTxt = f => f.slice(8, 10) + '/' + f.slice(5, 7) + '/' + f.slice(0, 4);
+function rvPanel() {
+  const R = rvEstado(); if (!rvVe()) return '';
+  rvCargar();
+  const miVend = S.rol === 'ventas' ? `<label class="fld rv-quien">Soy el vendedor<select data-act-change="rvVend"><option value="">Elige tu nombre</option>${V.vendedores.map(v => `<option value="${v.id}" ${String(R.vend) === String(v.id) ? 'selected' : ''}>${vtxt(v.nombre)}</option>`).join('')}</select></label>` : '';
+  const tabs = `<div class="v-tabs" role="tablist" aria-label="Reportes de ventas">${RV_TABS.map(([k, t]) => `<button type="button" role="tab" aria-selected="${R.tab === k}" class="v-tab" data-act="rvTab" data-v="${k}">${t}</button>`).join('')}</div>`;
+  const rap = RV_RANGOS.map(([k, t]) => `<button type="button" class="btn sm rv-rap" data-act="rvRango" data-v="${k}" aria-pressed="${R.rango === k}">${t}</button>`).join('');
+  const d = R.cache[rvClave(R)], hay = d && d.filas.length;
+  return card('Reportes de ventas', `${tabs}${miVend}
+    <div class="rv-per"><div class="rv-rapidos" role="group" aria-label="Periodo">${rap}</div>
+    <div class="rv-fechas"><label class="fld">Desde<input type="date" class="rv-fecha" data-act-change="rvFecha" data-k="desde" value="${esc(R.desde)}"></label><label class="fld">Hasta<input type="date" class="rv-fecha" data-act-change="rvFecha" data-k="hasta" value="${esc(R.hasta)}"></label></div></div>
+    <div class="rv-barra"><label class="fld rv-bus"><span class="sr">Buscar</span><input type="search" class="rv-q" aria-label="Buscar en el reporte" placeholder="Buscar ${esc(RV_TABS.find(x => x[0] === R.tab)[2].toLowerCase())}" value="${esc(R.q)}" autocomplete="off"></label>
+    <div class="btnrow"><button type="button" class="btn" data-act="rvExcel" ${hay ? '' : 'disabled'}>${ic('download', 16)}Descargar Excel</button><button type="button" class="btn" data-act="rvPdf" ${hay ? '' : 'disabled'}>${ic('download', 16)}Descargar PDF</button></div></div>
+    <p class="rv-periodo"><b>Del ${rvFechaTxt(R.desde)} al ${rvFechaTxt(R.hasta)}</b>${S.rol === 'ventas' ? '' : ' · Todas las ventas'}</p>
+    <div id="rv-tabla" class="rv-tabla">${rvTablaHTML()}</div>
+    <p class="hint">Cuenta notas de entrega y facturas (sin anuladas) por su fecha de emisión, igual que el Registro de ventas.${S.rol === 'ventas' ? ' Aquí solo ves tus propias ventas.' : ''}</p>`);
+}
+/* Datos del archivo: SOLO la pestaña abierta, con lo que se ve (filtro incluido) */
+function rvArchivo() {
+  const R = rvEstado(), d = R.cache[rvClave(R)]; if (!d) return null;
+  const t = RV_TABS.find(x => x[0] === R.tab), vis = rvVisibles(d), T = rvFilasTotales(d, vis), q = R.q.trim();
+  const ventas = S.rol === 'ventas' ? (V.vendedores.find(v => String(v.id) === String(R.vend)) || {}).nombre : '';
+  return {
+    base: t[3], titulo: 'Ventas ' + t[1].toLowerCase(), hoja: t[1],
+    subtitulo: 'Periodo: del ' + rvFechaTxt(R.desde) + ' al ' + rvFechaTxt(R.hasta) + (ventas ? ' · Vendedor: ' + ventas : '') + (q ? ' · Búsqueda: «' + q + '»' : ''),
+    cols: [{h: t[2], tipo: 'txt', w: 38}, {h: 'Total vendido $', tipo: 'usd', w: 20}, {h: 'Kilos', tipo: 'kg', w: 14}, {h: 'Bultos', tipo: 'int', w: 12}, {h: 'Pedidos', tipo: 'int', w: 12}, {h: '% del total', tipo: 'pct', w: 13}],
+    filas: vis.map(f => [f.nombre, f.total, f.kilos, f.bultos, f.pedidos, f.pct]),
+    totales: ['Total', T.total, T.kilos, T.bultos, T.pedidos == null ? '' : T.pedidos, T.pct],
+    nota: d.nota
+  };
+}
+const rvNombre = (a, ext) => { const R = rvEstado(); return a.base.charAt(0).toUpperCase() + a.base.slice(1) + '_' + R.desde + '_al_' + R.hasta + '.' + ext; };
+Object.assign(ACT, {
+  rvTab: el => { const R = rvEstado(); R.tab = el.dataset.v; R.q = ''; render(); },
+  rvRango: el => { rvFijar(el.dataset.v); rvEstado().q = ''; render(); },
+  rvFecha: el => { const R = rvEstado(); if (!el.value) return; R[el.dataset.k] = el.value; R.rango = 'otro'; render(); },
+  rvVend: el => { const R = rvEstado(); R.vend = el.value; try { localStorage.setItem('elmana:miVendedor', el.value); } catch (e) { /* sin almacenamiento */ } render(); },
+  rvExcel: () => { const a = rvArchivo(); if (!a) return; ElManaXLSX.descargar(a, rvNombre(a, 'xlsx')); toast('Se descargó el Excel ' + esc(rvNombre(a, 'xlsx')) + '.', 'ok'); },
+  rvPdf: async () => {
+    const a = rvArchivo(); if (!a) return;
+    try {
+      await ElManaPDF.descargarTabla({titulo: a.titulo, subtitulo: a.subtitulo, nota: a.nota, archivo: rvNombre(a, 'pdf'),
+        cols: [{h: a.cols[0].h, al: 'l', w: 4}, {h: 'Total vendido $', al: 'r', w: 2}, {h: 'Kilos', al: 'r', w: 1.5}, {h: 'Bultos', al: 'r', w: 1.2}, {h: 'Pedidos', al: 'r', w: 1.2}, {h: '% del total', al: 'r', w: 1.4}],
+        filas: a.filas.map(f => [f[0], vusd(f[1]), N2.format(f[2]), N0.format(f[3]), N0.format(f[4]), N2.format(f[5]) + ' %']),
+        totales: [a.totales[0], vusd(a.totales[1]), N2.format(a.totales[2]), N0.format(a.totales[3]), a.totales[4] === '' ? '—' : N0.format(a.totales[4]), N2.format(a.totales[5]) + ' %']}, typeof LOGO_SRC === 'string' ? LOGO_SRC : '/icon-192.png');
+      toast('Se descargó el PDF ' + esc(rvNombre(a, 'pdf')) + '.', 'ok');
+    } catch (e) { vErr(e); }
+  }
+});
+/* Buscador del reporte: filtra al escribir y solo repinta la tabla (no pierde el cursor) */
+document.addEventListener('input', e => {
+  const t = e.target; if (!t || !t.classList || !t.classList.contains('rv-q')) return;
+  const R = rvEstado(); R.q = t.value; const c = document.getElementById('rv-tabla'); if (c) c.innerHTML = rvTablaHTML();
+});
+/* Los enlaces «Ver detalle» de las tarjetas de ventas (data-rv="mes") abren este reporte con ese periodo */
+document.addEventListener('click', e => { const a = e.target.closest && e.target.closest('[data-rv]'); if (a) { rvFijar(a.dataset.rv); rvEstado().q = ''; } }, true);
 
 /* ---- v-registro.js ---- */
 /* Registro del módulo en la aplicación: pantallas, permisos por rol, acciones y entradas del teclado. */
@@ -10517,7 +10785,7 @@ function gBloque(titulo, cifras, enlace, extra, k, sec, cls) {
     '<div class="gr-body"><div class="gr-l">' + cifras.map(c => '<div class="gr-c"><b class="' + (gSinCifra(c.v) ? 'muted' : '') + '">' + c.v + '</b><span>' + c.l + '</span></div>').join('') +
     (sec && sec.length ? '<div class="gr-sec">' + sec.map(x => '<p><span>' + x[0] + '</span><b>' + x[1] + '</b></p>').join('') + '</div>' : '') + '</div>' +
     (extra ? '<div class="gr-r">' + extra + '</div>' : '') + '</div>' +
-    (gVa(enlace) ? '<a class="btn pri gr-btn" href="#' + enlace + '">Ver detalle</a>' : '') + '</div></article>';
+    (gVa(enlace) ? '<a class="btn pri gr-btn" href="#' + enlace + '"' + (enlace === 'ventas' ? ' data-rv="mes"' : '') + '>Ver detalle</a>' : '') + '</div></article>';
 }
 function gBarras(mm, M) {
   const g = {}; mm.filter(m => gEnMes(m.fecha, M) && m.estado !== 'rech').forEach(m => { const n = String(m.prod || m.causa || m.etapa || 'Otros').trim() || 'Otros'; g[n] = (g[n] || 0) + (+m.usd || 0); });
@@ -10608,7 +10876,7 @@ function scrGerencia(modo) {
   return `<h1 class="sr">${adm ? 'Administración' : 'Gerencia'}</h1>
   <div class="gr-top"><p class="gr-per">Resumen del mes: ${M.t}</p>${gPlanta()}</div>
   <div class="gr-grid${adm ? ' gr-adm' : ''}">
-    ${gBloque('Ventas', [{v: vv != null ? gUsd(vv) : (cargando ? '…' : SD), l: 'Total vendido del mes'}], adm ? gPrim(['ventas', 'v-pagos', 'v-pedido']) : 'v-pedido', adm ? '' : gMedidor('ventas', vv, gUsd), 'ventas', [['Por cobrar', GER.deuda ? gUsd(GER.deuda.total || 0) : (cargando ? '…' : SD)]])}
+    ${gBloque('Ventas', [{v: vv != null ? gUsd(vv) : (cargando ? '…' : SD), l: 'Total vendido del mes'}], 'ventas', adm ? '' : gMedidor('ventas', vv, gUsd), 'ventas', [['Por cobrar', GER.deuda ? gUsd(GER.deuda.total || 0) : (cargando ? '…' : SD)]])}
     ${gBloque('Administración', [{v: cv != null ? gUsd(cv) : SD, l: 'Compras del mes'}], 'analisis', adm ? '' : gMedidor('compras', cv, gUsd), 'compras', [['Por pagar a proveedores', u(porPagar)], ['Caja chica', u(caja)]])}
     ${adm ? '' : (() => { const E = gEquilibrio(vv); return gBloque('Punto de equilibrio', [{v: E.v, l: 'Ventas mínimas del mes'}], 'gestion', E.pe ? '<div class="gr-pb" role="img" aria-label="Avance ' + N0.format(E.pct) + ' %"><u style="width:' + Math.min(100, E.pct) + '%"></u></div><p class="gr-meta">Llevas ' + gUsd(E.vv) + ' de ' + gUsd(E.pe) + ' (' + N0.format(E.pct) + ' %)</p>' : '<p class="gr-meta">' + E.m + '</p>', null, null, 'gr-pe'); })()}
     ${gBloque('Producción', adm ? [{v: kilos != null ? nf(kilos) + ' kg' : (cargando ? '…' : SD), l: 'Kilos procesados del mes'}] : [{v: SD, l: 'Nómina de hoy'}], 'mermas', '<div class="gr-pm"><p class="gr-meta">Mermas del mes</p>' + (mm ? gBarras(mm, M) : '<p class="gr-meta">' + SD + '</p>') + '</div>', null, adm ? null : [['Kilos procesados', kilos != null ? nf(kilos) + ' kg' : SD], ['Bultos empacados', SD]], 'gr-prod')}
@@ -10906,8 +11174,8 @@ renderTop = function () {
   if (!(S.entry === 'in' && Boot.state === 'ready')) return;
   const w = document.querySelector('#top .who'); if (!w) return;
   const dueno = S.rol === 'dueno', pend = window.ppPend ? window.ppPend() : 0;
-  w.insertAdjacentHTML('beforeend', '<span class="top-fijos"><button type="button" class="btn sm ghost" data-act="ayuda">' + ic('book', 16) + '<span>Ayuda</span>' + (pend ? '<span class="badge w" title="Pasos por hacer">' + pend + '</span>' : '') + '</button>' +
-    (dueno ? '<a class="btn sm ghost" href="#g-solic">' + ic('shield', 16) + '<span>Solicitudes</span></a>' : '<button type="button" class="btn sm ghost" data-act="autorizar">' + ic('shield', 16) + '<span>Autorización</span></button>') + '</span>');
+  w.insertAdjacentHTML('beforeend', '<span class="top-fijos"><button type="button" class="btn sm ghost" data-act="ayuda" aria-label="Ayuda" title="Ayuda">' + ic('book', 16) + '<span>Ayuda</span>' + (pend ? '<span class="badge w" title="Pasos por hacer">' + pend + '</span>' : '') + '</button>' +
+    (dueno ? '<a class="btn sm ghost" href="#g-solic" aria-label="Solicitudes" title="Solicitudes">' + ic('shield', 16) + '<span>Solicitudes</span></a>' : '<button type="button" class="btn sm ghost" data-act="autorizar" aria-label="Autorización" title="Autorización">' + ic('shield', 16) + '<span>Autorización</span></button>') + '</span>');
 };
 Object.assign(ACT, {
   irA: el => { closeModal(); location.hash = '#' + el.dataset.r; },
