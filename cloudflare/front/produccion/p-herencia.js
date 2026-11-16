@@ -25,10 +25,10 @@ async function prRsEnviar(f, id, tx, parcial) {
   finally { PR.busy = false; }
 }
 
-/* ---------- Exceso: llegó menos de lo que se quiere usar, queda en espera del Jefe ---------- */
+/* ---------- Exceso: llegó menos de lo que se quiere usar, queda en espera del Gerente ---------- */
 function prExcesoModal(ruta, base, j) {
   PR.ex = {ruta, base};
-  modal('Llegó menos de lo que anotas', `<div class="form"><p>${prT(j.error)}</p><p class="pr-sub">Si sigues, queda en espera hasta que el Jefe de producción lo apruebe.</p>
+  modal('Llegó menos de lo que anotas', `<div class="form"><p>${prT(j.error)}</p><p class="pr-sub">Si sigues, queda en espera hasta que el Gerente lo apruebe.</p>
     <label class="fld">Qué pasó<select id="pr-ex-t">${(j.tipos || []).map(t => `<option value="${prT(t.k)}">${prT(t.t)}</option>`).join('')}</select></label>
     <label class="fld">Explica (obligatorio)<input type="text" id="pr-ex-m" maxlength="200"></label>
     <p class="err" id="pr-e" role="alert" hidden></p><div class="btnrow"><button type="button" class="btn pri" data-act="prExOk">Pedir aprobación</button><button type="button" class="btn" data-act="closeModal">Cancelar</button></div></div>`);
@@ -111,7 +111,7 @@ function scrDif() {
   const w = prEspera('Diferencias', 'dif', ruta, 'dif'); if (w) return w;
   const L = Array.isArray(PR.dif) ? PR.dif : [], filtros = [['PENDIENTE', 'Por aprobar'], ['APROBADA', 'Aprobadas'], ['RECHAZADA', 'Rechazadas']].concat(dueno ? [['AUTOMATICA', 'Automáticas'], ['TODAS', 'Todas']] : []);
   const tarj = d => {
-    const sobra = d.diferencia > 0, u = d.unidad === 'kg' ? 'kg' : 'bultos', espDueno = d.estado === 'PENDIENTE' && d.creado_rol === 'jefeprod' && !dueno;
+    const sobra = d.diferencia > 0, u = d.unidad === 'kg' ? 'kg' : 'bultos', espDueno = d.estado === 'PENDIENTE' && !dueno;
     return `<article class="pr-dif ${d.estado === 'PENDIENTE' ? 'pend' : ''}"><div class="pr-dif-t"><b>${prT(d.etapa_texto)}</b><span class="chip ${d.estado === 'APROBADA' || d.estado === 'AUTOMATICA' ? 'c-ok' : d.estado === 'PENDIENTE' ? 'c-warn' : ''}">${prDifEst[d.estado] || d.estado}</span></div>
       <p>${sobra ? 'Sobran' : 'Faltan'} <b>${prN(Math.abs(d.diferencia), 1)} ${u}</b> · llegó ${prN(d.heredado, 1)}, se usó ${prN(d.usado, 1)} · lo anotó ${prT(d.creado_por)}</p>
       <p class="pr-sub">${prT(d.tipo_texto)}: ${prT(d.motivo)}${d.nota_decision ? ' · Nota: ' + prT(d.nota_decision) : ''}</p>
@@ -149,7 +149,7 @@ function prCargaOk() {
   }).finally(() => { PR.busy = false; });
 }
 function prCargaCard() {
-  if (!(S.rol === 'dueno' || S.rol === 'jefeprod' || S.rol === 'empaque') || !window.__EM_HTTP) return '';
+  if (!(S.rol === 'dueno' || S.rol === 'empaque') || !window.__EM_HTTP) return '';
   if (PR.rol !== S.rol) { PR.rol = S.rol; PR.tab = PR.turno = PR.proc = PR.inv = PR.aj = PR.z = PR.sals = null; }
   if (!PR.sals) { prCargar('sals', '/salidas?estado=ARMANDO', 'sals'); return card('Contar la carga de las salidas', '<p class="hint">Cargando…</p>'); }
   const L0 = Array.isArray(PR.sals) ? PR.sals : [], zf = PR.zonaDesp, L = zf ? L0.filter(s => s.zona === zf) : L0;
@@ -175,14 +175,14 @@ function scrMotivos() {
 const _bad = badges;
 badges = function () {
   const b = _bad();
-  if ((S.rol === 'dueno' || S.rol === 'jefeprod') && window.__EM_HTTP) {
+  if (S.rol === 'dueno' && window.__EM_HTTP) {
     if (Date.now() - PR.cntTs > 20000 && !PR.cntBusy) { PR.cntBusy = true; PR.cntTs = Date.now(); prApi('GET', '/diferencias/contador').then(c => { const n = (PR.cnt || {}).pendientes; PR.cnt = c; if (n !== c.pendientes) render(); }).catch(() => {}).finally(() => { PR.cntBusy = false; }); }
     b['pr-dif'] = [(PR.cnt || {}).pendientes || 0, 'w'];
   }
   return b;
 };
 
-Object.assign(PERM_DEF, {'pr-dif': 'jefeprod:2', 'pr-mot': ''});
+Object.assign(PERM_DEF, {'pr-dif': 'produccion:1 empaque:1', 'pr-mot': ''});
 Object.assign(SCREENS, {
   'pr-dif': {mod: 'prod', g: 'Zonas', t: 'Diferencias', s: 'Diferencias', ic: 'alert', r: scrDif},
   'pr-mot': {mod: 'prod', g: 'Zonas', t: 'Motivos de merma', s: 'Motivos de merma', ic: 'sliders', r: scrMotivos}

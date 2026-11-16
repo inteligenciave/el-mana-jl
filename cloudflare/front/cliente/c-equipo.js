@@ -103,7 +103,7 @@ function scrCPagos() {
 Busca.registrar('c-pag', {sugerir: q => Busca.sugerir(q, CP.pag.filas || [], C_DEF_PAG), vivo: q => { CP.pag.q = q; CP.pag.pag = 0; render(); }, espera: 150});
 
 /* ---------- Registro en la aplicación ---------- */
-Object.assign(PERM_DEF, {'c-ficha': 'ventas:2 adm:2 cobranza:1', 'c-pedidos': 'ventas:2 adm:2 cobranza:1', 'c-pagos': 'adm:2 cobranza:2 ventas:1'});
+Object.assign(PERM_DEF, {'c-ficha': 'ventas:2 adm:1', 'c-pedidos': 'ventas:2 adm:1', 'c-pagos': 'adm:2 ventas:1'});
 Object.assign(SCREENS, {
   'c-ficha':   {mod: 'adm', g: 'Portal de clientes', t: 'Ficha del cliente y su enlace', s: 'Fichas', ic: 'users', r: scrCFicha},
   'c-pedidos': {mod: 'adm', g: 'Portal de clientes', t: 'Pedidos por confirmar', s: 'Pedidos', ic: 'cart', r: scrCPedidos},

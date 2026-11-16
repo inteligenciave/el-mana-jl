@@ -78,7 +78,7 @@ function lmResumen(l) {
     <div><dt>Lo abrió</dt><dd style="font-size:15px">${l.quien ? esc(l.quien) : lmNd}<small>${cuando}</small></dd></div>
     ${cierre ? `<div><dt>Lo cerró</dt><dd style="font-size:15px">${cierre}</dd></div>` : ''}
     <div><dt>Mermas anotadas</dt><dd>${ev.length ? ev.length + `<small>${usd(mUsd)} en total</small>` : 'Ninguna'}</dd></div>
-  </dl>${lmPuede() ? '<p class="hint" style="margin-top:12px">Con «Siguiente» pasas por cada etapa, el cierre y las mermas.</p>' : `<p class="hint" style="margin-top:12px">${ic('lock', 16)} Tu puesto ve solo el resumen del lote. Quien lo registra es Producción, el Jefe de producción o Gerencia.</p>`}`;
+  </dl>${lmPuede() ? '<p class="hint" style="margin-top:12px">Con «Siguiente» pasas por cada etapa, el cierre y las mermas.</p>' : `<p class="hint" style="margin-top:12px">${ic('lock', 16)} Tu puesto ve solo el resumen del lote. Quien lo registra es Producción o Gerencia.</p>`}`;
 }
 
 function lmEtapa(l, i) {
@@ -129,7 +129,7 @@ const lmEtapasMerma = l => mrEtapasMias().filter(e => e.og.kind === 'lote' && e.
 function lmMermas(l) {
   const ets = lmEtapasMerma(l), f = S.mrForm, evs = lmEvs(l).slice().reverse();
   const lista = evs.length ? `<ul class="list lm-merl">${evs.map(e => `<li><div class="l-main"><p class="l-t">${esc((mrEt(e.et) || {t: e.et}).t)} · ${N1.format(e.kg)} kg${e.usd ? ' · ' + usd(e.usd) : ''}</p><p class="l-s">${esc(e.causa)} · ${esc(e.quien || '')} · ${fd(e.f)}${e.obs ? ' · ' + esc(e.obs) : ''}</p></div></li>`).join('')}</ul>` : '<p class="hint">Todavía no hay mermas anotadas en este lote.</p>';
-  if (!ets.length) return `${lista}<p class="hint" style="margin-top:10px">${ic('lock', 16)} Tu puesto no anota mermas de este lote. Pídelo al Jefe de producción.</p>`;
+  if (!ets.length) return `${lista}<p class="hint" style="margin-top:10px">${ic('lock', 16)} Tu puesto no anota mermas de este lote. Pídelo a Producción.</p>`;
   if (!ets.find(e => e.k === f.etapa)) { f.etapa = (ets.find(e => e.k === LM_CLAVE[Math.min(lmIdx(l), 2)]) || ets[0]).k; mrReset(); }
   f.un = 'kg'; f.og = l.id; mrFix(); f.og = l.id;
   const cs = mrCausas(), e = mrEt(f.etapa);

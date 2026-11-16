@@ -44,7 +44,7 @@
 .hp-neto b{font-size:26px;color:#C92121}
 @media (max-width:900px){.hp-grid{grid-template-columns:minmax(0,1fr)}.hp-lista{max-height:none}.hp-pagar{margin-left:0;width:100%;justify-content:center}}
 @media (max-width:559px){.hp-top{gap:6px}.hp-tot,.hp-tn{padding:6px 10px;min-width:0;flex:1}.hp-tot b,.hp-tn b{font-size:28px}.hp-fila{flex-direction:column;align-items:stretch}.hp-btn{width:100%}.hp-tiles{grid-template-columns:1fr}.hp-nav{margin-left:0}}
-/* Franja de resumen y pestañas de Nómina y RRHH */
+/* Franja de resumen y pestañas de Nómina */
 .rh-cab{margin:0 0 8px}
 .rh-franja{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:0 0 8px}
 .rh-c{background:#fff;border:1px solid #E3E1E1;border-left:6px solid #F2B72E;border-radius:12px;padding:6px 12px;display:flex;flex-direction:column;min-width:0}

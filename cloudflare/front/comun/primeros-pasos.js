@@ -45,13 +45,13 @@ const PASOS = [
   {id: 'a-flota', s: 1, k: 'fl-flota', r: ['dueno', 'adm'], t: 'Agrega los vehículos',
     h: 'Pulsa «Agregar vehículo». Escribe placa, tipo, marca y modelo, capacidades, estado, chofer habitual y cuándo vencen el seguro y los documentos. Pulsa «Guardar».',
     p: 'Al despachar eliges el vehículo y el chofer de esta lista.'},
-  {id: 'a-equipo', s: 1, k: 'catprod', n: 2, r: ['dueno', 'jefeprod', 'recep'], t: 'Agrega a quien recibe la mercancía',
+  {id: 'a-equipo', s: 1, k: 'catprod', n: 2, r: ['dueno', 'produccion'], t: 'Agrega a quien recibe la mercancía',
     h: 'En «Equipo», tarjeta «Quién recibe», pulsa «Agregar persona» y luego «Agregar».',
     p: 'Recibir pide elegir «Quién recibe». Si no hay nadie, dice «Sin personal: agrégalo en Equipo y flota».'},
   {id: 'a-pin', s: 1, k: 'v-clientes', r: ['dueno'], clic: {sel: '[data-act="vAdmTab"][data-v="ajustes"]'}, t: 'Crea el PIN de gerencia',
     h: 'En «Ajustes», en «PIN de gerencia», pulsa «Crear PIN» (de 4 a 12 números). Ahí mismo puedes llenar el «Membrete de los documentos» y pulsar «Guardar ajustes».',
     p: 'El PIN se pide para anotar un pago con fecha pasada y para perdonar mora.'},
-  {id: 'a-pol', s: 1, k: 'politicas', n: 2, r: ['dueno', 'custodio'], t: 'Revisa las reglas de caja y nómina',
+  {id: 'a-pol', s: 1, k: 'politicas', n: 2, r: ['dueno', 'adm'], t: 'Revisa las reglas de caja y nómina',
     h: 'Revisa el «Fondo fijo ($)», el «Umbral de compra de contado ($)», «Reponer cuando quede menos de (%)» y la «Tolerancia de peso en recepción (%)». En préstamos mira los días de entrega en el mes, el tope por empleado ($) y las cuotas máximas. Pulsa «Guardar políticas».',
     p: 'Son las reglas que usa el sistema para caja, compras y préstamos.'},
 
@@ -69,20 +69,20 @@ const PASOS = [
     h: 'Escribe qué se compró, el proveedor, el monto y la partida contable. El «Motivo de la compra» es obligatorio. Pulsa «Registrar compra».',
     p: 'Así toda compra queda con su motivo.'},
   {id: 'd-turno', s: 2, k: 'pr-turno', n: 2, t: 'Abre y llena el turno',
-    h: 'Pulsa «Abrir turno de hoy». En cada tarjeta (Recepción, Lavado, Fritado, Empacado) escribe los kilos y pulsa «Entra» o «Sale». En Empacado elige el producto, los «Bultos» y pulsa «Anotar».',
+    h: 'Pulsa «Abrir turno de hoy». En cada tarjeta (Recepción, Lavado, Fritado, Empacado) escribe los kilos y pulsa «Entra» o «Sale». Lo empacado lo anota Logística.',
     p: 'Al cerrar el turno, los bultos empacados se suman al inventario.'},
   {id: 'd-lote', s: 2, k: 'produccion', n: 2, t: 'Abre un lote de producción',
     h: 'Pulsa «+ Abrir lote nuevo». Elige la compra de papa que alimenta el lote, escribe los kilos de papa cruda y pulsa «Abrir lote». En cada etapa (Lavado y pelado, Corte, Freído, Enfriado y reposo) pulsa «Terminé esta etapa». Al final pulsa «Cerrar lote y pasar a empaque».',
     p: 'Así se sabe cuánta papa entró y cuánta pasó por cada etapa.'},
-  {id: 'd-empacar', s: 2, k: 'empaque', n: 2, t: 'Anota lo empacado',
-    h: 'Pulsa «Anotar lo empacado»: te lleva al turno con «Ir al turno». Si hace falta producto, pulsa «Pedir reposición» y elige presentación, unidades y motivo.',
+  {id: 'd-empacar', s: 2, k: 'lg-empacar', n: 2, t: 'Anota lo empacado',
+    h: 'En «Empacar por turno» elige el producto, escribe los bultos y pulsa «Anotar». Si todavía no hay turno abierto, Producción lo abre primero.',
     p: 'Lo empacado queda escrito en el turno de hoy.'},
   {id: 'd-zonas', s: 2, k: 'pr-zonas', n: 2, t: 'Arma y despacha por zona',
     h: 'Abre la tarjeta de una zona, marca los pedidos y los bultos y pulsa «Armar salida». Si quedas por debajo de la meta o partes un pedido, escribe el motivo. Luego pulsa «Despachar» y elige vehículo y chofer. «Pausar la zona» pide un motivo.',
     p: 'Al despachar se emiten las notas de entrega o facturas.'},
   {id: 'd-tablero', s: 2, k: 'em-tablero', t: 'Mira las zonas del día',
     h: 'Toca la tarjeta de una zona para abrir sus despachos.',
-    p: 'Es el punto de partida de Empaque y despacho.'},
+    p: 'Es el punto de partida de Logística.'},
   {id: 'd-despachos', s: 2, k: 'despachos', n: 2, t: 'Cuenta la carga y entrega',
     h: 'Pulsa «Contar la carga» y luego «Guardar la carga». Pulsa «Marcar en ruta» al salir y «Marcar entregada» al llegar. «Ver nota» abre la nota de entrega.',
     p: 'Queda registrado qué salió y qué se entregó.'},
@@ -136,7 +136,7 @@ const PASOS = [
   {id: 'c-arqueo', s: 3, k: 'caja', n: 2, t: 'Cuenta la caja chica',
     h: 'En «Arqueo» escribe el «Efectivo contado ahora ($)» y pulsa «Guardar arqueo».',
     p: 'Queda anotado cuánto efectivo había al contar.'},
-  {id: 'c-difer', s: 3, k: 'pr-dif', r: ['dueno', 'jefeprod'], t: 'Resuelve las diferencias',
+  {id: 'c-difer', s: 3, k: 'pr-dif', r: ['dueno'], t: 'Resuelve las diferencias',
     h: 'Revisa cada diferencia y pulsa «Aprobar» o «Rechazar». Para rechazar debes escribir el motivo.',
     p: 'Así ninguna diferencia queda sin respuesta.'},
   {id: 'c-audit', s: 3, k: 'g-audit', r: ['dueno'], t: 'Revisa la auditoría',
@@ -172,7 +172,7 @@ const PASOS = [
     h: 'En cada solicitud pulsa «Aprobar» (puedes dejar un comentario) o «Rechazar» (el motivo es obligatorio).',
     p: 'Los puestos piden aquí lo que no pueden cambiar solos.'}
 ];
-const PUESTOS = ['dueno', 'adm', 'rrhh', 'ventas', 'custodio', 'recep', 'jefeprod', 'produccion', 'empaque'];
+const PUESTOS = ['dueno', 'adm', 'produccion', 'empaque', 'ventas', 'rrhh'];
 const nom = r => (ROLES && ROLES[r]) || r;
 const ve = (rol, st) => {
   if (st.r && !st.r.includes(rol)) return false;

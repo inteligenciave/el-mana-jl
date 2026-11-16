@@ -1,7 +1,8 @@
 /* Entregas · casos de uso: foto de entrega, temporizador, ajustes, reclamos «no recibí esto» y datos para el portal del cliente. No conoce HTTP. */
 import * as E from './dominio.js';
 import * as R from './repo.js';
-import {entPuede, nomRol} from './permisos.js';
+import {entPuede} from './permisos.js';
+import {nomRol} from '../ventas/permisos.js';
 import {ROL_TXT} from '../ventas/permisos.js';
 import * as VR from '../ventas/repo.js';
 import * as VD from '../ventas/dominio.js';

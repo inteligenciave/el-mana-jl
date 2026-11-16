@@ -12,7 +12,7 @@ Object.assign(SCREENS, {
 if (SCREENS.clientes) SCREENS.clientes.r = scrClientesVentas;   /* UNA sola lista de clientes: la de Ventas (estado → zona → lista de precios) */
 if (SCREENS.ventas) SCREENS.ventas.r = scrRegVentas; /* «Registro de ventas»: datos reales, ya no las cifras de ejemplo */
 S.perm = permInit();
-Object.assign(ROLE_HOME, {ventas: 'v-pedido', cobranza: 'v-cobro'});
+Object.assign(ROLE_HOME, {ventas: 'v-pedido'});
 
 /* Qué permiso exige cada acción: [pantalla, nivel] (el servidor lo vuelve a comprobar) */
 const VACT_REQ = {vGenerar: ['v-pedido', 2], vCobrar: ['v-cobro', 2], vCobModal: ['v-cobro', 2], vAnular: ['v-pagos', 3], vNuevoCliente: ['v-clientes', 2], vEditarCliente: ['v-clientes', 2], vClienteGuardar: ['v-clientes', 2], vReglas: ['v-clientes', 3], vReglasGuardar: ['v-clientes', 3],

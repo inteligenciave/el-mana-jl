@@ -1,5 +1,5 @@
 /* En planta hoy (marcas de entrada y salida) y Pagar nómina (por semana, quincena o mes, con préstamos y recibo).
-   Todo el cálculo de montos lo hace el servidor (/api/h/*); aquí solo se muestra y se pide. Solo Gerencia y Nómina y RRHH. */
+   Todo el cálculo de montos lo hace el servidor (/api/h/*); aquí solo se muestra y se pide. Solo Gerencia y Nómina. */
 const HP = {d: null, cargando: false, ts: 0, rol: null, busy: {}, q: '', nom: null, nomClave: '', nomCarg: false, nomTs: 0, per: 'quincena', ref: null, pm: null, error: ''};
 const hpN = (n, d = 2) => Number(n || 0).toLocaleString('es-VE', {minimumFractionDigits: d, maximumFractionDigits: d});
 const hpBs = n => 'Bs ' + hpN(n);
@@ -137,7 +137,7 @@ function hpRecibo(r) {
     <p style="margin-top:8px">Período del ${hpFecha(r.desde)} al ${hpFecha(r.hasta)}. Pagado el ${hpFecha(r.fecha)} · ${esc(r.forma)}, en bolívares.${r.nota ? ' Nota: ' + esc(r.nota) : ''}</p><div class="firmas"><div>Firma del empleado</div><div>Firma de Administración</div></div></div>${docBar('Recibo de pago ' + r.nombre)}`);
 }
 
-/* ---------- Pestañas de Nómina y RRHH y franja de resumen (siempre visible arriba) ---------- */
+/* ---------- Pestañas de Nómina y franja de resumen (siempre visible arriba) ---------- */
 const HP_TABS = [['rh-planta', 'En planta hoy'], ['personal', 'Personas'], ['asistencia', 'Asistencia'], ['rh-pagar', 'Nómina'], ['prestamos', 'Préstamos']];
 const hpTabsOn = () => S.rol === 'rrhh' || S.rol === 'dueno';
 function hpResCargar() {
@@ -179,5 +179,5 @@ function hpPrestamos() {
     {h: 'Cuota', r: 1, f: p => bs(cuota(p))}, {h: 'Pagadas', r: 1, f: p => p.pagadas + ' de ' + p.cuotas}, {h: 'Saldo', r: 1, f: p => '<b>' + bs(saldo(p)) + '</b>'}], L, {empty: 'No hay préstamos activos.'}));
 }
 { const sc = SCREENS.prestamos; if (sc) { const f = sc.r; sc.r = function () { return hpTabsOn() ? hpPrestamos() : f.apply(this, arguments); }; } }
-/* La barra de pestañas ahora es la de «Personal» (front/pantallas/pantallas.js); aquí solo queda la franja de resumen, para Nómina y RRHH y Gerencia */
+/* La barra de pestañas ahora es la de «Personal» (front/pantallas/pantallas.js); aquí solo queda la franja de resumen, para Nómina y Gerencia */
 window.hpCabUni = k => hpTabsOn() && HP_TABS.some(t => t[0] === k) ? hpCab(k) : '';

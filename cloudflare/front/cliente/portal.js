@@ -96,7 +96,7 @@ function vInicio() {
     <dl class="kv"><div><dt>Crédito disponible</dt><dd>${c.sin_limite ? 'Sin límite cargado' : usd(c.disponible)}</dd></div>${c.sin_limite ? '' : `<div><dt>Tu límite</dt><dd>${usd(c.limite)}</dd></div>`}</dl>
     ${c.sin_limite ? '' : `<div class="barra ${usado >= 90 ? 'c' : usado >= 70 ? 'w' : ''}" role="img" aria-label="Has usado ${usado} por ciento de tu crédito"><i style="width:${usado}%"></i></div><p class="sub">Has usado el ${usado} % de tu crédito${c.por_confirmar ? ' (incluye pedidos por confirmar)' : ''}.</p>`}</section>
   ${y.pedidos_por_confirmar ? `<p class="aviso i">Tienes <b>${y.pedidos_por_confirmar}</b> ${y.pedidos_por_confirmar === 1 ? 'pedido' : 'pedidos'} por confirmar. Ventas lo revisa y te avisamos aquí.</p>` : ''}
-  ${y.pagos_por_verificar ? `<p class="aviso i">Tienes <b>${y.pagos_por_verificar}</b> ${y.pagos_por_verificar === 1 ? 'pago' : 'pagos'} por verificar. Cobranza lo revisa y lo aplica a tus facturas.</p>` : ''}
+  ${y.pagos_por_verificar ? `<p class="aviso i">Tienes <b>${y.pagos_por_verificar}</b> ${y.pagos_por_verificar === 1 ? 'pago' : 'pagos'} por verificar. Administración lo revisa y lo aplica a tus facturas.</p>` : ''}
   ${y.restriccion ? `<p class="aviso e">${esc(y.restriccion)}</p>` : ''}
   <div class="acciones"><button class="btn" data-a="ir" data-v="pedir">Hacer un pedido</button><button class="btn am" data-a="ir" data-v="pagar">Reportar un pago</button><button class="btn lin" data-a="ir" data-v="cuenta">Ver mi cuenta</button></div>`;
 }
@@ -156,7 +156,7 @@ function bancoCampo(P) {
 async function cargarBancos() { S.bancos = null; try { S.bancos = await api('GET', '/bancos'); } catch (e) { S.bancos = null; } pintar(); }
 function vPagar() {
   const y = S.perfil, c = y.credito, P = S.pago, hoy = y.hoy, bs = y.tasa && c.debe > 0 ? Math.round(c.debe * y.tasa.valor * 100) / 100 : null;
-  return `<section class="card"><h2>Reportar un pago</h2><p class="sub">Escribe los datos de tu transferencia o pago. Queda <b>por verificar</b>: Cobranza lo revisa y recién entonces se aplica a tus facturas.</p>
+  return `<section class="card"><h2>Reportar un pago</h2><p class="sub">Escribe los datos de tu transferencia o pago. Queda <b>por verificar</b>: Administración lo revisa y recién entonces se aplica a tus facturas.</p>
     ${c.debe > 0 ? `<p class="aviso i">Debes <b>${usd(c.debe)}</b>${bs ? ` (aprox. ${bsf(bs)} con la tasa BCV del ${fdl(y.tasa.fecha)})` : ''}. El monto final lo confirma el equipo.</p>` : ''}
     ${P.ok ? `<p class="aviso v" role="status">${esc(P.ok)}</p>` : ''}${P.err ? `<p class="aviso e" role="alert">${esc(P.err)}</p>` : ''}
     <form id="f-pago" class="form dos" style="margin-top:12px" novalidate>

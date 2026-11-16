@@ -143,7 +143,7 @@ function flElegidos() {
   return {vehiculo_id: v ? +v : null, chofer_id: c || null};
 }
 
-Object.assign(PERM_DEF, {'fl-flota': 'adm:2', 'fl-desp': 'empaque:2 jefeprod:1'}); /* Empaque y despacho anota la ubicación; Jefe de producción solo ve */
+Object.assign(PERM_DEF, {'fl-flota': 'adm:2', 'fl-desp': 'empaque:2'}); /* Logística anota la ubicación */
 Object.assign(SCREENS, {'fl-flota': {mod: 'adm', g: 'Flota', t: 'Vehículos', s: 'Vehículos', ic: 'truck', r: scrFlota}, 'fl-desp': {mod: 'prod', g: 'Despacho', t: 'Vehículos', s: 'Vehículos', ic: 'truck', r: scrFlota}});
 S.perm = permInit();
 const FLACT_REQ = {flGuardar: ['fl-flota', 2], flNuevo: ['fl-flota', 2], flEditar: ['fl-flota', 2], flEstado: ['fl-flota', 2], flUbic: ['fl-flota', 2], flUbicGuardar: ['fl-flota', 2], flUbicD: ['fl-desp', 2], flUbicGuardarD: ['fl-desp', 2]};

@@ -151,7 +151,7 @@ function haSync() {
 
 /* ---------- Registro en el sistema ---------- */
 { const i = HP_TABS.findIndex(t => t[0] === 'rh-planta'); HP_TABS.splice(i + 1, 0, ['rh-turnos', 'Turnos']); HP_TABS.push(['rh-params', 'Parámetros']); }
-Object.assign(PERM_DEF, {turnos: 'jefeprod:1', 'rh-turnos': 'rrhh:1 adm:2', 'rh-params': 'rrhh:1 adm:1'});
+Object.assign(PERM_DEF, {turnos: 'produccion:1', 'rh-turnos': 'rrhh:1 adm:2', 'rh-params': 'rrhh:1 adm:1'});
 Object.assign(SCREENS, {
   turnos: {mod: 'prod', g: 'Planta', t: 'Turnos', s: 'Turnos', ic: 'calendar', r: scrTurnos},
   'rh-turnos': {mod: 'adm', g: 'En planta', t: 'Turnos', s: 'Turnos', ic: 'calendar', r: scrTurnos},

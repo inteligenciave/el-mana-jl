@@ -2,7 +2,7 @@
    Usa el dominio (reglas), el repo (datos) y, para emitir notas o facturas, el servicio de Ventas. No conoce HTTP. */
 import * as D from './dominio.js';
 import * as R from './repo.js';
-import {puede, nomRol} from './permisos.js';
+import {puede} from './permisos.js';
 import * as VS from '../ventas/servicio.js';
 import * as VD from '../ventas/dominio.js';
 import * as VR from '../ventas/repo.js';

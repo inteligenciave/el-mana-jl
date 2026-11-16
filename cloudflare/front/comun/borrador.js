@@ -7,6 +7,27 @@
         Borrador.config({ctx, aviso, raices, sesion}) lo usa el portal del cliente */
 (function () {
 "use strict";
+/* ---------- De 10 puestos a 6: lo guardado en este navegador se traduce UNA vez y se junta (Producción ← recepción y jefe; Administración ← custodio y cobranza; Logística ← despacho) ---------- */
+(function migrarPuestos() {
+  try {
+    if (localStorage.getItem('elmana:puestos6')) return;
+    const AL = {recep: 'produccion', jefeprod: 'produccion', custodio: 'adm', cobranza: 'adm', despacho: 'empaque'}, nuevo = r => AL[r] || r;
+    const ks = []; for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k) ks.push(k); }
+    ks.forEach(k => {
+      let nk = null, tipo = '';
+      if (k.indexOf('elmana:borr:i:') === 0) { const p = k.split(':'); p[3] = nuevo(p[3]); nk = p.join(':'); tipo = 'borr'; }
+      else if (k.indexOf('elmana:pp:') === 0) { const p = k.split(':'); if (p.length >= 4) { p[2] = nuevo(p[2]); p[3] = nuevo(p[3]); nk = p.join(':'); tipo = 'pp'; } }
+      else if (k === 'elmana:pref' || k === 'elmana:borr:ses') { const v = JSON.parse(localStorage.getItem(k) || 'null'); if (v && AL[v.rol]) { v.rol = AL[v.rol]; localStorage.setItem(k, JSON.stringify(v)); } return; }
+      if (!nk || nk === k) return;
+      const a = localStorage.getItem(k), b = localStorage.getItem(nk);
+      if (b == null) localStorage.setItem(nk, a);
+      else if (tipo === 'pp') { const u = new Set([].concat(JSON.parse(a) || [], JSON.parse(b) || [])); localStorage.setItem(nk, JSON.stringify([...u])); }
+      else { const ta = (JSON.parse(a) || {}).ts || 0, tb = (JSON.parse(b) || {}).ts || 0; if (ta > tb) localStorage.setItem(nk, a); }
+      localStorage.removeItem(k);
+    });
+    localStorage.setItem('elmana:puestos6', '1');
+  } catch (e) { /* sin almacenamiento: no hay nada que traducir */ }
+})();
 const PRE = 'elmana:borr:', VIDA = 24 * 36e5, DEB = 400, VENTANA = 20000, MAXV = 5000;
 let cfg = {ctx: null, aviso: null, raices: null, interno: !!document.getElementById('main')};
 const regs = {}, aplicadoReg = new Set(), pend = {}, nrest = {}, ventana = {};

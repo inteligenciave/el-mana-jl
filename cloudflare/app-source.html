@@ -556,6 +556,17 @@ h1,h2,h3,.brand-t,.pm-bh{font-weight:400;letter-spacing:0}
 .pm-block.new .pm-bh,.pm-n{background:#F2B72E;color:#2B2100}
 .pm-ctrl{background:#C92121;border-top-color:#F2B72E} .pm-ctrl p{color:#FBDCDC} .pm-ctrl.off{border-top-color:#8E8E8E}
 .door:hover,.door:focus-visible{border-color:var(--band);box-shadow:0 6px 22px rgba(201,33,33,.15)}
+.pst-wrap{display:flex;flex-direction:column;align-items:center;gap:clamp(8px,2vh,18px);min-height:calc(100dvh - var(--toph,50px) - 24px);justify-content:center;padding:0}
+#main:has(.pst-wrap){padding-top:10px;padding-bottom:10px}
+.pst-h{display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center}
+.pst-logo{height:clamp(44px,9vh,84px);width:auto;display:block}
+.pst-h h1{font-size:clamp(22px,4.2vh,34px);margin:0;color:var(--fg)}
+.pst-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(8px,1.6vw,18px);width:min(900px,100%)}
+.pst{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:clamp(6px,1.2vh,12px);background:#fff;border:2px solid var(--line-2);border-radius:16px;cursor:pointer;font:inherit;color:var(--fg);min-width:0}
+.pst img{width:100%;height:auto;max-height:clamp(96px,24vh,210px);object-fit:contain;display:block}
+.pst span{font-size:clamp(16px,2.6vh,22px);font-weight:700}
+.pst:hover,.pst:focus-visible{border-color:#C92121;box-shadow:0 6px 22px rgba(201,33,33,.18)}
+@media (max-width:700px){.pst-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.pst img{max-height:clamp(72px,15vh,170px)}.pst span{font-size:clamp(15px,2.2vh,19px)}}
 .doc .dh{align-items:center}
 .doc-logo{height:54px;width:auto;display:block}
 .dh-id{display:flex;align-items:center;gap:12px;min-width:0}
@@ -1007,7 +1018,7 @@ const SEED_SRC = {
      pasos:['Abrir la bandeja «Recepciones por validar» en Compras de materia prima.','Cotejar kg recibidos contra kg facturados y la calidad registrada.','Confirmar precio unitario y condición (contado o crédito) según la factura de compra del proveedor.','Validar: el sistema crea la compra efectiva y la entrada al almacén de materia prima.','Si es a crédito, verificar que apareció en Cuentas por pagar con su fecha de vencimiento.'],
      docs:['Factura de compra original (proveedor)','Registro REC firmado por quien recibió'],
      ctrl:['Se paga sobre kg recibidos, no sobre kg facturados, cuando la diferencia supera la tolerancia.','Precio por encima del 5 % del histórico requiere visto bueno del Gerente.']},
-    {id:'contado', t:'Compra de contado', resp:'Administración (o custodio de caja chica si es menor a $ 100)', frec:'Según necesidad',
+    {id:'contado', t:'Compra de contado', resp:'Administración (caja chica si es menor a $ 100)', frec:'Según necesidad',
      pasos:['Indicar el motivo de la compra y la partida contable.','Si el monto es menor al umbral, se paga por caja chica; si no, por banco.','Registrar la nota de entrega con número, proveedor, RIF, fecha y monto.','Adjuntar la foto del comprobante.'],
      docs:['Nota de entrega','Soporte de pago'],
      ctrl:['Ninguna compra de contado sin comprobante con RIF.','Compras de contado mayores al umbral solo con aprobación del Gerente.']},
@@ -1015,11 +1026,11 @@ const SEED_SRC = {
      pasos:['Confirmar plazo pactado con el proveedor (papa: abonos semanales; químicos y aceites: 20–25 días; sal y azúcar: 7 días).','Registrar la compra con su partida o categoría.','El sistema crea la cuenta por pagar y la coloca en el calendario de vencimientos.'],
      docs:['Factura de compra a crédito (proveedor)','Acuerdo de plazo del proveedor'],
      ctrl:['Revisión semanal de concentración de deuda por proveedor.','Alerta automática 3 días antes del vencimiento.']},
-    {id:'caja', t:'Caja chica: gasto y reposición', resp:'Custodio de caja chica', frec:'Diaria; arqueo semanal',
+    {id:'caja', t:'Caja chica: gasto y reposición', resp:'Administración (caja chica)', frec:'Diaria; arqueo semanal',
      pasos:['Verificar que el gasto sea menor al umbral ($ 100).','Pedir la nota de entrega con RIF; registrar número, proveedor, fecha y monto.','Escribir la justificación del gasto.','Cuando el saldo baje del 30 % del fondo, solicitar reposición con el reporte de gastos.','Hacer arqueo: efectivo contado + comprobantes + préstamos por cobrar = fondo.'],
      docs:['Comprobantes de cada gasto','Reporte de caja chica','Acta de arqueo'],
      ctrl:['Gasto sin justificación o sin comprobante completo bloquea la reposición.','Arqueo sorpresa mensual por el Gerente.']},
-    {id:'prestamos', t:'Préstamos a empleados', resp:'Custodio de caja chica', frec:'Solo en los días de entrega fijados (1 y 15)',
+    {id:'prestamos', t:'Préstamos a empleados', resp:'Administración (caja chica)', frec:'Solo en los días de entrega fijados (1 y 15)',
      pasos:['Verificar antigüedad mínima y que el empleado no tenga otro préstamo activo.','Verificar que el monto no supere el tope y que la caja tenga saldo.','Registrar el préstamo con número de cuotas; el sistema calcula el descuento en Bs por quincena.','Imprimir el recibo y obtener la firma del empleado.','Enviar el descuento a nómina.'],
      docs:['Recibo de préstamo firmado','Copia de cédula del empleado'],
      ctrl:['Préstamos fuera de los días fijados requieren aprobación del Gerente.','El descuento se calcula a la tasa del día de entrega.']},
@@ -1053,15 +1064,15 @@ const qMove = (k, d) => { const [y, m, h] = k.split('-').map(Number); let i = (y
    og = qué se elige como origen · decl = la entrada de la etapa no se puede medir sola: se declara en cada registro
    tol = tolerancia supuesta (% perdido ÷ entrada de la etapa). Recepción usa la tolerancia que ya existía (tolRec). */
 const MR_ET = [
-  {k: 'recepcion', t: 'Recepción', ru: ['recep'], u: ['kg'], og: {l: 'Recepción', kind: 'rec', req: 1}, tol: 2, cs: ['Calidad de proveedor', 'Humedad'], hint: 'Descartes por calidad. La diferencia entre lo facturado y lo pesado en la balanza se toma sola de Recepción: no hay que volver a escribirla.'},
-  {k: 'almmp', t: 'Almacén de materia prima', ru: ['recep'], u: ['kg'], og: {l: 'Recepción de origen', kind: 'rec', req: 0}, tol: 1, cs: ['Deterioro', 'Humedad', 'Otro'], hint: 'Deterioro, humedad o plaga en lo que ya está guardado. Se descuenta del almacén.'},
-  {k: 'pelado', t: 'Pelado y lavado', ru: [], u: ['kg'], og: {l: 'Lote', kind: 'lote', req: 1}, tol: 8, cs: ['Error de proceso', 'Equipo'], item: 'Papa cruda', hint: 'Papa cruda perdida al pelar y lavar, por encima de la cáscara normal.'},
-  {k: 'corte', t: 'Corte', ru: [], u: ['kg'], og: {l: 'Lote', kind: 'lote', req: 1}, tol: 3, cs: ['Equipo', 'Error de proceso'], item: 'Papa cruda', hint: 'Recortes y papa mal cortada.'},
-  {k: 'freido', t: 'Freído', ru: [], u: ['kg'], og: {l: 'Lote', kind: 'lote', req: 1}, tol: 4, cs: ['Error de proceso', 'Equipo'], item: 'Papa cruda', hint: 'Papa quemada, cruda o mal frita que se descarta.'},
-  {k: 'sazonado', t: 'Escurrido y sazonado', ru: [], u: ['kg'], og: {l: 'Lote', kind: 'lote', req: 1}, tol: 2, cs: ['Manipulación', 'Error de proceso'], item: 'Papa frita a granel', hint: 'Producto que se pierde al escurrir el aceite y sazonar.'},
-  {k: 'quebrado', t: 'Descarte de producto quebrado', ru: [], u: ['kg'], og: {l: 'Lote', kind: 'lote', req: 1}, tol: 1.5, cs: ['Manipulación', 'Equipo'], item: 'Papa frita a granel', hint: 'Papa frita quebrada que no se puede empacar entera.'},
-  {k: 'salsa_mezcla', t: 'Salsa: mezcla y cocción', ru: [], u: ['kg'], og: {l: 'Lote de salsa', kind: 'salsa', req: 0}, tol: 2, cs: ['Error de proceso', 'Equipo'], decl: 1, hint: 'Salsa que se pierde al mezclar y cocinar. Indica cuántos kg entraron a la etapa.'},
-  {k: 'salsa_env', t: 'Salsa: envasado', ru: [], u: ['kg'], og: {l: 'Lote de salsa', kind: 'salsa', req: 0}, tol: 1.5, cs: ['Error de proceso', 'Equipo'], decl: 1, hint: 'Salsa que se pierde al envasar. Indica cuántos kg entraron a la etapa.'},
+  {k: 'recepcion', t: 'Recepción', ru: ['produccion'], u: ['kg'], og: {l: 'Recepción', kind: 'rec', req: 1}, tol: 2, cs: ['Calidad de proveedor', 'Humedad'], hint: 'Descartes por calidad. La diferencia entre lo facturado y lo pesado en la balanza se toma sola de Recepción: no hay que volver a escribirla.'},
+  {k: 'almmp', t: 'Almacén de materia prima', ru: ['produccion'], u: ['kg'], og: {l: 'Recepción de origen', kind: 'rec', req: 0}, tol: 1, cs: ['Deterioro', 'Humedad', 'Otro'], hint: 'Deterioro, humedad o plaga en lo que ya está guardado. Se descuenta del almacén.'},
+  {k: 'pelado', t: 'Pelado y lavado', ru: ['produccion'], u: ['kg'], og: {l: 'Lote', kind: 'lote', req: 1}, tol: 8, cs: ['Error de proceso', 'Equipo'], item: 'Papa cruda', hint: 'Papa cruda perdida al pelar y lavar, por encima de la cáscara normal.'},
+  {k: 'corte', t: 'Corte', ru: ['produccion'], u: ['kg'], og: {l: 'Lote', kind: 'lote', req: 1}, tol: 3, cs: ['Equipo', 'Error de proceso'], item: 'Papa cruda', hint: 'Recortes y papa mal cortada.'},
+  {k: 'freido', t: 'Freído', ru: ['produccion'], u: ['kg'], og: {l: 'Lote', kind: 'lote', req: 1}, tol: 4, cs: ['Error de proceso', 'Equipo'], item: 'Papa cruda', hint: 'Papa quemada, cruda o mal frita que se descarta.'},
+  {k: 'sazonado', t: 'Escurrido y sazonado', ru: ['produccion'], u: ['kg'], og: {l: 'Lote', kind: 'lote', req: 1}, tol: 2, cs: ['Manipulación', 'Error de proceso'], item: 'Papa frita a granel', hint: 'Producto que se pierde al escurrir el aceite y sazonar.'},
+  {k: 'quebrado', t: 'Descarte de producto quebrado', ru: ['produccion'], u: ['kg'], og: {l: 'Lote', kind: 'lote', req: 1}, tol: 1.5, cs: ['Manipulación', 'Equipo'], item: 'Papa frita a granel', hint: 'Papa frita quebrada que no se puede empacar entera.'},
+  {k: 'salsa_mezcla', t: 'Salsa: mezcla y cocción', ru: ['produccion'], u: ['kg'], og: {l: 'Lote de salsa', kind: 'salsa', req: 0}, tol: 2, cs: ['Error de proceso', 'Equipo'], decl: 1, hint: 'Salsa que se pierde al mezclar y cocinar. Indica cuántos kg entraron a la etapa.'},
+  {k: 'salsa_env', t: 'Salsa: envasado', ru: ['produccion'], u: ['kg'], og: {l: 'Lote de salsa', kind: 'salsa', req: 0}, tol: 1.5, cs: ['Error de proceso', 'Equipo'], decl: 1, hint: 'Salsa que se pierde al envasar. Indica cuántos kg entraron a la etapa.'},
   {k: 'empaque', t: 'Empaque', ru: ['empaque'], u: ['und', 'kg'], og: {l: 'Lote', kind: 'lote', req: 1}, tol: 1.5, cs: ['Manipulación', 'Equipo'], hint: 'Bolsas rotas y producto fuera de peso. Las «bolsas dañadas» que se anotan al registrar el empaque entran aquí solas.'},
   {k: 'almpt', t: 'Almacén de terminado y logística', ru: ['empaque'], u: ['und', 'kg'], og: {l: 'Lote', kind: 'lote', req: 0}, tol: 0.5, cs: ['Deterioro', 'Manipulación'], hint: 'Daños y vencimiento en el producto terminado y en los bultos. Se descuenta del almacén.'},
   {k: 'despacho', t: 'Despachos: devoluciones y daños', ru: ['empaque'], u: ['und', 'kg'], og: {l: 'Nota de entrega', kind: 'nota', req: 0}, tol: 0.5, cs: ['Manipulación', 'Deterioro'], hint: 'Devoluciones y daños detectados en la entrega al cliente.'}
@@ -1270,7 +1281,7 @@ function hydrate() {
   S.tasa = (S.tasaInfo && S.tasaInfo.valor > 0) ? S.tasaInfo.valor : (window.__EM_HTTP ? (S.tasa > 0 && S.tasaVista ? S.tasa : 0) : (A.tasa ? A.tasa.valor : DATA.tasaInicial));   // con servidor, SOLO manda la tasa vigente del servidor (nunca el valor viejo guardado en ajustes)
   tasaCargar();
   if (!S.polDirty) S.pol = {...DATA.politicas, ...(A.politicas || {})};
-  if (!S.matDirty) { S.perm = (A.matriz && A.matriz.perm) ? (A.matriz.cobranzaEnAdm ? {...permInit(), ...clone(A.matriz.perm)} : fusionCob({...permInit(), ...clone(A.matriz.perm)})) : permInit(); S.mods = (A.matriz && A.matriz.mods) ? clone(A.matriz.mods) : clone(MODS_DEF); }
+  if (!S.matDirty) { const mz = (A.matriz && A.matriz.puestos === 6) ? A.matriz : null; /* una matriz sin la marca de 6 puestos es de los 10 puestos viejos: no se usa */ S.perm = (mz && mz.perm) ? {...permInit(), ...clone(mz.perm)} : permInit(); S.mods = (mz && mz.mods) ? clone(mz.mods) : clone(MODS_DEF); }
   // Los textos que escriben las personas se escapan aquí una sola vez; las pantallas los dibujan tal cual.
   const X = s => typeof s === 'string' ? esc(s) : s, xo = (o, ks) => { const r = {...o}; ks.forEach(k => { r[k] = X(r[k]); }); return r; };
   DATA.recibidores = ((A.recibidores || {}).lista || []).map(X);
@@ -1333,7 +1344,7 @@ function buildSeed(withBase) {
   const Z = SEED_SRC, out = [], put = (c, id, d) => out.push([c, id, d]);
   const delta = Math.round((D(todayISO()) - D(SEED_HOY)) / 864e5), sd = s => s ? addDays(s, delta) : s, hoy = todayISO();
   if (withBase) {
-    put('ajustes', 'tasa', {valor: Z.tasaInicial, fecha: hoy}); put('ajustes', 'politicas', {...clone(Z.politicas), ...MR_POL, ...NOM_POL}); put('ajustes', 'matriz', {perm: permInit(), mods: clone(MODS_DEF), cobranzaEnAdm: true});
+    put('ajustes', 'tasa', {valor: Z.tasaInicial, fecha: hoy}); put('ajustes', 'politicas', {...clone(Z.politicas), ...MR_POL, ...NOM_POL}); put('ajustes', 'matriz', {perm: permInit(), mods: clone(MODS_DEF), puestos: 6});
     Z.productosPapa.forEach((p, i) => put('productos', 'PAPA-' + slug(p.n), {tipo: 'papa', n: p.n, cat: p.cat, sk: p.sk, prov: null, kgSaco: p.kgSaco, orden: i, provSug: p.prov}));
     Z.insumos.forEach((p, i) => put('productos', 'INS-' + slug(p.n), {tipo: 'insumo', n: p.n, cat: p.cat, sk: p.sk, prov: null, kgSaco: p.kgSaco, orden: i, provSug: p.prov}));
     Z.stockMP.forEach((p, i) => put('productos', 'MP-' + slug(p.k), {tipo: 'mp', k: p.k, u: p.u, min: p.min, fam: p.fam, orden: i}));
@@ -1421,7 +1432,7 @@ const Svc = {
     }, 120000);
   },
   async guardarPol(p) { const q = {...p}; delete q.id; await W.set('ajustes', 'politicas', q); },
-  async guardarMatriz(perm, mods) { await W.set('ajustes', 'matriz', {perm, mods, cobranzaEnAdm: true}); },
+  async guardarMatriz(perm, mods) { await W.set('ajustes', 'matriz', {perm, mods, puestos: 6}); },
   async guardarRec(f, calc, prodDoc) {
     const id = await nextId('REC');
     await W.set('recepciones', id, {fecha: HOY_ISO, prov: f.prov, sub: f.tipo === 'papa' ? 'Propia' : 'Insumo', cat: prodDoc.cat, item: prodDoc.n, sk: prodDoc.sk, unidad: 'kg', sacos: +f.sacos, kgSaco: +f.kgSaco, qf: +f.kgFact,
@@ -1661,7 +1672,7 @@ function buildMermasHist(hist) {
   const lotes = [...Z.lotes.map(l => ({...l, fecha: sd(l.fecha)})), ...hist.filter(x => x[0] === 'lotes').map(([, id, d]) => ({id, ...d}))].sort((x, y) => (x.fecha + x.id).localeCompare(y.fecha + y.id));
   const notas = hist.filter(x => x[0] === 'despachos').map(([, id, d]) => ({id, f: d.fecha})).sort((x, y) => x.f.localeCompare(y.f));
   let k = 1; const nid = () => 'MR-H' + String(k++).padStart(4, '0');
-  const WHO = {jefeprod: 'Jefe de producción', recep: 'Recepción', empaque: 'Empaque y despacho'};
+  const WHO = {produccion: 'Producción', empaque: 'Logística'};
   const costoL = l => { const c = cm[l.compra]; if (!c) return {raw: 0, util: 0}; const raw = c.pu * c.qf / c.kgRec; return {raw, util: l.granel ? raw * l.cruda / l.granel : raw}; };
   // mk: crea un registro; si trae pres, la cantidad se cuenta en unidades (bolsas)
   const mk = (l, et, kgv, causa, fecha, cost, rol, o = {}) => {
@@ -1674,14 +1685,14 @@ function buildMermasHist(hist) {
   lotes.forEach((l, i) => {
     const c = cm[l.compra]; if (!c) return;
     const cs = costoL(l), bad = l.prov === 'P2', done = l.estado === 'Cerrado' && l.granel, d0 = l.fecha, G = l.granel;
-    if (rnd() < (bad ? 0.75 : 0.25)) mk(l, 'recepcion', l.cruda * rr(0.008, bad ? 0.03 : 0.018), 'Calidad de proveedor', addDays(d0, -1), cs.raw, 'recep', {rec: c.rec, prod: 'Papa cruda', obs: 'Papa verde o dañada descartada en la balanza'});
-    if (rnd() < (bad ? 0.6 : 0.2)) mk(l, 'almmp', l.cruda * rr(0.005, bad ? 0.022 : 0.012), rnd() < 0.5 ? 'Humedad' : 'Deterioro', d0, cs.raw, 'recep', {rec: c.rec, prod: 'Papa cruda', obs: 'Papa blanda o con brotes en el almacén'});
-    mk(l, 'pelado', l.cruda * (bad ? rr(0.05, 0.088) : rr(0.035, 0.062)), rnd() < 0.7 ? 'Error de proceso' : 'Equipo', d0, cs.raw, 'jefeprod', {prod: 'Papa cruda', obs: 'Cáscara y papa descartada en el lavado'});
-    mk(l, 'corte', l.cruda * (bad ? rr(0.018, 0.034) : rr(0.01, 0.024)), 'Equipo', d0, cs.raw, 'jefeprod', {prod: 'Papa cruda', obs: 'Recortes y rebanadas rotas'});
+    if (rnd() < (bad ? 0.75 : 0.25)) mk(l, 'recepcion', l.cruda * rr(0.008, bad ? 0.03 : 0.018), 'Calidad de proveedor', addDays(d0, -1), cs.raw, 'produccion', {rec: c.rec, prod: 'Papa cruda', obs: 'Papa verde o dañada descartada en la balanza'});
+    if (rnd() < (bad ? 0.6 : 0.2)) mk(l, 'almmp', l.cruda * rr(0.005, bad ? 0.022 : 0.012), rnd() < 0.5 ? 'Humedad' : 'Deterioro', d0, cs.raw, 'produccion', {rec: c.rec, prod: 'Papa cruda', obs: 'Papa blanda o con brotes en el almacén'});
+    mk(l, 'pelado', l.cruda * (bad ? rr(0.05, 0.088) : rr(0.035, 0.062)), rnd() < 0.7 ? 'Error de proceso' : 'Equipo', d0, cs.raw, 'produccion', {prod: 'Papa cruda', obs: 'Cáscara y papa descartada en el lavado'});
+    mk(l, 'corte', l.cruda * (bad ? rr(0.018, 0.034) : rr(0.01, 0.024)), 'Equipo', d0, cs.raw, 'produccion', {prod: 'Papa cruda', obs: 'Recortes y rebanadas rotas'});
     if (!done) return;
-    mk(l, 'freido', l.cruda * (bad ? rr(0.026, 0.047) : rr(0.015, 0.033)), 'Error de proceso', d0, cs.raw, 'jefeprod', {prod: 'Papa cruda', obs: 'Papa quemada o cruda que se descarta'});
-    mk(l, 'sazonado', G * rr(0.008, 0.019), 'Manipulación', d0, cs.util, 'jefeprod', {prod: 'Papa frita a granel'});
-    mk(l, 'quebrado', G * rr(0.006, 0.014), rnd() < 0.5 ? 'Manipulación' : 'Equipo', d0, cs.util, 'jefeprod', {prod: 'Papa frita a granel', obs: 'Producto quebrado que no se puede empacar entero'});
+    mk(l, 'freido', l.cruda * (bad ? rr(0.026, 0.047) : rr(0.015, 0.033)), 'Error de proceso', d0, cs.raw, 'produccion', {prod: 'Papa cruda', obs: 'Papa quemada o cruda que se descarta'});
+    mk(l, 'sazonado', G * rr(0.008, 0.019), 'Manipulación', d0, cs.util, 'produccion', {prod: 'Papa frita a granel'});
+    mk(l, 'quebrado', G * rr(0.006, 0.014), rnd() < 0.5 ? 'Manipulación' : 'Equipo', d0, cs.util, 'produccion', {prod: 'Papa frita a granel', obs: 'Producto quebrado que no se puede empacar entero'});
     mk(l, 'empaque', G * rr(0.007, 0.015), rnd() < 0.6 ? 'Manipulación' : 'Equipo', addDays(d0, 1), cs.util, 'empaque', {pres: PRES[i % PRES.length], prod: 'Bolsas rotas o fuera de peso'});
     if (rnd() < 0.45) mk(l, 'almpt', G * rr(0.0015, 0.005), rnd() < 0.5 ? 'Deterioro' : 'Manipulación', addDays(d0, 4), cs.util, 'empaque', {pres: PRES[(i + 1) % PRES.length], prod: 'Bolsas golpeadas en el almacén'});
     if (rnd() < 0.55) { const nt = notas.find(n => n.f >= addDays(d0, 3)); mk(l, 'despacho', G * rr(0.0015, 0.006), 'Manipulación', addDays(d0, 5), cs.util, 'empaque', {ref: nt ? nt.id : '', pres: PRES[(i + 2) % PRES.length], prod: 'Devolución por daño en la entrega'}); }
@@ -1689,8 +1700,8 @@ function buildMermasHist(hist) {
   // Línea salsera (kg de salsa que entran a cada etapa; costo supuesto de 1,2 $/kg)
   Z.salsas.forEach(s => {
     const m = /^S-(\d\d)(\d\d)-/.exec(s.lote), f = sd('2026-' + m[1] + '-' + m[2]), ent = Math.round(s.und * parseFloat(String(s.pres).replace(',', '.')));
-    mk(null, 'salsa_mezcla', ent * rr(0.012, 0.03), 'Error de proceso', f, MR_POL.mrCostoSalsa, 'jefeprod', {ref: s.lote, prod: s.n, ent, sinLote: 1, obs: 'Salsa que queda en la marmita y las líneas'});
-    if (s.etapa === 'Envasado' || s.etapa === 'Terminado') mk(null, 'salsa_env', ent * rr(0.008, 0.02), 'Equipo', f, MR_POL.mrCostoSalsa, 'jefeprod', {ref: s.lote, prod: s.n, ent, sinLote: 1, obs: 'Derrame y salsa que no llega al envase'});
+    mk(null, 'salsa_mezcla', ent * rr(0.012, 0.03), 'Error de proceso', f, MR_POL.mrCostoSalsa, 'produccion', {ref: s.lote, prod: s.n, ent, sinLote: 1, obs: 'Salsa que queda en la marmita y las líneas'});
+    if (s.etapa === 'Envasado' || s.etapa === 'Terminado') mk(null, 'salsa_env', ent * rr(0.008, 0.02), 'Equipo', f, MR_POL.mrCostoSalsa, 'produccion', {ref: s.lote, prod: s.n, ent, sinLote: 1, obs: 'Derrame y salsa que no llega al envase'});
   });
   // Bolsas dañadas anotadas en los empaques de hoy: misma regla que al registrar un empaque
   Z.empaqueHoy.forEach((e, i) => {
@@ -1698,11 +1709,11 @@ function buildMermasHist(hist) {
     const l = lotes.find(x => x.id === e.lote), g = Z.pres.find(p => p.cod === e.pres).g / 1000;
     put('MR-E-EMP-E' + (i + 1), {fecha: hoy, etapa: 'empaque', lote: e.lote, rec: '', ref: 'EMP-E' + (i + 1), prod: 'Bolsas dañadas', pres: e.pres, cant: e.bolsasMerma, un: 'und', causa: 'Manipulación', rol: 'empaque', quien: WHO.empaque, obs: 'Anotadas al registrar el empaque EMP-E' + (i + 1), usd: round2(e.bolsasMerma * g * (l ? costoL(l).util : 0)), estado: 'apr', auto: 1, ent: 0, ts: 0});
   });
-  // Dos registros de hoy que esperan la aprobación del Jefe de producción (para ver el flujo)
+  // Dos registros de hoy que esperan la aprobación del Gerente (para ver el flujo)
   const l5 = lotes.find(x => x.id === 'L-1105'), c5 = l5 && cm[l5.compra];
   if (l5 && c5) {
     const cs = costoL(l5);
-    put('MR-H9001', {fecha: hoy, etapa: 'almmp', lote: l5.id, rec: c5.rec, ref: '', prod: 'Papa cruda', pres: '', cant: 18, un: 'kg', causa: 'Humedad', rol: 'recep', quien: WHO.recep, obs: 'Dos sacos mojados por goteras en el almacén', usd: round2(18 * cs.raw), estado: 'pend', auto: 0, ent: 0, ts: 0});
+    put('MR-H9001', {fecha: hoy, etapa: 'almmp', lote: l5.id, rec: c5.rec, ref: '', prod: 'Papa cruda', pres: '', cant: 18, un: 'kg', causa: 'Humedad', rol: 'produccion', quien: WHO.produccion, obs: 'Dos sacos mojados por goteras en el almacén', usd: round2(18 * cs.raw), estado: 'pend', auto: 0, ent: 0, ts: 0});
     put('MR-H9002', {fecha: hoy, etapa: 'empaque', lote: l5.id, rec: '', ref: '', prod: 'Bolsas rotas', pres: 'P35', cant: 40, un: 'und', causa: 'Equipo', rol: 'empaque', quien: WHO.empaque, obs: 'La selladora cortó las bolsas', usd: round2(40 * 0.035 * cs.util), estado: 'pend', auto: 0, ent: 0, ts: 0});
   }
   return res;
@@ -2383,7 +2394,7 @@ function valCard(c) {
       <label class="fld">Condición<select id="v-cond-${c.rec}" data-k="val.${c.rec}.cond"><option ${v.cond === 'Crédito' ? 'selected' : ''}>Crédito</option><option ${v.cond === 'Contado' ? 'selected' : ''}>Contado</option></select><small>Plazo pactado: ${p.plazo || '—'}</small></label>
       <div class="fld"><span class="lbl">Total a pagar</span><p style="font-size:18px;font-weight:600;min-height:46px;display:flex;align-items:center">${money((+v.pu || 0) * base)}</p><small>Sobre ${kg(base)}</small></div></div>
       <div class="btnrow" style="margin-top:12px"><button type="button" class="btn pri" data-act="validar" data-rec="${c.rec}">${ic('check')}Validar y generar compra efectiva</button></div>`
-      : `<p class="note">${ic('lock', 16)} Validar es aprobar: lo hacen los roles Administración y compras o Gerente.</p>`)
+      : `<p class="note">${ic('lock', 16)} Validar es aprobar: lo hacen Administración o el Gerente.</p>`)
       : `<p class="okmsg">${ic('check')}Procesando: ${EST_LBL[c.estado]}…</p>${puede && c.vts && Date.now() - c.vts > 30000 ? `<div class="btnrow" style="margin-top:8px"><button type="button" class="btn" data-act="validar" data-rec="${c.rec}">Continuar el proceso</button><span class="hint" style="align-self:center">Se interrumpió; continúa desde donde quedó.</span></div>` : ''}`}
   </div></div>`;
 }
@@ -2408,7 +2419,7 @@ function scrComprasGen() {
       <label class="fld">Partida contable<select id="cg-part" data-k="cgForm.partida" data-rerender="1">${DATA.partidas.map(g => `<optgroup label="${g.cod} ${g.n}">${fl.filter(p => p.cod.startsWith(g.cod + '.') && !p.auto).map(p => `<option value="${p.cod}" ${p.cod === f.partida ? 'selected' : ''}>${p.cod} ${p.n}</option>`).join('')}</optgroup>`).join('')}</select></label>
       <div class="note"><p><b>Clasificación:</b> ${chip(pt.nat, 'info')} ${chip(pt.fijo, 'n')} ${pt.tang !== '—' ? chip(pt.tang, 'n') : ''}</p>
         <p style="margin-top:6px"><b>Asiento:</b> Débito ${pt.cod} ${pt.n} · Crédito ${f.cond === 'Crédito' ? '2.1.1 Cuentas por pagar a proveedores' : viaCaja ? 'Caja chica' : 'Banco'}</p>
-        ${viaCaja ? `<p style="margin-top:6px">Menor a ${usd(S.pol.umbral)}: la decide y paga el custodio de caja chica.</p>` : ''}</div>
+        ${viaCaja ? `<p style="margin-top:6px">Menor a ${usd(S.pol.umbral)}: la decide y paga Administración desde la caja chica.</p>` : ''}</div>
       <label class="fld">Motivo de la compra<input id="cg-mot" type="text" data-k="cgForm.motivo" value="${esc(f.motivo)}"><small>Obligatorio: alimenta el análisis «qué, a quién y por qué»</small></label>
       ${S.cgErr ? `<p class="err" role="alert">${ic('alert')}${S.cgErr}</p>` : ''}
       <button type="button" class="btn pri xl" data-act="regGen">${ic('check')}Registrar compra</button></div>`)}
@@ -2762,7 +2773,7 @@ function scrAsistencia() {
 
 /* ---------- Nómina calculada ---------- */
 function nomPolCard() {
-  if (S.rol !== 'dueno' && S.rol !== 'rrhh') return ''; /* las reglas de pago las edita solo Gerencia; Nómina y RRHH las ven en solo lectura */
+  if (S.rol !== 'dueno' && S.rol !== 'rrhh') return ''; /* las reglas de pago las edita solo Gerencia; Nómina las ve en solo lectura */
   const ed = lvl('nomina') >= 3, F = S.nomPolF || (S.nomPolF = {nomRecargo: S.pol.nomRecargo, nomLey: S.pol.nomLey, nomJornada: S.pol.nomJornada});
   const inp = (k, l, h, st) => `<label class="fld">${l}<input type="number" inputmode="decimal" min="0" step="${st}" data-k="nomPolF.${k}" value="${F[k] ?? 0}" ${ed ? '' : 'disabled'}><small>${h}</small></label>`;
   return card('Reglas de pago (las confirma el Gerente)', `<div class="form"><div class="row3">${inp('nomJornada', 'Jornada completa (horas)', 'Convierte el pago por día en pago por hora', 0.5)}${inp('nomRecargo', 'Recargo de horas extra (%)', 'En 0 hasta que el Gerente lo confirme: la hora extra vale la hora normal', 1)}${inp('nomLey', 'Deducciones de ley (%)', 'En 0 hasta que el Gerente confirme los porcentajes; el sistema no inventa porcentajes legales', 0.1)}</div>
@@ -3192,7 +3203,7 @@ function flotaAnteriorCard() {
 }
 /* ---------- Roles, módulos visibles y matriz (solo el Gerente edita) ---------- */
 function scrRoles() {
-  const rs = Object.keys(ROLES).filter(r => r !== 'dueno' && r !== 'cobranza');
+  const rs = Object.keys(ROLES).filter(r => r !== 'dueno');
   const rows = Object.keys(SCREENS).filter(k => !['mapa', 'roles', 'datos'].includes(k) && !SCREENS[k].libre);
   const cell = (k, r) => {
     if (k !== 'manual' && !modsOf(r).includes(SCREENS[k].mod)) return '<span class="muted" style="font-size:12.5px">sin módulo</span>';
@@ -3205,8 +3216,8 @@ function scrRoles() {
   <p class="perm-note">${ic('info')}<span>Módulos y matriz son una propuesta del consultor, pendiente de confirmar con el Gerente. ${askTag('A CONFIRMAR')} Aquí no hay usuarios ni contraseñas: el rol es solo un selector, no es seguridad.</span></p>
   ${card('Módulos visibles por rol', `${table([
       {h:'Rol', f:r => `<b>${ROLES[r]}</b>`}, {h:'Producción', f:r => mchk(r, 'prod')}, {h:'Administración', f:r => mchk(r, 'adm')},
-      {h:'Entra por', f:r => modsOf(r).map(modLabel).join(' y ')}], Object.keys(ROLES).filter(r => r !== 'cobranza'))}`)}
-  <div class="pm-grid">${Object.entries(ROLES).filter(([r]) => r !== 'cobranza').map(([r, t]) => `<div class="card"><div class="card-b"><p style="font-weight:600;display:flex;gap:8px;align-items:center">${ic('shield', 18)}${t}</p><p class="hint" style="margin-top:4px">${ROLE_DESC[r]}</p><p style="margin-top:8px"><button type="button" class="btn sm" data-act="setRol" data-v="${r}">Entrar como este rol</button></p></div></div>`).join('')}</div>
+      {h:'Entra por', f:r => modsOf(r).map(modLabel).join(' y ')}], Object.keys(ROLES))}`)}
+  <div class="pm-grid">${Object.entries(ROLES).map(([r, t]) => `<div class="card"><div class="card-b"><p style="font-weight:600;display:flex;gap:8px;align-items:center">${ic('shield', 18)}${t}</p><p class="hint" style="margin-top:4px">${ROLE_DESC[r]}</p><p style="margin-top:8px"><button type="button" class="btn sm" data-act="setRol" data-v="${r}">Entrar como este rol</button></p></div></div>`).join('')}</div>
   ${card('Matriz de permisos por pantalla', `<p class="lvl-legend" style="margin-bottom:10px"><span>— sin acceso</span><span>${lvChip(1)} consulta</span><span>${lvChip(2)} carga datos</span><span>${lvChip(3)} valida, paga o autoriza</span></p>
     ${table([{h:'Área', f:k => `<b>${SCREENS[k].t}</b><br><span class="muted">${modName(SCREENS[k].mod)}${actsBy(k).length ? ' · ' + actsBy(k).map(([a, v]) => LV[v[1]].toLowerCase() + ' para ' + ACT_LBL[a]).join('; ') : ''}</span>`},
       {h:'Gerencia', f:() => lvChip(3)}, ...rs.map(r => ({h:ROLES[r], f:k => cell(k, r)}))], rows)}`, {})}`;
@@ -3284,52 +3295,49 @@ const SCREENS = {
 const BOTTOM = {prod:['recepcion', 'alm-mp', 'produccion', 'despachos'], adm:['gestion', 'cxp', 'caja', 'analisis']};
 const HOME = {prod:['planta'], adm:['gestion']};
 /* ---------- Roles, módulos visibles y permisos (0 sin acceso · 1 ver · 2 registrar · 3 aprobar) ---------- */
-const ROLES = {dueno:'Gerencia', adm:'Administración y compras', custodio:'Custodio de caja chica', recep:'Recepción', jefeprod:'Jefe de producción', produccion:'Producción', empaque:'Empaque y despacho', ventas:'Ventas (vendedor)', cobranza:'Cobranza', rrhh:'Nómina y RRHH'};
+const ROLES = {dueno:'Gerencia', adm:'Administración', produccion:'Producción', empaque:'Logística', ventas:'Ventas', rrhh:'Nómina'};
 const ROLE_DESC = {
-  dueno:'Visión consolidada de la operación, aprobación de las decisiones clave y administración de roles y permisos.',
-  adm:'Validación de recepciones, gestión de compras, cuentas por pagar y pagos a proveedores.',
-  custodio:'Administración de la caja chica: gastos menores, arqueos, reposiciones y préstamos al personal.',
-  recep:'Recepción y registro de materia prima, insumos y aditivos en el ingreso a planta.',
-  jefeprod:'Cierre de lotes por turno, control del rendimiento y aprobación de reposiciones de empaque.',
-  produccion:'Gestión del turno: registro de kilos por etapa y bultos empacados, y cierre con carga al inventario.',
-  empaque:'Empaque por presentación, pesaje y etiquetado de bultos, y preparación de despachos.',
-  ventas:'Gestión comercial: pedidos, cartera de clientes, precios y seguimiento de ventas.',
-  cobranza:'Seguimiento de cuentas por cobrar, cartera vencida y conciliación de pagos de clientes.',
-  rrhh:'Preparación de la nómina en bolívares y control de los préstamos descontados al personal.'
+  dueno:'Visión de toda la operación, aprobaciones y ajustes de puestos y permisos.',
+  adm:'Compras, pagos, caja chica, cobranza y préstamos. Ve las ventas y los clientes.',
+  produccion:'Recepción, turno, kilos por etapa, mermas y cierre del turno.',
+  empaque:'Empaque por turno, pedidos por zona, salidas y despacho. Sin precios.',
+  ventas:'Pedidos, clientes y seguimiento de ventas.',
+  rrhh:'Nómina, personal, asistencia, bonos y préstamos.'
 };
 /* Módulos visibles por rol (propuesta pendiente de confirmar; el Gerente la edita y se guarda con la matriz) */
-const MODS_DEF = {dueno:['prod', 'adm'], adm:['adm'], custodio:['adm'], recep:['prod'], jefeprod:['prod'], produccion:['prod'], empaque:['prod'], ventas:['adm'], cobranza:['adm'], rrhh:['adm']};
+const MODS_DEF = {dueno:['prod', 'adm'], adm:['adm'], produccion:['prod'], empaque:['prod'], ventas:['adm'], rrhh:['adm']};
+/* Puestos que ya no existen → puesto actual. Se usa solo para leer lo que quedó guardado en este navegador. */
+const PUESTO_ANTES = {recep:'produccion', jefeprod:'produccion', custodio:'adm', cobranza:'adm', despacho:'empaque'};
+const puestoNuevo = r => PUESTO_ANTES[r] || r;
 const PERM_DEF = {
-  'planta':'adm:1 jefeprod:3 empaque:1',
-  'recepcion':'adm:1 recep:2 jefeprod:1',
-  'alm-mp':'adm:1 recep:1 jefeprod:1',
-  'alm-proceso':'jefeprod:2 empaque:1',
-  'alm-pt':'jefeprod:1 empaque:2',
-  'alm-logistica':'jefeprod:1 empaque:2',
-  'produccion':'jefeprod:2 produccion:2 empaque:1',
-  'empaque':'jefeprod:3 empaque:2',
-  'despachos':'jefeprod:1 empaque:2',
-  'cotejo':'adm:1 jefeprod:1',
-  'mermas':'jefeprod:3 recep:2 empaque:2 adm:1',
-  'catprod':'jefeprod:3 recep:2 empaque:2',
+  'planta':'adm:1 produccion:3 empaque:1',
+  'recepcion':'adm:1 produccion:2',
+  'alm-mp':'adm:1 produccion:1',
+  'alm-proceso':'produccion:2 empaque:1',
+  'alm-pt':'produccion:1 empaque:2',
+  'alm-logistica':'produccion:1 empaque:2',
+  'produccion':'produccion:2 empaque:1',
+  'empaque':'empaque:2',
+  'despachos':'empaque:2',
+  'cotejo':'adm:1 produccion:1',
+  'mermas':'produccion:2 empaque:2 adm:1',
+  'catprod':'produccion:3 empaque:2',
   'gestion':'',
   'compras-mp':'adm:3',
-  'compras-gen':'adm:2 custodio:1',
+  'compras-gen':'adm:2',
   'analisis':'adm:1',
   'cxp':'adm:2',
-  'caja':'adm:1 custodio:2',
-  'prestamos':'custodio:2 rrhh:1',
-  'politicas':'adm:1 custodio:2',
-  'ventas':'ventas:2 cobranza:2',
+  'caja':'adm:2',
+  'prestamos':'adm:2 rrhh:1',
+  'politicas':'adm:2',
+  'ventas':'ventas:2 adm:1',
   'nomina':'rrhh:2',
   'personal':'rrhh:2 adm:1',
   'asistencia':'rrhh:1',
   'catalogos':'adm:2 rrhh:2',
-  'manual':'adm:1 custodio:1 recep:1 jefeprod:1 empaque:1 ventas:1 cobranza:1 rrhh:1'
+  'manual':'adm:1 produccion:1 empaque:1 ventas:1 rrhh:1'
 };
-/* Cobranza ya no es un puesto aparte: Administración suma sus permisos (la clave interna «cobranza» se conserva en los datos y en la matriz) */
-function fusionCob(perm) { Object.keys(perm).forEach(k => { const c = (perm[k] || {}).cobranza || 0; if (c > ((perm[k] || {}).adm || 0)) perm[k] = {...perm[k], adm: c}; }); return perm; }
-const permInit = () => fusionCob(Object.fromEntries(Object.entries(PERM_DEF).map(([k, s]) => [k, Object.fromEntries(s.split(' ').filter(Boolean).map(x => { const [r, l] = x.split(':'); return [r, +l]; }))])));
+const permInit = () => Object.fromEntries(Object.entries(PERM_DEF).map(([k, s]) => [k, Object.fromEntries(s.split(' ').filter(Boolean).map(x => { const [r, l] = x.split(':'); return [r, +l]; }))]));
 S.perm = permInit(); S.mods = clone(MODS_DEF);
 // Qué permiso exige cada acción: [pantalla, nivel]
 const ACT_REQ = {guardarRec:['recepcion', 2], validar:['compras-mp', 3], pagar:['cxp', 2], abrirLote:['produccion', 2], avanzarEtapa:['produccion', 2], cerrarLote:['produccion', 2],
@@ -3556,7 +3564,7 @@ function mrCalcHTML() {
 }
 function mrFormCard() {
   const fx = mrFix();
-  if (!fx) return card('Registrar merma', `<p class="hint">${ic('lock', 16)} Tu rol consulta las mermas pero no las registra. Quien las registra: Recepción (su etapa), Empaque y despacho (las suyas) y el Jefe de producción (todas).</p>`);
+  if (!fx) return card('Registrar merma', `<p class="hint">${ic('lock', 16)} Tu rol consulta las mermas pero no las registra. Quien las registra: Producción (sus etapas) y Logística (las suyas). La aprobación es del Gerente.</p>`);
   const f = S.mrForm, {e, og} = fx, ets = mrEtapasMias(), cs = mrCausas();
   const apr = lvl('mermas') >= 3;
   return card('Registrar merma', `<div class="form cp-c2" id="mr-form"><div>
@@ -3583,7 +3591,7 @@ function mrTolCard(enPol) {
   const body = `<div class="form"><div class="mr-tolg">${MR_ET.filter(e => !(enPol && e.k === 'recepcion')).map(e => e.k === 'recepcion' ? inp('tolRec', e.t, 'Es la tolerancia de peso de Recepción') : inp('mr_' + e.k, e.t, 'Máx. % de lo que entra a la etapa')).join('')}</div>
     <div class="row2">${inp('mrAlerta', 'Margen de alerta (%)', 'Hasta cuánto por encima de la tolerancia es «alerta»; más allá es «fuera»')}${inp('mrCostoSalsa', 'Costo de la salsa ($/kg)', 'Supuesto para valorar mermas de la línea salsera')}</div>
     ${enPol ? '' : ''}
-    ${ed ? `<button type="button" class="btn pri" data-act="guardarTolMerma">${ic('check')}Guardar tolerancias de merma</button>` : `<p class="hint">${ic('lock', 16)} Solo el Gerente y el Jefe de producción cambian las tolerancias.</p>`}</div>`;
+    ${ed ? `<button type="button" class="btn pri" data-act="guardarTolMerma">${ic('check')}Guardar tolerancias de merma</button>` : `<p class="hint">${ic('lock', 16)} Solo el Gerente cambia las tolerancias.</p>`}</div>`;
   return card('Tolerancias de merma por proceso', body, {});
 }
 function mrCausasCard() {
@@ -3987,15 +3995,11 @@ function bootHTML() {
   if (Boot.state === 'seeding') return `<div class="card"><div class="card-b">${emptyState('Preparando los datos iniciales…', 'Otra persona está cargando el ejemplo. Esto tarda unos segundos.')}</div></div>`;
   return `<div class="card"><div class="card-b">${emptyState('Cargando los datos…', Store.slow ? 'La base tarda en responder. Seguimos intentando; no cierres la página.' : 'Un momento.')}</div></div>`;
 }
-/* Puerta de entrada: módulo → rol → pantallas */
+/* Puerta de entrada: «Elige tu puesto» (6 tarjetas; tocar una tarjeta entra directo) */
+const PUESTOS_ORDEN = [['dueno', 'gerencia'], ['adm', 'administracion'], ['produccion', 'produccion'], ['empaque', 'logistica'], ['ventas', 'ventas'], ['rrhh', 'nomina']];
 function scrPuertas() {
-  const door = (m, icn, t, d, bits) => `<a href="#" class="door" data-act="puerta" data-v="${m}"><span class="door-i">${ic(icn, 40)}</span><h2>${t}</h2><p>${d}</p><ul>${bits.map(x => `<li>${x}</li>`).join('')}</ul><span class="pm-go">Entrar ${ic('arrow', 16)}</span></a>`;
-  return `<div class="cover">${logoImg("cover-logo")}<p>Seguimiento productivo</p></div>
-  ${phFull('Bienvenido', 'El Maná JL', 'Elige el módulo al que vas a entrar. Después eliges tu rol y verás solo lo tuyo.')}
-  <div class="doors">
-    ${door('prod', 'flame', 'Producción', 'Recibir, almacenar, procesar, empacar y despachar.', ['Recepción y almacenes', 'Producción y rendimiento', 'Empaque, logística y despachos'])}
-    ${door('adm', 'chart', 'Administración', 'Comprar, pagar, cobrar y llevar la caja y el personal.', ['Compras, cuentas por pagar y caja chica', 'Ventas, cobranza y nómina', 'Control de gestión (Gerente)'])}
-  </div>${NOTICE()}`;
+  const t = ([r, img]) => `<button type="button" class="pst" data-act="elegirRol" data-v="${r}" aria-label="Entrar como ${ROLES[r]}"><img src="/img/puestos/${img}.jpg" alt="" width="420" height="420" decoding="async"><span>${ROLES[r]}</span></button>`;
+  return `<div class="pst-wrap"><div class="pst-h"><h1>Elige tu puesto</h1></div><div class="pst-grid">${PUESTOS_ORDEN.map(t).join('')}</div></div>`;
 }
 function levelsText(r, m) {
   const by = [[], [], [], []]; Object.keys(SCREENS).filter(k => k !== 'mapa' && (SCREENS[k].mod === m || k === 'manual')).forEach(k => by[lvlOf(r, k)].push(SCREENS[k].s));
@@ -4009,8 +4013,7 @@ function scrElegirRol() {
 function renderMain() {
   const el = $('#main'); Charts.destroy();
   if (Boot.state !== 'ready') { el.innerHTML = `<div class="wrap">${bootHTML()}</div>`; return; }
-  if (S.entry === 'doors') { el.innerHTML = `<div class="wrap">${scrPuertas()}</div>`; return; }
-  if (S.entry === 'roles') { el.innerHTML = `<div class="wrap">${scrElegirRol()}</div>`; return; }
+  if (S.entry === 'doors' || S.entry === 'roles') { el.innerHTML = `<div class="wrap">${scrPuertas()}</div>`; return; }
   const sc = SCREENS[S.route]; let body;
   try {
     body = can(S.route) ? sc.r() : `<div class="card denied"><div class="card-b">${emptyState('Sin acceso', `El rol «${ROLES[S.rol]}» no ve ${sc.t}. Cambia de rol o vuelve al inicio.`, '<a class="btn sm" href="#mapa">Ir al inicio de mi módulo</a>')}</div></div>`;
@@ -4060,7 +4063,7 @@ function savePref() { try { localStorage.setItem('elmana:pref', JSON.stringify({
 function restorePref() {
   try {
     const p = JSON.parse(localStorage.getItem('elmana:pref') || 'null');
-    if (p && ROLES[p.rol] && (p.mod === 'prod' || p.mod === 'adm') && modsOf(p.rol).includes(p.mod) && p.entry === 'in') { S.rol = p.rol === 'cobranza' ? 'adm' : p.rol; S.mod = p.mod; S.entry = 'in'; }
+    if (p) { const r = puestoNuevo(p.rol); if (ROLES[r] && p.entry === 'in') { S.rol = r; S.mod = (p.mod === 'prod' || p.mod === 'adm') && modsOf(r).includes(p.mod) ? p.mod : modsOf(r)[0]; S.entry = 'in'; if (r !== p.rol) savePref(); } }
   } catch (e) {}
 }
 
@@ -4233,7 +4236,7 @@ function scrClientesViejo() {   // lista vieja de Administración: ya no se mues
   ${entHist(['cli'])}`;
 }
 SCREENS.clientes = {mod: 'adm', g: 'Ventas y personal', t: 'Clientes', s: 'Clientes', ic: 'users', r: () => ''};   // se reemplaza en front/ventas/v-registro.js: UNA sola lista de clientes, la de Ventas
-PERM_DEF.clientes = 'ventas:2 cobranza:2 adm:1 rrhh:0';
+PERM_DEF.clientes = 'ventas:2 adm:1 rrhh:0';
 PERM_DEF.catalogos = 'adm:2';
 S.perm = permInit();
 
@@ -4261,8 +4264,8 @@ const INV_ALMS = ['Materia prima', 'En proceso', 'Producto terminado', 'Logísti
 const INV_EST = {agotado: ['Agotado', 'crit', 0], bajo: ['Bajo mínimo', 'crit', 1], cobertura: ['Cobertura baja', 'warn', 2], cerca: ['Cerca del mínimo', 'warn', 3], sobre: ['Sobre el máximo', 'info', 4], ok: ['Suficiente', 'ok', 9], pend: ['Por definir', 'n', 10]};
 const INV_CICLO = 2; // días que tarda reponer producto terminado (producción), supuesto editable en el código
 /* Quién actúa en cada área */
-const INV_ROLES = {recep: ['Materia prima', 'Insumos', 'En proceso'], jefeprod: ['Materia prima', 'Insumos', 'En proceso'], empaque: ['Producto terminado', 'Logística'], adm: ['Materia prima', 'Insumos', 'Logística']};
-const INV_EDIT = {jefeprod: INV_AREAS, adm: ['Materia prima', 'Insumos', 'Logística'], empaque: ['Producto terminado', 'Logística']};
+const INV_ROLES = {produccion: ['Materia prima', 'Insumos', 'En proceso'], empaque: ['Producto terminado', 'Logística'], adm: ['Materia prima', 'Insumos', 'Logística']};
+const INV_EDIT = {produccion: INV_AREAS, adm: ['Materia prima', 'Insumos', 'Logística'], empaque: ['Producto terminado', 'Logística']};
 const invRolAreas = r => r === 'dueno' ? INV_AREAS : (INV_ROLES[r] || []);
 const invCanEdit = i => S.rol === 'dueno' || (INV_EDIT[S.rol] || []).includes(i.area);
 const invAccess = () => lvl('inventario') > 0 || lvl('inventario-adm') > 0;
@@ -4380,7 +4383,7 @@ function scrInventario() {
 }
 SCREENS.inventario = {mod: 'prod', g: 'Almacenes', t: 'Inventario actual', s: 'Inventario', ic: 'warehouse', r: scrInventario};
 SCREENS['inventario-adm'] = {mod: 'adm', g: 'Compras', t: 'Inventario actual', s: 'Inventario', ic: 'warehouse', r: scrInventario};
-PERM_DEF.inventario = 'recep:1 jefeprod:3 empaque:2';
+PERM_DEF.inventario = 'produccion:3 empaque:2';
 PERM_DEF['inventario-adm'] = 'adm:2';
 S.perm = permInit();
 const INV_ACT = {
@@ -4424,7 +4427,7 @@ async function run(key, fn, ok) {
 }
 const waitFor = async (test, ms = 4000) => { const t0 = Date.now(); while (Date.now() - t0 < ms) { if (test()) return true; await wait(100); } return false; };
 const enter = r => { if (location.hash.slice(1) === r) go(r); else location.hash = r; };
-const ROLE_HOME = {adm:'compras-mp', custodio:'caja', recep:'recepcion', jefeprod:'planta', produccion:'pr-turno', empaque:'empaque', ventas:'ventas', cobranza:'ventas', rrhh:'nomina'};
+const ROLE_HOME = {adm:'compras-mp', produccion:'pr-turno', empaque:'em-tablero', ventas:'ventas', rrhh:'nomina'};
 function homeRoute() {
   const m = S.mod, last = S.last[m], rh = ROLE_HOME[S.rol];
   if (!last && rh && SCREENS[rh] && SCREENS[rh].mod === m && can(rh)) return rh;
@@ -4457,9 +4460,8 @@ const ACT = {
   /* entrada: puertas, rol, módulo */
   menuLat: () => { try { localStorage.setItem('elmana:menu', menuOculto() ? 'visible' : 'oculto'); } catch (e) {} aplicarMenu(); renderTop(); },
   inicio: () => { closeDrawer(); S.entry = 'doors'; savePref(); renderAll(); window.scrollTo(0, 0); },
-  puerta: el => { S.mod = el.dataset.v; S.entry = 'roles'; renderAll(); window.scrollTo(0, 0); },
-  cambiarRol: () => { closeDrawer(); S.entry = 'roles'; savePref(); renderAll(); window.scrollTo(0, 0); },
-  elegirRol: el => { S.rol = el.dataset.v; if (B && B.refresh) B.refresh(); S.entry = 'in'; S.last = {prod: null, adm: null}; if (!modsOf(S.rol).includes(S.mod)) S.mod = modsOf(S.rol)[0]; savePref(); toast('Entraste como ' + ROLES[S.rol] + ' en ' + modLabel(S.mod) + '.'); enter(homeRoute()); },
+  cambiarRol: () => { closeDrawer(); S.entry = 'doors'; savePref(); renderAll(); window.scrollTo(0, 0); },
+  elegirRol: el => { S.rol = el.dataset.v; if (B && B.refresh) B.refresh(); S.entry = 'in'; S.last = {prod: null, adm: null}; if (!modsOf(S.rol).includes(S.mod)) S.mod = modsOf(S.rol)[0]; savePref(); toast('Entraste como ' + ROLES[S.rol] + '.'); enter(homeRoute()); },
   setRol: el => { S.rol = el.dataset.v; if (B && B.refresh) B.refresh(); S.last = {prod: null, adm: null}; if (!modsOf(S.rol).includes(S.mod)) S.mod = modsOf(S.rol)[0]; savePref(); toast('Entraste como ' + ROLES[S.rol] + '.'); enter(homeRoute()); },
   mod: el => { closeDrawer(); const m = el.dataset.v; if (!modsOf(S.rol).includes(m)) return; const t = S.last[m] && can(S.last[m]) ? S.last[m] : [...(HOME[m] || []), ...allowed(m)].find(can); S.mod = m; if (t) enter(t); },
   drawer: () => openDrawer(), closeDrawer: () => closeDrawer(), closeModal: () => closeModal(),
@@ -4633,9 +4635,9 @@ function reciboModal(id) {
   modal('Recibo de préstamo ' + p.id, `<div class="doc"><div class="dh"><div class="dh-id">${logoImg("doc-logo")}<div><h3>El Maná JL</h3><p>Recibo de préstamo a empleado</p></div></div><div style="text-align:right"><p class="mono">${p.id}</p><p>${fdl(p.fecha)}</p></div></div>
     <p>Recibí de la caja chica de El Maná JL la cantidad de <b>${usd(p.monto)}</b> (${bs(p.monto * p.tasa)} a la tasa de ${N2.format(p.tasa)} Bs/$) en calidad de préstamo, por concepto de: ${p.motivo}.</p>
     <p style="margin-top:8px">Autorizo que se descuente de mi nómina en <b>${p.cuotas} cuotas quincenales de ${bs(cuota * p.tasa)}</b>.</p>
-    <div class="meta" style="margin-top:12px"><div><b>Empleado</b>${e.n}</div><div><b>Área</b>${e.area}</div><div><b>Cédula</b>________________</div><div><b>Entregado por</b>Custodio de caja chica</div></div>
+    <div class="meta" style="margin-top:12px"><div><b>Empleado</b>${e.n}</div><div><b>Área</b>${e.area}</div><div><b>Cédula</b>________________</div><div><b>Entregado por</b>Administración</div></div>
     ${table([{h:'Cuota', f:x => x.i}, {h:'Quincena', f:x => fdl(x.f)}, {h:'Descuento', r:1, f:x => bs(cuota * p.tasa)}], fechas.map((f, i) => ({i:i + 1, f})))}
-    <div class="firmas"><div>Firma del empleado</div><div>Firma del custodio</div></div></div>
+    <div class="firmas"><div>Firma del empleado</div><div>Firma de Administración</div></div></div>
     ${docBar("Recibo de préstamo " + p.id)}`);
 }
 function notaModal(id) {

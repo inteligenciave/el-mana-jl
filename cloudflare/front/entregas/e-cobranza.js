@@ -1,4 +1,4 @@
-/* Cobranza: plazos desde la entrega, reclamos «no recibí esto» y Ajustes de crédito (solo Gerente). */
+/* Administración (cobranza): plazos desde la entrega, reclamos «no recibí esto» y Ajustes de crédito (solo Gerente). */
 const E_EST = {TRAMO1: ['ok', 'Descuento A'], TRAMO2: ['warn', 'Descuento B'], VENCIDA: ['crit', 'Vencida'], PAUSADA: ['n', 'En pausa']};
 const E_FILTROS = [['TODOS', 'Todos'], ['TRAMO1', 'Descuento A'], ['TRAMO2', 'Descuento B'], ['VENCIDA', 'Vencidas'], ['PAUSADA', 'En pausa']];
 
@@ -81,7 +81,7 @@ async function eAjustesGuardar() {
 
 /* ---------- Registro en la aplicación ---------- */
 Object.assign(ICONS, {camera: '<path d="M4 8h3l1.6-2.4h6.8L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.6"/>'});
-Object.assign(PERM_DEF, {'e-entregas': 'jefeprod:3 empaque:2', 'e-plazos': 'cobranza:2 adm:1 ventas:1', 'e-ajustes': 'adm:3'});
+Object.assign(PERM_DEF, {'e-entregas': 'empaque:2 adm:1', 'e-plazos': 'adm:2 ventas:1', 'e-ajustes': ''});
 Object.assign(SCREENS, {
   'e-entregas': {mod: 'prod', g: 'Planta', t: 'Entregas con foto', s: 'Entregas', ic: 'camera', r: scrEntregas},
   'e-plazos':   {mod: 'adm', g: 'Ventas y liquidación', t: 'Plazos y reclamos de entrega', s: 'Plazos', ic: 'calendar', r: scrPlazos},

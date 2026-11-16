@@ -55,7 +55,7 @@ const EntregasPortal = (() => {
     const t = d.temporizador, p = d.pagar, tasa = st.estado.tasa;
     let estado, cd = '';
     if (!d.entrega) { estado = '<span class="ep-chip ep-warn">Entrega sin verificar</span>'; cd = '<p class="ep-m">Tu plazo de pago empieza con la primera foto de la entrega: la tuya o la de Despachos.</p>'; }
-    else if (t.pausada) { estado = '<span class="ep-chip ep-warn">Plazo en pausa</span>'; cd = '<p class="ep-m">Avisaste que no recibiste esto. Mientras Cobranza lo revisa, tu plazo no corre.</p>'; }
+    else if (t.pausada) { estado = '<span class="ep-chip ep-warn">Plazo en pausa</span>'; cd = '<p class="ep-m">Avisaste que no recibiste esto. Mientras Administración lo revisa, tu plazo no corre.</p>'; }
     else if (t.tramo === 3) { estado = '<span class="ep-chip ep-crit">Vencida</span>'; cd = `<p class="ep-m">Pasaron ${t.dias} días desde la entrega${t.dias_vencida ? ` (${t.dias_vencida} después del plazo)` : ''}.${t.recargo_pct != null ? ` Recargo por mora: ${N2.format(t.recargo_pct)} %.` : ''}</p>`; }
     else {
       estado = `<span class="ep-chip ${t.descuento_pct != null ? 'ep-ok' : ''}">${t.tramo === 1 ? 'Primer plazo' : 'Segundo plazo'}</span>`;

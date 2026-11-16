@@ -1,42 +1,49 @@
-/* Las 7 pantallas principales: Gerencia, Administración, Producción, Ventas, Logística, Despacho y Cliente.
+/* Las 6 pantallas principales, una por puesto: Gerencia, Administración, Producción, Logística, Ventas y Nómina.
    Cada pantalla agrupa con pestañas las funciones que ya existían (no se borra nada). Cada persona ve solo la pantalla de su rol. */
 (function () {
 "use strict";
 /* grupos: [nombre, [[clave de pantalla, nombre corto], ...]] */
 const PANT = [
   {k: 'ger', t: 'Gerencia', ic: 'chart', roles: [], lead: 'Resumen del negocio', grupos: [['Resumen', [['gerencia', 'Resumen'], ['mapa', 'Mapa de procesos', 'h']]], ['Por aprobar', [['p-aprobar', 'Precios por aprobar'], ['g-solic', 'Solicitudes'], ['pr-dif', 'Diferencias'], ['c-pagos', 'Pagos del portal']]], ['Auditoría', [['g-audit', 'Auditoría']]], ['Ajustes', [['politicas', 'Reglas de caja y nómina'], ['rh-params', 'Turnos y bonos'], ['e-ajustes', 'Crédito'], ['pr-aj', 'Zonas y mermas'], ['pr-mot', 'Motivos de merma'], ['p-bancos', 'Bancos'], ['roles', 'Quién ve qué'], ['g-extras', 'Funciones extra'], ['datos', 'Datos'], ['gestion', 'Control de gestión'], ['ayuda', 'Ayuda', 'h']]]]},
-  {k: 'adm', t: 'Administración', ic: 'wallet', roles: ['adm', 'custodio', 'rrhh', 'cobranza'], lead: 'Compras, pagos, cobros y personal', grupos: [
+  {k: 'adm', t: 'Administración', ic: 'wallet', roles: ['adm'], lead: 'Compras, pagos, cobros y caja', grupos: [
     ['Resumen', [['adm-resumen', 'Resumen']]],
-    ['En planta', [['rh-planta', 'En planta hoy'], ['rh-turnos', 'Turnos'], ['turnos', 'Turnos'], ['rh-pagar', 'Pagar nómina'], ['rh-params', 'Parámetros de turnos y bonos']]],
     ['Compras', [['c-pedido', 'Hacer una compra'], ['compras-mp', 'Papa e insumos'], ['compras-gen', 'Otras compras'], ['analisis', 'Comparar compras'], ['catalogos', 'Proveedores'], ['inventario-adm', 'Existencias']]],
     ['Pagar', [['cxp', 'Por pagar'], ['caja', 'Caja chica'], ['prestamos', 'Préstamos'], ['politicas', 'Reglas']]],
-    ['Cobrar', [['v-cobro', 'Registrar cobro'], ['v-pagos', 'Cobros hechos'], ['v-deuda', 'Quién debe'], ['c-pagos', 'Pagos por revisar'], ['e-plazos', 'Plazos y reclamos'], ['v-reportes', 'Comisiones y asientos'], ['v-importar', 'Traer del Excel'], ['c-ficha', 'Enlace del portal']]],
+    ['Cobrar', [['v-cobro', 'Registrar cobro'], ['v-pagos', 'Cobros hechos'], ['v-deuda', 'Quién debe'], ['c-pagos', 'Pagos por revisar'], ['e-plazos', 'Plazos y reclamos'], ['e-entregas', 'Entregas con foto'], ['v-reportes', 'Comisiones y asientos'], ['v-importar', 'Traer del Excel'], ['c-ficha', 'Enlace del portal']]],
+    ['Ventas (solo ver)', [['v-pedido', 'Pedidos'], ['v-clientes', 'Clientes'], ['c-pedidos', 'Pedidos de clientes'], ['ventas', 'Registro de ventas']]],
     ['Precios', [['p-precios', 'Precios por lista'], ['p-clientes', 'Precios por cliente'], ['e-ajustes', 'Descuentos y mora'], ['p-estado', 'Mis cambios']]],
     ['Bancos', [['p-bancos', 'Bancos de la empresa']]],
     ['Flota', [['fl-flota', 'Vehículos'], ['catprod', 'Anterior (solo consulta)']]],
-    ['Personal', [['personal', 'Personas'], ['asistencia', 'Asistencia'], ['nomina', 'Nómina']]],
+    ['Bonos', [['rh-turnos', 'Turnos y bonos'], ['rh-params', 'Parámetros de turnos y bonos']]],
     ['Sistema', [['manual', 'Manual', 'h'], ['roles', 'Quién ve qué'], ['datos', 'Datos'], ['mis-solic', 'Mis solicitudes', 'h'], ['ayuda', 'Ayuda', 'h']]]]},
-  {k: 'prod', t: 'Producción', ic: 'flame', roles: ['recep', 'jefeprod', 'empaque', 'produccion'], lead: 'Recibir, producir y empacar', grupos: [
-    ['Zonas', [['pr-zonas', 'Pedidos por zona'], ['pr-turno', 'Turno'], ['pr-dif', 'Diferencias'], ['pr-mot', 'Motivos de merma'], ['pr-aj', 'Ajustes']]],
-    ['Planta', [['planta', 'Resumen'], ['recepcion', 'Recibir'], ['produccion', 'Producir'], ['empaque', 'Empacar'], ['mermas', 'Mermas'], ['cotejo', 'Comparar'], ['turnos', 'Turnos']]],
+  {k: 'prod', t: 'Producción', ic: 'flame', roles: ['produccion'], lead: 'Recibir, producir y cerrar el turno', grupos: [
+    ['Turno', [['pr-turno', 'Turno'], ['pr-dif', 'Diferencias']]],
+    ['Planta', [['planta', 'Resumen'], ['recepcion', 'Recibir'], ['produccion', 'Producir'], ['mermas', 'Mermas'], ['cotejo', 'Comparar'], ['turnos', 'Turnos']]],
     ['Existencias', [['alm-mp', 'Materia prima'], ['pr-proc', 'En proceso (kilos)'], ['alm-proceso', 'En proceso'], ['alm-pt', 'Producto terminado'], ['pr-inv', 'Inventario terminado'], ['inventario', 'Inventario']]],
     ['Más', [['catprod', 'Equipo'], ['manual', 'Manual', 'h'], ['mis-solic', 'Mis solicitudes', 'h'], ['ayuda', 'Ayuda', 'h']]]]},
   {k: 'vent', t: 'Ventas', ic: 'cart', roles: ['ventas'], lead: 'Vender, clientes y catálogo', grupos: [['Ventas', [['v-pedido', 'Hacer una venta'], ['pr-invv', 'Inventario disponible'], ['c-pedidos', 'Pedidos'], ['v-clientes', 'Clientes y catálogo'], ['clientes', 'Lista de clientes'], ['c-ficha', 'Enlace del portal'], ['v-deuda', 'Quién debe'], ['v-pagos', 'Cobros hechos'], ['ventas', 'Registro de ventas'], ['mis-solic', 'Mis solicitudes', 'h'], ['ayuda', 'Ayuda', 'h']]]]},
-  {k: 'desp', t: 'Despacho', ic: 'truck', roles: ['empaque', 'jefeprod'], lead: 'Despachos y entregas', grupos: [['Despacho', [['em-tablero', 'Zonas'], ['despachos', 'Despachos'], ['fl-desp', 'Vehículos'], ['catprod', 'Anterior (solo consulta)'], ['e-entregas', 'Entregas con foto'], ['alm-logistica', 'Bultos y etiquetas'], ['mis-solic', 'Mis solicitudes', 'h'], ['ayuda', 'Ayuda', 'h']]]]}
+  {k: 'log', t: 'Logística', ic: 'truck', roles: ['empaque'], lead: 'Empacar, armar zonas y despachar', grupos: [
+    ['Despacho', [['em-tablero', 'Zonas'], ['pr-zonas', 'Pedidos por zona'], ['despachos', 'Despachos'], ['e-entregas', 'Entregas con foto'], ['fl-desp', 'Vehículos'], ['catprod', 'Anterior (solo consulta)']]],
+    ['Empaque', [['lg-empacar', 'Empacar por turno'], ['empaque', 'Empaque y stock'], ['alm-logistica', 'Bultos y etiquetas'], ['pr-dif', 'Diferencias']]],
+    ['Existencias', [['alm-pt', 'Producto terminado'], ['pr-inv', 'Inventario terminado'], ['inventario', 'Inventario'], ['mermas', 'Mermas']]],
+    ['Más', [['manual', 'Manual', 'h'], ['mis-solic', 'Mis solicitudes', 'h'], ['ayuda', 'Ayuda', 'h']]]]},
+  {k: 'nom', t: 'Nómina', ic: 'coins', roles: ['rrhh'], lead: 'Pagar, personal y préstamos', grupos: [
+    ['En planta', [['rh-planta', 'En planta hoy'], ['rh-turnos', 'Turnos y bonos'], ['turnos', 'Turnos'], ['rh-params', 'Parámetros de turnos y bonos']]],
+    ['Personal', [['personal', 'Personas'], ['asistencia', 'Asistencia'], ['rh-pagar', 'Pagar nómina'], ['prestamos', 'Préstamos'], ['nomina', 'Nómina anterior (solo consulta)']]],
+    ['Más', [['manual', 'Manual', 'h'], ['mis-solic', 'Mis solicitudes', 'h'], ['ayuda', 'Ayuda', 'h']]]]}
 ];
-const ORDEN_DUENO = ['ger', 'vent', 'adm', 'prod', 'desp'];
+const ORDEN_DUENO = ['ger', 'adm', 'prod', 'log', 'vent', 'nom'];
+/* Lo que Gerencia ya ve en otra de sus pantallas no se repite */
+const DUP_DUENO = {adm: ['rh-turnos', 'v-pedido', 'v-clientes', 'c-pedidos', 'ventas'], nom: ['prestamos']};
 const EXT = {rol: null, map: {}, sel: null, busy: false};
 /* Funciones extra de un puesto: las que asignó el Gerente Y que el puesto ya puede ver según «Quién ve qué» (el panel nunca concede permisos) */
-const extrasDe = r => { if (r === 'dueno') return []; const own = new Set(visibles(r).flatMap(p => planas(p, r))); return [...((EXT.map || {})[r] || []), ...(r === 'adm' ? (EXT.map || {}).cobranza || [] : [])].filter(k => SCREENS[k] && !own.has(k) && lvlOf(r, k) >= 1); };
+const extrasDe = r => { if (r === 'dueno') return []; const own = new Set(visibles(r).flatMap(p => planas(p, r))); return [...((EXT.map || {})[r] || [])].filter(k => SCREENS[k] && !own.has(k) && lvlOf(r, k) >= 1); };
 const pantDe = k => PANT.find(p => p.k === k);
-/* Cobranza: «Cobrar» va primero y «Quién debe» es su primer botón (los demás puestos conservan el orden de siempre) */
 /* Lo que vive en Gerencia (Por aprobar y Ajustes): el Gerente lo ve ahí y no repetido en las otras pantallas; los demás puestos lo siguen viendo donde lo veían */
 const MOV_GER = ['pr-dif', 'c-pagos', 'politicas', 'rh-params', 'e-ajustes', 'p-bancos', 'roles', 'datos', 'gestion', 'pr-aj', 'pr-mot', 'g-extras', 'g-solic', 'p-aprobar', 'g-audit'];
 const SOLO_GER = ['pr-aj', 'pr-mot', 'g-extras', 'g-solic', 'p-aprobar', 'g-audit']; /* pantallas que solo Gerencia ve, sin importar lo que diga la matriz */
-const tabsRaw = (p, r) => { const gs = p.grupos.map(([g, ts]) => [g, ts.filter(([k]) => SCREENS[k] && lvlOf(r, k) >= 1 && !(k === 'mis-solic' && r === 'dueno') && !(SOLO_GER.includes(k) && r !== 'dueno') && !(r === 'dueno' && p.k !== 'ger' && MOV_GER.includes(k)))]).filter(([, ts]) => ts.length);
-  if (r !== 'cobranza' || p.k !== 'adm') return gs;
-  const c = gs.find(([g]) => g === 'Cobrar'); if (!c) return gs;
-  return [[c[0], [...c[1].filter(t => t[0] === 'v-deuda'), ...c[1].filter(t => t[0] !== 'v-deuda')]], ...gs.filter(x => x !== c)]; };
+const tabsRaw = (p, r) => { const gs = p.grupos.map(([g, ts]) => [g, ts.filter(([k]) => SCREENS[k] && lvlOf(r, k) >= 1 && !(k === 'mis-solic' && r === 'dueno') && !(SOLO_GER.includes(k) && r !== 'dueno') && !(r === 'dueno' && p.k !== 'ger' && MOV_GER.includes(k)) && !(r === 'dueno' && (DUP_DUENO[p.k] || []).includes(k)))]).filter(([, ts]) => ts.length);
+  return gs; };
 /* ---------- Uniones: varias claves viejas pasan a UNA opción del menú con pestañas por dentro. Cada clave vieja sigue existiendo (permisos, enlaces #clave, avisos). ----------
    m: [clave, nombre de la pestaña, [claves que son la misma pantalla]] */
 const UNI = [];
@@ -64,11 +71,11 @@ function pantActual() {
 window.pantNombre = () => { const p = pantActual(); return p ? p.t : 'Inicio'; };
 /* Producción: «Recibir» y «Producir» son las dos pantallas principales (las que tenga permiso el puesto) */
 const PRIN_PROD = [['recepcion', 'Recibir', 'truck'], ['produccion', 'Producir', 'flame']];
-/* Despacho: «Zonas» (tarjetas por zona) es la pantalla principal de Empaque y despacho */
-const PRIN_DESP = [['em-tablero', 'Zonas', 'truck']];
-const prinDe = p => (p.k === 'prod' ? PRIN_PROD : p.k === 'desp' ? PRIN_DESP : []).filter(([k]) => planas(p, S.rol).includes(k));
+/* Logística: «Zonas» (tarjetas por zona) y «Empacar» son sus dos pantallas principales */
+const PRIN_LOG = [['em-tablero', 'Zonas', 'truck'], ['lg-empacar', 'Empacar', 'pack']];
+const prinDe = p => (p.k === 'prod' ? PRIN_PROD : p.k === 'log' ? PRIN_LOG : []).filter(([k]) => planas(p, S.rol).includes(k));
 const destino = p => { const l = (S.lastPant || {})[p.k], fl = planas(p, S.rol), pr = prinDe(p);
-  if (pr.length) return S.rol === 'recep' && pr.some(x => x[0] === 'recepcion') ? 'recepcion' : (pr.find(x => x[0] === 'produccion') || pr[0])[0]; return l && fl.includes(l) ? l : (tabsDe(p, S.rol).flatMap(([, ts]) => ts.map(t => t[0]))[0] || 'pant-vacia'); };
+  if (pr.length) return (pr.find(x => x[0] === 'produccion') || pr[0])[0]; return l && fl.includes(l) ? l : (tabsDe(p, S.rol).flatMap(([, ts]) => ts.map(t => t[0]))[0] || 'pant-vacia'); };
 
 Object.assign(SCREENS, {
   'gerencia':   {mod: 'adm', g: 'Gerencia', t: 'Resumen del negocio', s: 'Resumen', ic: 'chart', r: scrGerencia},
@@ -83,7 +90,7 @@ Object.assign(SCREENS, {
   'pant-vacia': {mod: 'home', libre: true, g: 'Inicio', t: 'Sin pantalla', s: 'Inicio', ic: 'map', r: () => `<div class="card"><div class="card-b">${emptyState('Tu puesto todavía no tiene pantalla', 'Pide al Gerente que te asigne una. Mientras tanto no hay nada que hacer aquí.')}</div></div>`}
 });
 Object.assign(PERM_DEF, {gerencia: '', 'g-audit': '', 'g-extras': '', 'g-solic': '', 'adm-resumen': 'adm:1'});
-ROLE_HOME.adm = 'adm-resumen'; ROLE_HOME.cobranza = 'v-deuda'; ROLE_HOME.empaque = 'em-tablero';
+ROLE_HOME.adm = 'adm-resumen'; ROLE_HOME.empaque = 'em-tablero'; ROLE_HOME.rrhh = 'rh-planta';
 S.perm = permInit();
 
 /* ---------- Gerencia: resumen del mes en 5 bloques (solo cifras reales; si no hay dato: «Sin datos») ---------- */
@@ -314,15 +321,7 @@ async function solResOk(el) {
 Object.assign(ACT, {solPedir: el => solPedirAbrir(el.dataset.a), solEnviar, solResp: el => solRespAbrir(el.dataset.id, el.dataset.a), solResOk, solVer: el => { SOL.ver = el.dataset.v; render(); }});
 window.solBtn = solBtn; window.solApi = solApi; window.solApi = solApi;
 
-/* ---------- Entrada: elegir puesto ---------- */
-function scrRoles7() {
-  const nombres = r => visibles(r).map(p => p.t).join(', ') || 'Ninguna por ahora';
-  return `${phFull('El Maná JL', '¿Quién eres?', 'Elige tu puesto. Verás solo la pantalla de tu trabajo.')}
-  <div class="pm-grid">${Object.keys(ROLES).filter(r => r !== 'cobranza').map(r => `<article class="card rolecard"><div class="card-b"><h2 style="font-size:17px">${ROLES[r]}</h2><p class="hint" style="margin:4px 0 8px">${ROLE_DESC[r]}</p><p class="hint" title="${esc(r === 'dueno' ? 'Gerencia y las otras 6 pantallas' : nombres(r))}"><b>Ve:</b> ${r === 'dueno' ? 'Gerencia y las otras 6 pantallas' : nombres(r)}</p>
-    <button type="button" class="btn pri" style="margin-top:12px" data-act="elegirRol" data-v="${r}">Entrar</button></div></article>`).join('')}</div>${NOTICE()}`;
-}
-scrPuertas = scrRoles7; scrElegirRol = scrRoles7;
-['elegirRol', 'setRol'].forEach(n => { const f = ACT[n]; if (f) ACT[n] = el => { S.pant = null; S.lastPant = {}; if (el.dataset && el.dataset.v === 'cobranza') el.dataset.v = 'adm'; f(el); }; });
+['elegirRol', 'setRol'].forEach(n => { const f = ACT[n]; if (f) ACT[n] = el => { S.pant = null; S.lastPant = {}; f(el); }; });
 
 /* ---------- Menú: una entrada por pantalla ---------- */
 function insignia(p) { const B = badges(); let n = 0, tono = ''; planas(p, S.rol).forEach(k => { if (B[k] && B[k][0]) { n += B[k][0]; tono = tono || B[k][1]; } }); return n ? `<span class="badge ${tono}">${n}</span>` : ''; }
@@ -342,7 +341,7 @@ homeRoute = function () {
   const act = vis.find(p => p.k === S.pant);
   if (act) return destino(act);
   if (S.rol === 'dueno') return destino(vis[0]);
-  const rh = ROLE_HOME[S.rol] === 'em-tablero' && vis.some(p => p.k === 'desp' && planas(p, S.rol).includes('em-tablero')) ? 'em-tablero' : prinDe(vis.find(p => p.k === 'prod') || {}).length && vis.some(p => p.k === 'prod' && S.rol !== 'dueno') ? destino(vis.find(p => p.k === 'prod')) : ROLE_HOME[S.rol], prim = vis.find(p => rh && planas(p, S.rol).includes(rh)) || vis[0];
+  const rh = ROLE_HOME[S.rol] === 'em-tablero' && vis.some(p => p.k === 'log' && planas(p, S.rol).includes('em-tablero')) ? 'em-tablero' : prinDe(vis.find(p => p.k === 'prod') || {}).length && vis.some(p => p.k === 'prod' && S.rol !== 'dueno') ? destino(vis.find(p => p.k === 'prod')) : ROLE_HOME[S.rol], prim = vis.find(p => rh && planas(p, S.rol).includes(rh)) || vis[0];
   return planas(prim, S.rol).includes(rh) ? rh : destino(prim);
 };
 
@@ -351,7 +350,7 @@ const IC_OP = {gerencia: 'chart', 'g-audit': 'shield', 'adm-resumen': 'chart', g
   cxp: 'receipt', caja: 'coins', prestamos: 'wallet', politicas: 'shield', 'v-cobro': 'coins', 'v-pagos': 'check', 'v-deuda': 'alert', 'c-pagos': 'receipt', 'e-plazos': 'calendar', 'v-reportes': 'chart', 'v-importar': 'file',
   'p-precios': 'tag', 'p-clientes': 'users', 'e-ajustes': 'sliders', 'p-estado': 'clip', 'p-bancos': 'wallet', 'fl-flota': 'truck', 'fl-desp': 'truck', 'rh-planta': 'users', 'rh-pagar': 'coins', 'rh-turnos': 'calendar', 'rh-params': 'sliders', turnos: 'calendar', personal: 'users', asistencia: 'calendar', nomina: 'coins', manual: 'book', roles: 'shield', datos: 'layers',
   planta: 'gauge', recepcion: 'truck', produccion: 'flame', empaque: 'pack', mermas: 'drop', cotejo: 'compare', 'alm-mp': 'potato', 'alm-proceso': 'layers', 'alm-pt': 'box', inventario: 'warehouse', catprod: 'users',
-  'v-pedido': 'cart', 'v-clientes': 'users', ventas: 'receipt', clientes: 'users', 'c-pedidos': 'clip', 'alm-logistica': 'tag', 'log-dev': 'tag', despachos: 'truck', 'e-entregas': 'box', 'c-ficha': 'users', 'cli-portal': 'users', 'pr-zonas': 'truck', 'em-tablero': 'truck', 'pr-turno': 'flame', 'pr-dif': 'alert', 'pr-mot': 'sliders', 'pr-aj': 'sliders', 'pr-proc': 'flame', 'pr-inv': 'box'};
+  'v-pedido': 'cart', 'v-clientes': 'users', ventas: 'receipt', clientes: 'users', 'c-pedidos': 'clip', 'alm-logistica': 'tag', 'log-dev': 'tag', despachos: 'truck', 'e-entregas': 'box', 'c-ficha': 'users', 'cli-portal': 'users', 'pr-zonas': 'truck', 'em-tablero': 'truck', 'lg-empacar': 'pack', 'pr-turno': 'flame', 'pr-dif': 'alert', 'pr-mot': 'sliders', 'pr-aj': 'sliders', 'pr-proc': 'flame', 'pr-inv': 'box'};
 const icGrid = n => '<svg class="ic" width="' + n + '" height="' + n + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/></svg>';
 const nombreGlobal = k => { for (const p of PANT) for (const [, ts] of p.grupos) { const x = ts.find(([c]) => c === k); if (x) return x[1]; } const s = SCREENS[k]; return s ? s.s || s.t : k; };
 const nombreOp = (p, k) => { const un = uniDe(p.k, k); if (un) return un.n; for (const [, ts] of tabsDe(p, S.rol).concat([['', extrasDe(S.rol).map(c => [c, nombreGlobal(c)])]])) { const x = ts.find(([c]) => c === k); if (x) return x[1]; } const s = SCREENS[k]; return s ? s.s || s.t : ''; };
@@ -412,7 +411,7 @@ async function extrasCargar() {
 }
 const candidatas = r => { const own = new Set(visibles(r).flatMap(p => planas(p, r))); const vis = new Set(); return PANT.filter(p => p.k !== 'ger').map(p => [p, tabsRaw(p, 'dueno').flatMap(([, ts]) => ts).filter(t => t[2] !== 'h').filter(([k]) => !own.has(k) && !vis.has(k) && vis.add(k))]).filter(([, l]) => l.length); };
 function scrExtras() {
-  const roles = Object.keys(ROLES).filter(r => r !== 'dueno' && r !== 'cobranza'); if (!EXT.sel || !roles.includes(EXT.sel)) EXT.sel = roles[0];
+  const roles = Object.keys(ROLES).filter(r => r !== 'dueno'); if (!EXT.sel || !roles.includes(EXT.sel)) EXT.sel = roles[0];
   const r = EXT.sel, marc = new Set((EXT.map || {})[r] || []);
   const grupos = candidatas(r).map(([p, l]) => '<fieldset class="pt-fs"><legend>' + p.t + '</legend><div class="pt-chk">' + l.map(([k, n]) => {
     const ok = lvlOf(r, k) >= 1;
@@ -461,7 +460,7 @@ const EXI = ['Existencias', true, [
   ['pr-proc', 'En proceso', ['alm-proceso'], [['pr-proc', 'Sistema nuevo · kilos por etapa'], ['alm-proceso', 'Sistema anterior · lotes abiertos']]],
   ['alm-pt', 'Terminado', ['pr-inv', 'pr-invv'], [['alm-pt', 'Sistema anterior · bultos y existencias'], ['pr-inv', 'Sistema nuevo · bultos cerrados por turno'], ['pr-invv', 'Sistema nuevo · bultos cerrados por turno']]],
   ['inventario', 'Movimientos y límites', ['inventario-adm']]]];
-['prod', 'adm'].forEach(pk => UNI.push({p: pk, n: EXI[0], siempre: true, maximo: EXI[1], m: EXI[2]}));
+['prod', 'adm', 'log'].forEach(pk => UNI.push({p: pk, n: EXI[0], siempre: true, maximo: EXI[1], m: EXI[2]}));
 /* Ventas: 4 opciones. «Vender» trae las existencias a la vista; «Cuentas» junta lo que se debe, lo cobrado y el registro de ventas. */
 UNI.push(
   {p: 'vent', n: 'Vender', siempre: true, m: [['v-pedido', 'Hacer una venta'], ['pr-invv', 'Existencias', ['alm-pt', 'pr-inv'], [['alm-pt', 'Sistema anterior · bultos y existencias'], ['pr-inv', 'Sistema nuevo · bultos cerrados por turno'], ['pr-invv', 'Sistema nuevo · bultos cerrados por turno']]]]},
@@ -483,13 +482,14 @@ UNI.push(
 /* Cobranza: Administración y Cobranza son la misma persona; todo lo de cobrar queda en una sola opción, «Quién debe» primero */
 UNI.push({p: 'adm', n: 'Cobranza', siempre: true, m: [['v-deuda', 'Quién debe'], ['v-cobro', 'Registrar cobro'], ['v-pagos', 'Cobros hechos'], ['c-pagos', 'Pagos del portal'], ['e-plazos', 'Plazos y reclamos'], ['v-reportes', 'Reportes y auditoría'], ['c-ficha', 'Enlace del portal']]});
 /* Personal: personas, asistencia, turnos, nómina y préstamos en una sola opción (cada pestaña conserva el permiso de su clave vieja) */
-UNI.push({p: 'adm', n: 'Personal', cab: k => (window.hpCabUni ? window.hpCabUni(k) : ''), m: [['rh-planta', 'En planta hoy'], ['personal', 'Personas'], ['asistencia', 'Asistencia'], ['rh-turnos', 'Turnos y bonos', ['turnos']], ['rh-params', 'Parámetros'],
-  ['rh-pagar', 'Pagar nómina'], Object.assign(['prestamos', 'Préstamos'], {cond: r => !TIENE_PAGOS(r)}), ['nomina', 'Nómina anterior (solo consulta)']]});
+UNI.push({p: 'nom', n: 'Personal', cab: k => (window.hpCabUni ? window.hpCabUni(k) : ''), m: [['rh-planta', 'En planta hoy'], ['personal', 'Personas'], ['asistencia', 'Asistencia'], ['rh-turnos', 'Turnos y bonos', ['turnos']], ['rh-params', 'Parámetros'],
+  ['rh-pagar', 'Pagar nómina'], ['prestamos', 'Préstamos'], ['nomina', 'Nómina anterior (solo consulta)']]},
+  {p: 'adm', n: 'Bonos', siempre: true, m: [['rh-turnos', 'Turnos y bonos', ['turnos']], ['rh-params', 'Parámetros']]});
 /* Vehículos: la lista nueva (alta y cambios en Administración, ubicación en Despacho) y la lista vieja de Equipo solo para consultar */
 UNI.push({p: 'adm', n: 'Vehículos', siempre: true, m: [['fl-flota', 'Vehículos'], ['catprod', 'Anterior (solo consulta)', [], () => '<span class="un-et">Sistema anterior</span>' + flotaAnteriorCard()]]},
-         {p: 'desp', n: 'Vehículos', siempre: true, m: [['fl-desp', 'Vehículos'], ['catprod', 'Anterior (solo consulta)', [], () => '<span class="un-et">Sistema anterior</span>' + flotaAnteriorCard()]]});
+         {p: 'log', n: 'Vehículos', siempre: true, m: [['fl-desp', 'Vehículos'], ['catprod', 'Anterior (solo consulta)', [], () => '<span class="un-et">Sistema anterior</span>' + flotaAnteriorCard()]]});
 /* una pestaña solo aparece si el puesto la veía antes en esa misma pantalla (o por Funciones extra) */
-const VE_PROC = ['dueno', 'jefeprod', 'produccion']; /* el servidor solo entrega «En proceso (kilos)» a estos puestos: a los demás ni se muestra ni se pide */
+const VE_PROC = ['dueno', 'produccion']; /* el servidor solo entrega «En proceso (kilos)» a estos puestos: a los demás ni se muestra ni se pide */
 const uniVe = c => { if (!can(c) || (c === 'pr-proc' && !VE_PROC.includes(S.rol))) return false; const p = pantActual(); return !p || planas(p, S.rol).includes(c) || extrasDe(S.rol).includes(c); };
 const uniActual = k => { const p = pantActual(); return p ? uniDe(p.k, k) || null : uniDe('', k) || null; };
 function uniBarra(k) {
@@ -509,7 +509,7 @@ uniEnvolver();
 
 /* ---------- Direcciones viejas que ya no son pantalla propia ---------- */
 const REDIR = {'log-dev': 'alm-logistica', 'cli-portal': 'c-ficha'};
-{ const _go = go; go = function (route) { if (S.rol === 'cobranza') { S.rol = 'adm'; try { savePref(); } catch (e) { /* sin preferencia */ } } if (REDIR[route]) { route = REDIR[route]; try { history.replaceState(null, '', '#' + route); } catch (e) { /* sin historial */ } } return _go(route); }; }
+{ const _go = go; go = function (route) { if (REDIR[route]) { route = REDIR[route]; try { history.replaceState(null, '', '#' + route); } catch (e) { /* sin historial */ } } return _go(route); }; }
 
 /* ---------- Botones fijos de arriba: Ayuda y Autorización ---------- */
 const veOpc = k => { const r = S.rol; return visibles(r).some(p => planas(p, r).includes(k)) || extrasDe(r).includes(k); };

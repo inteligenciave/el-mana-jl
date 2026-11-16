@@ -4,7 +4,8 @@ const PR = {z: null, tab: null, turno: null, proc: null, inv: null, aj: null, ca
 const prN = (n, d = 0) => Number(n || 0).toLocaleString('es-VE', {minimumFractionDigits: d, maximumFractionDigits: d});
 const prKg = n => prN(n, n % 1 ? 1 : 0) + ' kg';
 const prT = s => esc(s == null ? '' : s);
-const prMover = () => S.rol === 'dueno' || S.rol === 'jefeprod';
+const prMover = () => S.rol === 'dueno' || S.rol === 'empaque'; /* Logística arma y despacha */
+const prEmpacaOk = () => S.rol === 'dueno' || S.rol === 'empaque'; /* Logística anota lo empacado */
 const prTurnoOk = () => S.rol === 'dueno' || S.rol === 'produccion';
 async function prApi(m, ruta, cuerpo) {
   const r = await fetch('/api/p' + ruta, {method: m, headers: {'content-type': 'application/json', 'x-rol': S.rol}, body: cuerpo ? JSON.stringify(cuerpo) : undefined});
@@ -102,7 +103,7 @@ function scrTurno() {
     ${prHoy().length ? card('Faltan kilos por explicar', prPorHTML()) : ''}
     <div class="pr-grid">${etapas}</div>
     ${ok ? prRecepcionCard() : ''}
-    ${card('Empacado', `${ok ? `<div class="pr-mov"><select id="pr-prod" aria-label="Producto">${prods}</select><input type="text" inputmode="numeric" id="pr-b" placeholder="Bultos" aria-label="Bultos empacados"><button type="button" class="btn sm" data-act="prEmp">Anotar</button></div>` : ''}
+    ${card('Empacado', `<p class="hint">Lo anota Logística; aquí solo se ve lo que va.</p>
       ${t.bultos_por_producto.length ? `<ul class="pr-lin">${t.empaque.map(x => `<li><span>${prT(x.nombre)}</span><span class="muted">${prN(x.bultos)} bultos</span></li>`).join('')}</ul>` : '<p class="muted">Todavía no se anotó nada empacado.</p>'}`)}
     ${ok ? `<div class="btnrow"><button type="button" class="btn pri" data-act="prCerrarTurno">Cerrar turno</button>${prHoy().length ? '<span class="muted">Primero explica los kilos que faltan.</span>' : ''}</div>` : ''}`;
 }
@@ -171,7 +172,7 @@ function invUnicoCard() {
   return card('Existencias de producto terminado', table([{h: 'Producto', f: p => '<b>' + prT(p.nombre) + '</b> <span class="muted">' + prT(p.gramaje || '') + '</span>'}, {h: 'En bodega', r: 1, f: p => prN(p.existencias) + ' bultos'}, {h: 'Apartado por pedidos', r: 1, f: p => prN(p.apartado)}, {h: 'Disponible para vender', r: 1, f: p => '<b>' + prN(p.disponible) + '</b>'}], PR.inv.productos, {empty: 'Todavía no hay productos.'}), {sub: 'Un solo inventario: el mismo que ve Ventas y el portal'});
 }
 function empaqueUnicoCard() {
-  return card('Anotar lo empacado', '<p>Lo empacado se anota en el turno de Producción y, al cerrarlo, se suma al inventario único.</p>' + (prTurnoOk() ? '<div class="btnrow"><a class="btn pri" href="#pr-turno">Ir al turno</a></div>' : ''));
+  return card('Anotar lo empacado', '<p>Lo empacado lo anota Logística en «Empacar por turno» y, al cerrar el turno, se suma al inventario único.</p>' + (prEmpacaOk() ? '<div class="btnrow"><a class="btn pri" href="#lg-empacar">Ir a empacar</a></div>' : ''));
 }
 function despachoUnicoCard() {
   return prCargaCard() + card('Despachar un pedido', '<p>Los despachos se arman por zona desde los pedidos de Ventas. Al despachar se emite la nota o factura y baja el inventario único.</p>' + (prMover() ? '<div class="btnrow"><a class="btn pri" href="#pr-zonas">Ir a pedidos por zona</a></div>' : ''));
@@ -180,7 +181,7 @@ function despachoUnicoCard() {
 Object.assign(window, {invUnicoCard, empaqueUnicoCard, despachoUnicoCard});   // las usan las pantallas viejas de Empaque y Despachos
 
 /* ---------- Registro en la app ---------- */
-Object.assign(PERM_DEF, {'pr-zonas': 'jefeprod:2 produccion:1', 'pr-turno': 'produccion:2 jefeprod:1', 'pr-proc': 'produccion:1 jefeprod:1 empaque:1 recep:1', 'pr-inv': 'produccion:1 jefeprod:1 empaque:1', 'pr-invv': 'ventas:1 adm:1 cobranza:1', 'pr-aj': ''});
+Object.assign(PERM_DEF, {'pr-zonas': 'empaque:2', 'pr-turno': 'produccion:2 empaque:1', 'pr-proc': 'produccion:1', 'pr-inv': 'produccion:1 empaque:1', 'pr-invv': 'ventas:1 adm:1', 'pr-aj': ''});
 Object.assign(SCREENS, {
   'pr-zonas': {mod: 'prod', g: 'Zonas', t: 'Pedidos por zona', s: 'Pedidos por zona', ic: 'truck', r: scrZonas},
   'pr-turno': {mod: 'prod', g: 'Turno', t: 'Turno de producción', s: 'Turno', ic: 'flame', r: scrTurno},
@@ -190,7 +191,7 @@ Object.assign(SCREENS, {
   'pr-aj': {mod: 'prod', g: 'Zonas', t: 'Ajustes de zonas', s: 'Ajustes', ic: 'settings', r: scrAjustes}
 });
 S.perm = permInit();
-const PRACT_REQ = {prArmarOk: ['pr-zonas', 2], prDespacharOk: ['pr-zonas', 2], prAnularSal: ['pr-zonas', 2], prPausarOk: ['pr-zonas', 2], prReanudar: ['pr-zonas', 2], prAbrirTurno: ['pr-turno', 2], prMov: ['pr-turno', 2], prEmp: ['pr-turno', 2], prCerrarOk: ['pr-turno', 2], prConteoOk: ['pr-inv', 3], prAjGuardar: ['pr-aj', 3]};
+const PRACT_REQ = {prArmarOk: ['pr-zonas', 2], prDespacharOk: ['pr-zonas', 2], prAnularSal: ['pr-zonas', 2], prPausarOk: ['pr-zonas', 2], prReanudar: ['pr-zonas', 2], prAbrirTurno: ['pr-turno', 2], prMov: ['pr-turno', 2], prEmp: ['lg-empacar', 2], prCerrarOk: ['pr-turno', 2], prConteoOk: ['pr-inv', 3], prAjGuardar: ['pr-aj', 3]};
 Object.assign(ACT_REQ, PRACT_REQ); Object.assign(ACT_LBL, {prArmarOk: 'armar salidas', prDespacharOk: 'despachar', prAnularSal: 'anular salidas', prPausarOk: 'pausar zonas', prReanudar: 'reanudar zonas', prAbrirTurno: 'abrir el turno', prMov: 'anotar kilos del turno', prEmp: 'anotar lo empacado', prCerrarOk: 'cerrar el turno', prConteoOk: 'cargar el conteo inicial', prAjGuardar: 'guardar los ajustes'});
 Object.keys(PRACT_REQ).forEach(k => WRITE_ACTS.add(k));
 Object.assign(ACT, {
