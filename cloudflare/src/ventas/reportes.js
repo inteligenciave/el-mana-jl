@@ -8,7 +8,10 @@ const err = (status, message) => Object.assign(new Error(message), {status, mess
 const SIN_DETALLE = 'Sin detalle (importado del Excel)';
 const AGRUPAR = ['rubro', 'vendedor', 'zona', 'producto'];
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
-const rubroTxt = c => { const s = String(c || '').trim(); return !s ? 'Sin rubro' : s.charAt(0).toUpperCase() + s.slice(1).toLowerCase(); };
+/* Rubros: SOLO dos, Papas y Salsas. Se clasifica por la categoría del producto; si falta, por el nombre. */
+const RUBROS = ['Papas', 'Salsas'];
+const rubroTxt = (c, nombre) => { const s = String(c || '').trim().toUpperCase(); if (s === 'SALSAS' || s === 'SALSA') return 'Salsas'; if (s === 'PAPAS' || s === 'PAPA') return 'Papas';
+  return /salsa|mayonesa|mostaza|ketchup|catsup|aderezo/i.test(String(nombre || '')) ? 'Salsas' : 'Papas'; };
 const r3 = n => Math.round(n * 1000) / 1000;
 
 /* Reparte `total` centavos entre pesos (mayor resto): la suma da exactamente `total` */
@@ -39,24 +42,26 @@ export async function reporteVentas(db, {agrupar, desde, hasta, rol, vendedor}) 
   const docs = new Map();
   for (const f of filas) { let d = docs.get(f.id_documento); if (!d) docs.set(f.id_documento, d = {f, lineas: []}); if (f.lid != null) d.lineas.push(f); }
   const grupos = new Map(), docsTot = new Set();
-  let tot = {cents: 0, kilos: 0, bultos: 0};
+  let tot = {cents: 0, kilos: 0, bultos: 0}, sinClasif = 0;
+  if (agrupar === 'rubro') for (const r of RUBROS) grupos.set('n:' + r, {nombre: r, cents: 0, kilos: 0, bultos: 0, ped: new Set()});
   for (const [id, d] of docs) {
     const h = d.f, total = h.total_cents || 0;
     const vendedorN = h.vend || 'Sin vendedor', zona = D.zonaDeEstado(h.envio_zona || h.czona) || 'Sin zona';
     const items = d.lineas.length ? d.lineas : [{lnombre: SIN_DETALLE, id_producto: null, cantidad: 0, precio_base_cents: 0, categoria: null, sinDetalle: true}];
     const pesos = items.map(l => l.sinDetalle ? 1 : l.cantidad * (l.precio_base_cents || 0) || l.cantidad);
     const partes = repartir(total, pesos);
-    tot.cents += total; docsTot.add(id);
+    if (agrupar !== 'rubro' || d.lineas.length) { tot.cents += total; docsTot.add(id); } else sinClasif += total;
     items.forEach((l, i) => {
+      if (agrupar === 'rubro' && l.sinDetalle) return;
       const bultos = l.cantidad || 0, kb = l.lkg > 0 ? l.lkg : (l.pkg > 0 ? l.pkg : 0), kilos = bultos * kb;
-      const nombre = agrupar === 'vendedor' ? vendedorN : agrupar === 'zona' ? zona : agrupar === 'rubro' ? (l.sinDetalle ? SIN_DETALLE : rubroTxt(l.categoria)) : (l.sinDetalle ? SIN_DETALLE : String(l.lnombre || '').trim());
+      const nombre = agrupar === 'vendedor' ? vendedorN : agrupar === 'zona' ? zona : agrupar === 'rubro' ? rubroTxt(l.categoria, l.lnombre) : (l.sinDetalle ? SIN_DETALLE : String(l.lnombre || '').trim());
       const clave = agrupar === 'producto' && l.id_producto != null ? 'p' + l.id_producto : 'n:' + nombre;
       let g = grupos.get(clave); if (!g) grupos.set(clave, g = {nombre, cents: 0, kilos: 0, bultos: 0, ped: new Set()});
       g.cents += partes[i]; g.kilos += kilos; g.bultos += bultos; g.ped.add(id); tot.kilos += kilos; tot.bultos += bultos;
     });
   }
   const filasOut = [...grupos.values()].map(g => ({nombre: g.nombre, total: g.cents / 100, kilos: r3(g.kilos), bultos: g.bultos, pedidos: g.ped.size, pct: tot.cents ? Math.round(g.cents * 10000 / tot.cents) / 100 : 0}))
-    .sort((x, y) => y.total - x.total || x.nombre.localeCompare(y.nombre, 'es'));
+    .sort(agrupar === 'rubro' ? (x, y) => RUBROS.indexOf(x.nombre) - RUBROS.indexOf(y.nombre) : (x, y) => y.total - x.total || x.nombre.localeCompare(y.nombre, 'es'));
   return {agrupar, desde, hasta, filas: filasOut, totales: {total: tot.cents / 100, kilos: r3(tot.kilos), bultos: tot.bultos, pedidos: docsTot.size, pct: filasOut.length ? 100 : 0},
-    nota: 'Cuenta notas de entrega y facturas (sin anuladas) por su fecha de emisión, igual que el Registro de ventas. Las ventas importadas del Excel no traen detalle de productos: solo suman el monto.', solo_vendedor: soloVendedor};
+    nota: 'Cuenta notas de entrega y facturas (sin anuladas) por su fecha de emisión, igual que el Registro de ventas. Las ventas importadas del Excel no traen detalle de productos: solo suman el monto.' + (sinClasif ? ' Por rubro no incluye $ ' + (sinClasif / 100).toFixed(2) + ' de ventas importadas sin detalle, que no se pueden clasificar en Papas o Salsas.' : ''), solo_vendedor: soloVendedor};
 }
