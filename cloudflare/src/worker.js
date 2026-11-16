@@ -10,6 +10,7 @@ import {rutasBancos} from './bancos/rutas.js';
 import {rutasCompras} from './compras/rutas.js';
 import {rutasFlota} from './flota/rutas.js';
 import {rutasRrhh} from './rrhh/rutas.js';
+import * as Sentry from '@sentry/cloudflare';
 import {rutasSolicitudes} from './solicitudes/rutas.js';
 import {rutasPantallas} from './pantallas/rutas.js';
 import * as Tasa from './tasa/servicio.js';
@@ -221,7 +222,19 @@ async function sinDueno(r) {
   const h = new Headers(r.headers); h.delete('content-length');
   return new Response(t.replace(/Dueñ[oa]/g, 'Gerencia').replace(/dueñ[oa]/g, 'Gerente'), {status: r.status, statusText: r.statusText, headers: h});
 }
-export default {
+/* Sentry: solo errores. Privacidad: nómina, cédulas y cobranzas no deben salir; se borran peticiones, cabeceras, cookies, query strings y usuario. */
+function limpiarEvento(ev) {
+  if (ev.request) {
+    const u = String(ev.request.url || '').split('?')[0].split('#')[0];
+    ev.request = {method: ev.request.method, url: u};
+  }
+  delete ev.user;
+  if (ev.contexts) { delete ev.contexts.cloud_resource; }
+  delete ev.extra;
+  if (ev.breadcrumbs) ev.breadcrumbs = [];
+  return ev;
+}
+const handler = {
   /* Tarea diaria (wrangler.toml [triggers]): consulta la tasa oficial del BCV. Si falla, queda el aviso y se usa la última guardada. */
   async scheduled(event, env, ctx) { ctx.waitUntil(Tasa.consultar(env.DB)); },
   async fetch(req, env) {
@@ -240,7 +253,18 @@ export default {
     catch (e) {
       if (e && e.status) return err(e.status, e.message);
       console.error((e && e.stack) || e);
+      Sentry.captureException(e);
       return err(500, 'Error interno.');
     }
   }
 };
+
+export default Sentry.withSentry(
+  env => ({
+    dsn: env.SENTRY_DSN,
+    sendDefaultPii: false,
+    tracesSampleRate: 0,
+    beforeSend: limpiarEvento,
+  }),
+  handler
+);

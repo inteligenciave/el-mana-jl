@@ -1,0 +1,7 @@
+{
+  "name": "elmana-jl",
+  "private": true,
+  "dependencies": {
+    "@sentry/cloudflare": "^11.13.0"
+  }
+}

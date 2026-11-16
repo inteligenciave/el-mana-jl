@@ -1,6 +1,11 @@
 name = "elmana-jl"
 main = "src/worker.js"
 compatibility_date = "2026-10-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Sentry: el DSN es público (solo permite enviar eventos). No es secreto.
+[vars]
+SENTRY_DSN = "https://eb085fb65d0ce8296b8464664e9957f4@o4512013488029696.ingest.us.sentry.io/4512442557988864"
 
 # El frontend (public/index.html) y la API (/api/*) salen del mismo origen: no hay CORS abierto.
 [assets]
