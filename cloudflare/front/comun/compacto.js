@@ -16,7 +16,11 @@ const CFG = {
   nomina: [['Nómina', ['Nómina por área', 'Reglas de pago']], ['Recibos de pago', ['Recibos de pago']], ['Gastos fijos', ['Gastos fijos']], ['Gráficas', ['Gráficas', 'Comparar', 'Nómina pagada']], ['Exportar', ['Exportar']]],
   inventario: [['Existencia', ['Existencia frente', 'Inventario']], ['Límites y movimientos', ['Límites de', 'Movimientos de']], ['Solicitudes de compra', ['Solicitudes de compra']]],
   'inventario-adm': [['Existencia', ['Existencia frente', 'Inventario']], ['Límites y movimientos', ['Límites de', 'Movimientos de']], ['Solicitudes de compra', ['Solicitudes de compra']]],
-  asistencia: [['Asistencia', ['.as-grid']], ['Exportar', ['Exportar']]]
+  asistencia: [['Asistencia', ['.as-grid']], ['Exportar', ['Exportar']]],
+  planta: [['Hoy', ['.quick', 'Recepciones de ayer']], ['Gráficas', ['Gráficas', 'Comparar', 'Papa frita']], ['Exportar', ['Exportar']]],
+  cotejo: [['Lote por lote', ['Lote por lote']], ['Rendimiento', ['Rendimiento', 'Lectura']], ['Gráficas', ['Gráficas']]],
+  catprod: [['Quién recibe', ['Quién recibe']], ['Insumos', ['Insumos']], ['Salsas', ['Salsas']], ['Historial', ['Historial de cambios', 'Archivados']]],
+  'alm-logistica': [['Almacén', ['Sub-almacén', 'Registrar bulto']], ['Mermas', ['Mermas de esta etapa']], ['Gráficas', ['Gráficas', 'Bultos por estado']]]
 };
 const MEMO = {};
 const wide = () => window.innerWidth >= 1024;

@@ -261,3 +261,7 @@ select.v-falta{outline:2px solid var(--red,#C92121);outline-offset:1px}
 .v-cm-deb{font-size:18px;margin:0 0 4px}
 @media (max-width:640px){.v-dq-grid{grid-template-columns:minmax(0,1fr);max-height:none;overflow:visible}.v-dq-res{margin-left:0}.v-dq-bus{max-width:none}}
 .mbox:has(.v-cm){max-width:1000px}
+
+/* celular: los botones de pedido no deben ensanchar la pantalla */
+.v-p3-f .v-acc{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+.v-p3-f .v-acc .btn{min-width:0;white-space:normal;line-height:1.15;text-align:center}

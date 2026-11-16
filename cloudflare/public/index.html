@@ -5020,6 +5020,10 @@ select.v-falta{outline:2px solid var(--red,#C92121);outline-offset:1px}
 .v-cm-deb{font-size:18px;margin:0 0 4px}
 @media (max-width:640px){.v-dq-grid{grid-template-columns:minmax(0,1fr);max-height:none;overflow:visible}.v-dq-res{margin-left:0}.v-dq-bus{max-width:none}}
 .mbox:has(.v-cm){max-width:1000px}
+
+/* celular: los botones de pedido no deben ensanchar la pantalla */
+.v-p3-f .v-acc{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+.v-p3-f .v-acc .btn{min-width:0;white-space:normal;line-height:1.15;text-align:center}
 /* Entregas */
 /* Entregas con foto y plazos. Colores de marca (rojo #C92121, amarillo #F2B72E, blanco); verde y ámbar solo como semáforo. Reusa las clases de Ventas (.v-cat, .v-alerta, .v-stats, .v-pk-list, .v-dl). */
 .e-2c{display:grid;gap:14px;grid-template-columns:minmax(0,1fr);align-items:start}
@@ -11105,7 +11109,11 @@ const CFG = {
   nomina: [['Nómina', ['Nómina por área', 'Reglas de pago']], ['Recibos de pago', ['Recibos de pago']], ['Gastos fijos', ['Gastos fijos']], ['Gráficas', ['Gráficas', 'Comparar', 'Nómina pagada']], ['Exportar', ['Exportar']]],
   inventario: [['Existencia', ['Existencia frente', 'Inventario']], ['Límites y movimientos', ['Límites de', 'Movimientos de']], ['Solicitudes de compra', ['Solicitudes de compra']]],
   'inventario-adm': [['Existencia', ['Existencia frente', 'Inventario']], ['Límites y movimientos', ['Límites de', 'Movimientos de']], ['Solicitudes de compra', ['Solicitudes de compra']]],
-  asistencia: [['Asistencia', ['.as-grid']], ['Exportar', ['Exportar']]]
+  asistencia: [['Asistencia', ['.as-grid']], ['Exportar', ['Exportar']]],
+  planta: [['Hoy', ['.quick', 'Recepciones de ayer']], ['Gráficas', ['Gráficas', 'Comparar', 'Papa frita']], ['Exportar', ['Exportar']]],
+  cotejo: [['Lote por lote', ['Lote por lote']], ['Rendimiento', ['Rendimiento', 'Lectura']], ['Gráficas', ['Gráficas']]],
+  catprod: [['Quién recibe', ['Quién recibe']], ['Insumos', ['Insumos']], ['Salsas', ['Salsas']], ['Historial', ['Historial de cambios', 'Archivados']]],
+  'alm-logistica': [['Almacén', ['Sub-almacén', 'Registrar bulto']], ['Mermas', ['Mermas de esta etapa']], ['Gráficas', ['Gráficas', 'Bultos por estado']]]
 };
 const MEMO = {};
 const wide = () => window.innerWidth >= 1024;
