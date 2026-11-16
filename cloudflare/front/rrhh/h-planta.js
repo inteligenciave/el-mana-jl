@@ -1,6 +1,6 @@
 /* En planta hoy (marcas de entrada y salida) y Pagar nómina (por semana, quincena o mes, con préstamos y recibo).
    Todo el cálculo de montos lo hace el servidor (/api/h/*); aquí solo se muestra y se pide. Solo Gerencia y Recursos humanos. */
-const HP = {d: null, cargando: false, ts: 0, rol: null, busy: {}, q: '', nom: null, nomClave: '', nomCarg: false, nomTs: 0, per: 'quincena', ref: null, pm: null, error: ''};
+const HP = {j: null, d: null, cargando: false, ts: 0, rol: null, busy: {}, q: '', nom: null, nomClave: '', nomCarg: false, nomTs: 0, per: 'quincena', ref: null, pm: null, error: ''};
 const hpN = (n, d = 2) => Number(n || 0).toLocaleString('es-VE', {minimumFractionDigits: d, maximumFractionDigits: d});
 const hpBs = n => 'Bs ' + hpN(n);
 const hpHora = ts => { const d = new Date(ts - 4 * 3600e3), p = n => String(n).padStart(2, '0'); return p(d.getUTCHours()) + ':' + p(d.getUTCMinutes()); }; /* hora de Venezuela (UTC-4) */
@@ -12,12 +12,12 @@ async function hpApi(m, ruta, cuerpo) {
   if (!r.ok) { const e = new Error(j.error || 'No se pudo completar la operación.'); e.status = r.status; e.datos = j; throw e; }
   return j;
 }
-const hpReset = () => { if (HP.rol !== S.rol) { HP.rol = S.rol; HP.d = null; HP.nom = null; HP.nomClave = ''; HP.error = ''; HP.q = ''; } };
+const hpReset = () => { if (HP.rol !== S.rol) { HP.rol = S.rol; HP.d = null; HP.j = null; HP.nom = null; HP.nomClave = ''; HP.error = ''; HP.q = ''; } };
 
 /* ---------- En planta hoy ---------- */
 function hpCargar() {
   if (HP.cargando) return; HP.cargando = true;
-  hpApi('GET', '/hoy').then(d => { HP.d = d; HP.error = ''; }).catch(e => { console.error(e); HP.error = e.message; if (!HP.d) HP.d = {presentes: [], trabajadores: [], total: 0, por_turno: {}}; })
+  hpApi('GET', '/jornada').then(j => { HP.j = j; }).catch(() => { HP.j = null; }); hpApi('GET', '/hoy').then(d => { HP.d = d; HP.error = ''; }).catch(e => { console.error(e); HP.error = e.message; if (!HP.d) HP.d = {presentes: [], trabajadores: [], total: 0, por_turno: {}}; })
     .finally(() => { HP.cargando = false; HP.ts = Date.now(); if (S.route === 'rh-planta') render(); });
 }
 const hpPuedeMarcar = () => lvlOf(S.rol, 'rh-planta') >= 2;
@@ -30,8 +30,21 @@ function hpFilas() {
     const est = dentro ? `<span class="chip c-ok">Entró ${hpHora(t.entrada_ts)}</span>` : t.estado === 'salio' ? `<span class="chip c-n">Salió ${hpHora(t.salida_ts)}</span>` : '';
     const btn = !puede ? '' : dentro ? `<button type="button" class="btn hp-btn hp-sal" data-act="hpMarcar" data-id="${esc(t.empleado_id)}" data-t="salida">Marcó salida</button>`
       : `<button type="button" class="btn pri hp-btn" data-act="hpMarcar" data-id="${esc(t.empleado_id)}" data-t="entrada" ${sinTurno ? 'disabled' : ''}>Marcó entrada</button>`;
-    return `<div class="hp-fila"><div class="hp-q"><b>${esc(t.nombre)}</b><span>${esc(t.cargo || '—')} · ${esc(hpArea(t.area))}</span><span class="hp-chips">${t.turno ? `<span class="chip c-info">${esc(t.turno)}</span>` : '<span class="chip c-warn">Falta el turno en Personal</span>'}${est}</span></div>${btn}</div>`;
+    return `<div class="hp-fila"><div class="hp-q"><b>${esc(t.nombre)}</b><span>${esc(t.cargo || '—')} · ${esc(hpArea(t.area))}</span><span class="hp-chips">${t.turno ? `<span class="chip c-info">${esc(t.turno)}</span>` : '<span class="chip c-warn">Falta el turno en Personal</span>'}${est}${t.marco && t.estado !== 'fuera' ? `<span class="chip c-n">Marcó: ${esc(t.marco)}</span>` : ''}</span></div>${btn}</div>`;
   }).join('');
+}
+/* Tarjeta de cada turno del día: cuántos hay, si el turno está abierto, desde cuándo, y los botones de abrir y cerrar (solo quien puede marcar) */
+function hpTarjetaTurno(t, n) {
+  const x = HP.j && HP.j.turnos && HP.j.turnos[t], puede = hpPuedeMarcar() && HP.j && HP.j.puede, est = x ? x.estado : '';
+  const txt = !x ? '' : est === 'abierto' ? `Turno ${t} abierto desde ${hpHora(x.desde_ts)}${x.abrio ? ' · lo abrió ' + esc(x.abrio) : ''}` : est === 'cerrado' ? `Turno ${t} cerrado a las ${hpHora(x.hasta_ts)}` : `Turno ${t} sin abrir`;
+  const btn = !puede || !x ? '' : est === 'abierto' ? `<button type="button" class="btn hp-btn hp-sal" data-act="hpJornada" data-t="${t}" data-a="cerrar">Cerrar turno ${t}</button>` : `<button type="button" class="btn pri hp-btn" data-act="hpJornada" data-t="${t}" data-a="abrir">Abrir turno de hoy: ${t}</button>`;
+  return `<div class="hp-tn ${est === 'abierto' ? 'hp-abierto' : ''}"><b>${n}</b><span>${t}</span><small class="hp-est">${txt}</small>${btn}</div>`;
+}
+async function hpJornada(el) {
+  const t = el.dataset.t, a = el.dataset.a, k = 'j' + t; if (HP.busy[k]) return; HP.busy[k] = true;
+  try { HP.j = await hpApi('POST', '/jornada/' + a, {turno: t}); toast(a === 'abrir' ? 'Turno ' + t + ' abierto.' : 'Turno ' + t + ' cerrado.'); }
+  catch (e) { toast(esc(e.message), 'err'); }
+  finally { delete HP.busy[k]; render(); }
 }
 function scrPlanta() {
   hpReset();
@@ -41,8 +54,7 @@ function scrPlanta() {
   const d = HP.d, pt = d.por_turno || {}, turnos = ['Mañana', 'Tarde'];
   const col = t => { const L = (d.presentes || []).filter(p => p.turno === t);
     return `<section class="card hp-turno"><div class="card-b"><h2>${t} <span class="hp-n">${L.length}</span></h2>${L.length ? L.map(p => `<div class="hp-p"><div><b>${esc(p.nombre)}</b><span>${esc(p.cargo || '—')} · ${esc(hpArea(p.area))}</span></div><time>Entró ${hpHora(p.entrada_ts)}</time></div>`).join('') : '<p class="hp-vacio">Nadie en este turno</p>'}</div></section>`; };
-  return `<div class="hp-top">${turnos.map(t => `<div class="hp-tn"><b>${pt[t] || 0}</b><span>${t}</span></div>`).join('')}
-    <span class="muted hp-nota">Personal activo hoy: sin choferes ni administración</span>
+  return `<div class="hp-top">${turnos.map(t => hpTarjetaTurno(t, pt[t] || 0)).join('')}
     ${can('rh-pagar') ? '<a class="btn pri hp-pagar" href="#rh-pagar">Pagar nómina</a>' : ''}</div>
   ${HP.error ? `<p class="err" role="alert">${esc(HP.error)}</p>` : ''}
   <div class="hp-grid"><div class="hp-izq">${d.total ? turnos.map(col).join('') : card('', emptyState('Nadie ha marcado entrada hoy', 'Cuando alguien llegue, márcalo en la lista de al lado.'))}</div>
@@ -163,11 +175,11 @@ Object.assign(SCREENS, {
 });
 ROLE_HOME.rrhh = 'rh-planta';
 S.perm = permInit();
-Object.assign(ACT_REQ, {hpMarcar: ['rh-planta', 2], hpPagoAbrir: ['rh-pagar', 2], hpPagoGuardar: ['rh-pagar', 2]});
-Object.assign(ACT_LBL, {hpMarcar: 'marcar entradas y salidas', hpPagoAbrir: 'registrar pagos de nómina', hpPagoGuardar: 'registrar pagos de nómina'});
-['hpMarcar', 'hpPagoGuardar'].forEach(k => WRITE_ACTS.add(k));
+Object.assign(ACT_REQ, {hpJornada: ['rh-planta', 2], hpMarcar: ['rh-planta', 2], hpPagoAbrir: ['rh-pagar', 2], hpPagoGuardar: ['rh-pagar', 2]});
+Object.assign(ACT_LBL, {hpJornada: 'abrir y cerrar el turno del día', hpMarcar: 'marcar entradas y salidas', hpPagoAbrir: 'registrar pagos de nómina', hpPagoGuardar: 'registrar pagos de nómina'});
+['hpJornada', 'hpMarcar', 'hpPagoGuardar'].forEach(k => WRITE_ACTS.add(k));
 Object.assign(ACT, {
-  hpMarcar: el => hpMarcar(el), hpPagoAbrir: el => hpPagoAbrir(el.dataset.id), hpPagoGuardar: () => hpPagoGuardar(),
+  hpJornada: el => hpJornada(el), hpMarcar: el => hpMarcar(el), hpPagoAbrir: el => hpPagoAbrir(el.dataset.id), hpPagoGuardar: () => hpPagoGuardar(),
   hpPer: el => { HP.per = el.dataset.v; HP.ref = null; HP.error = ''; render(); }, hpMover: el => { HP.ref = el.dataset.r || null; HP.error = ''; render(); },
   hpRecibo: async el => { try { hpRecibo(await hpApi('GET', '/pagos/' + el.dataset.pid)); } catch (e) { toast(esc(e.message), 'err'); } }
 });

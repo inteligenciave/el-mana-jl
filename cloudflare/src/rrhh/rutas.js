@@ -26,6 +26,9 @@ export async function rutasRrhh(req, env, url) {
   try {
     if (m === 'GET' && p === '/hoy') return json(await S.hoy(ctx));
     if (m === 'GET' && p === '/conteo') return json(await S.conteo(ctx));
+    if (m === 'GET' && p === '/jornada') return json(await S.jornada(ctx));
+    if (m === 'POST' && p === '/jornada/abrir') return json(await S.abrirJornada(ctx, await cuerpo(req)), 201);
+    if (m === 'POST' && p === '/jornada/cerrar') return json(await S.cerrarJornada(ctx, await cuerpo(req)));
     if (m === 'GET' && p === '/horas') return json(await S.horasPeriodo(ctx, url.searchParams.get('desde'), url.searchParams.get('hasta')));
     let r;
     if (m === 'GET' && p === '/turno') return json(await TS.turno(ctx, url.searchParams.get('fecha') || null, url.searchParams.get('turno') || null));

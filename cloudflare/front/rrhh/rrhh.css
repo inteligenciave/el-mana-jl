@@ -108,3 +108,10 @@
 .tn-bono>*{min-width:0}.tn-panel,.tn-panel .card,.tn-panel .tw{min-width:0;max-width:100%}
 @media (max-width:559px){.tn-bono{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.tn-bono>.stat{grid-column:1 / -1;width:auto}.tn-bono>.tn-ap{grid-column:1 / -1}.tn-t{min-width:0}.tn-hor{flex:1 1 100%}.tn-tab{min-width:0!important;width:100%}.tn-tab thead{display:none}.tn-tab,.tn-tab tbody,.tn-tab tfoot,.tn-tab tr,.tn-tab td{display:block;width:100%;min-width:0;box-sizing:border-box}.tn-tab tr{border-top:1px solid #E3E1E1;padding:6px 0}.tn-tab td{display:flex;justify-content:space-between;align-items:baseline;gap:10px;text-align:right;border:0;padding:2px 4px}.tn-tab td::before{content:attr(data-l);font-weight:600;color:#5E5E5E;text-align:left;flex:0 0 auto}.tn-tab td:first-child{text-align:left;justify-content:flex-start}.tn-tab td:first-child::before,.tn-tab td:not([data-l])::before{content:none}.tn-tab tr.tsum td:empty{display:none}.tn-in{width:120px}}
 .tn-bono>.stat{flex:0 0 auto;min-width:230px;width:auto;margin:0}
+
+/* Turno del día abierto por Recursos humanos */
+.hp-tn{align-items:flex-start;gap:2px}
+.hp-tn .hp-est{font-size:12px;color:#5E5E5E;max-width:230px}
+.hp-tn .hp-btn{margin-top:4px;min-height:34px;padding:4px 12px;font-size:13px}
+.hp-tn.hp-abierto{border-left-color:#1E8E3E}
+.hp-nota{align-self:center;font-size:12px}

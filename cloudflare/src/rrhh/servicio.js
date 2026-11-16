@@ -20,7 +20,7 @@ export async function hoy(ctx) {
   const ult = new Map(); for (const m of marcas) ult.set(m.empleado_id, m);
   const trabajadores = emps.filter(D.activo).sort((a, b) => String(a.n || '').localeCompare(String(b.n || ''), 'es')).map(e => {
     const m = ult.get(e.id);
-    return {...persona(e), turno: D.turnoValido(e.turno) ? e.turno : null, estado: !m ? 'fuera' : m.salida_ts ? 'salio' : 'dentro', entrada_ts: m ? m.entrada_ts : null, salida_ts: m ? m.salida_ts : null};
+    return {...persona(e), turno: D.turnoValido(e.turno) ? e.turno : null, estado: !m ? 'fuera' : m.salida_ts ? 'salio' : 'dentro', marco: m && m.quien ? nomRol(m.quien) : '', entrada_ts: m ? m.entrada_ts : null, salida_ts: m ? m.salida_ts : null};
   });
   return {fecha, ...cuenta(presentes), presentes, trabajadores};
 }
@@ -63,4 +63,30 @@ export async function horasPeriodo(ctx, desde, hasta) {
   const dias = {};
   for (const m of await R.entre(ctx.db, desde, hasta)) { const d = (dias[m.empleado_id] ||= {}); d[m.fecha] = (d[m.fecha] || 0) + D.horasDe(m); }
   return {desde, hasta, dias};
+}
+
+/* ---------- Turno de trabajo del día (Mañana / Tarde): lo abren y cierran Gerencia y Recursos humanos ---------- */
+const turnoDe = (d, t) => { const x = (d.turnos || {})[t]; return x ? {estado: x.cerrado_ts ? 'cerrado' : 'abierto', desde_ts: x.abierto_ts, hasta_ts: x.cerrado_ts || null, abrio: x.abrio || '', cerro: x.cerro || ''} : {estado: 'sin_abrir', desde_ts: null, hasta_ts: null, abrio: '', cerro: ''}; };
+export async function jornada(ctx) {
+  if (!D.puedeVer(ctx.rol)) throw err(403, D.MSG_SIN_VER);
+  const fecha = hoyVE(), d = await R.jornadaDoc(ctx.db, fecha);
+  return {fecha, puede: D.puedeMarcar(ctx.rol), turnos: Object.fromEntries(D.TURNOS.map(t => [t, turnoDe(d, t)]))};
+}
+export async function abrirJornada(ctx, b) {
+  exigirMarca(ctx);
+  const t = String((b && b.turno) || ''); if (!D.turnoValido(t)) throw err(400, 'Elige el turno: Mañana o Tarde.');
+  const fecha = hoyVE(), d = await R.jornadaDoc(ctx.db, fecha), x = turnoDe(d, t);
+  if (x.estado === 'abierto') throw err(409, 'El turno ' + t + ' ya está abierto.');
+  const ts = Date.now(); d.fecha = fecha; d.turnos = {...(d.turnos || {}), [t]: {abierto_ts: ts, abrio: nomRol(ctx.rol)}};
+  await R.lote(ctx.db, [R.stJornada(ctx.db, fecha, d), ...R.stAuditoria(ctx.db, {rol: ctx.rol, rolTxt: nomRol(ctx.rol), ent: 'turno de trabajo', ref: fecha + ' ' + t, nom: 'Turno ' + t, accion: 'abrió el turno ' + t, detalle: {fecha, turno: t}})]);
+  return jornada(ctx);
+}
+export async function cerrarJornada(ctx, b) {
+  exigirMarca(ctx);
+  const t = String((b && b.turno) || ''); if (!D.turnoValido(t)) throw err(400, 'Elige el turno: Mañana o Tarde.');
+  const fecha = hoyVE(), d = await R.jornadaDoc(ctx.db, fecha), x = turnoDe(d, t);
+  if (x.estado !== 'abierto') throw err(409, 'El turno ' + t + ' no está abierto.');
+  d.turnos[t] = {...d.turnos[t], cerrado_ts: Date.now(), cerro: nomRol(ctx.rol)};
+  await R.lote(ctx.db, [R.stJornada(ctx.db, fecha, d), ...R.stAuditoria(ctx.db, {rol: ctx.rol, rolTxt: nomRol(ctx.rol), ent: 'turno de trabajo', ref: fecha + ' ' + t, nom: 'Turno ' + t, accion: 'cerró el turno ' + t, detalle: {fecha, turno: t}})]);
+  return jornada(ctx);
 }

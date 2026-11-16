@@ -47,3 +47,7 @@ export const stBonoBorrar = (db, id) => [bind(db, 'DELETE FROM bonos_turno_emp W
 export const bonosEntre = (db, desde, hasta) => VR.all(db, 'SELECT empleado_id, SUM(monto) AS monto FROM bonos_turno_emp WHERE fecha >= ?1 AND fecha <= ?2 GROUP BY empleado_id', [desde, hasta]);
 export const asisDoc = async (db, id) => { const r = await VR.one(db, "SELECT data FROM docs WHERE col = 'asistencia' AND id = ?1", [id]); try { return r ? JSON.parse(r.data) : null; } catch (e) { return null; } };
 export const stAsistencia = (db, id, doc) => bind(db, "INSERT INTO docs (col, id, data, updated) VALUES ('asistencia', ?1, ?2, ?3) ON CONFLICT(col, id) DO UPDATE SET data = ?2, updated = ?3", [id, JSON.stringify({...doc, id}), Date.now()]);
+
+/* Turno de trabajo del día (Mañana/Tarde) abierto por Recursos humanos: un documento por fecha en docs «jornada_rrhh». Es distinto del turno de producción (kilos). */
+export const jornadaDoc = async (db, fecha) => { const r = await VR.one(db, "SELECT data FROM docs WHERE col = 'jornada_rrhh' AND id = ?1", [fecha]); try { return r ? JSON.parse(r.data) : {fecha, turnos: {}}; } catch (e) { return {fecha, turnos: {}}; } };
+export const stJornada = (db, fecha, doc) => bind(db, "INSERT INTO docs (col, id, data, updated) VALUES ('jornada_rrhh', ?1, ?2, ?3) ON CONFLICT(col, id) DO UPDATE SET data = ?2, updated = ?3", [fecha, JSON.stringify(doc), Date.now()]);
