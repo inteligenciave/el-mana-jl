@@ -265,3 +265,17 @@ select.v-falta{outline:2px solid var(--red,#C92121);outline-offset:1px}
 /* celular: los botones de pedido no deben ensanchar la pantalla */
 .v-p3-f .v-acc{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
 .v-p3-f .v-acc .btn{min-width:0;white-space:normal;line-height:1.15;text-align:center}
+/* Reportes de ventas (Registro de ventas) */
+.rv-per{display:grid;gap:10px;margin:0 0 10px}
+.rv-rapidos{display:flex;flex-wrap:wrap;gap:6px}
+.rv-rap{min-height:40px}
+.rv-rap[aria-pressed="true"]{background:var(--pri);border-color:var(--pri);color:var(--pri-ink)}
+.rv-fechas{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;max-width:420px}
+.rv-fecha{min-height:44px;width:100%;box-sizing:border-box}
+.rv-barra{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;margin:0 0 10px}
+.rv-bus{flex:1 1 220px;min-width:0}
+.rv-q{width:100%;min-height:44px;box-sizing:border-box}
+.rv-quien{max-width:320px;margin:0 0 10px}
+.rv-tabla{max-height:46vh;overflow:auto}
+@media (max-width:640px){.rv-barra .btnrow{width:100%}.rv-barra .btnrow .btn{flex:1 1 140px}}
+.rv-periodo{margin:0 0 8px;font-size:1.02rem}

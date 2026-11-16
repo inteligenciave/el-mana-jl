@@ -157,15 +157,12 @@ function scrRegVentas() {
     /* una nota que ya se facturó cuenta una sola vez (como factura); las anuladas no cuentan */
     const docs = R.docs.filter(d => !/^ANULAD/.test(d.estado || '') && d.estado !== 'FACTURADO_DESDE_NE');
     const hoy = vHoy(), lunes = vLunes(hoy), suma = f => docs.filter(f).reduce((a, d) => a + d.total_cents, 0) / 100;
-    const por = {}; docs.forEach(d => { const k = d.vendedor_nombre || 'Sin vendedor', o = por[k] ||= {n: k, dia: 0, sem: 0, mes: 0, cli: new Set()}; const u = d.total_cents / 100; o.mes += u; o.cli.add(d.id_cliente); if (d.fecha_emision >= lunes) o.sem += u; if (d.fecha_emision === hoy) o.dia += u; });
-    const vend = Object.values(por).sort((a, b) => b.mes - a.mes).slice(0, 5);
-    const ult = docs.slice(0, 5), deu = R.deuda || {clientes: [], total: 0};
+    const ult = docs.slice(0, 5);
     const peds = (R.peds || []).slice(0, 8);
     return `${vph('Ventas y liquidación', 'Registro de ventas', 'Lo vendido en los últimos 30 días, con los datos reales del sistema.')}
     ${R.err ? `<p class="v-alerta">${ic('alert', 16)}No se pudo leer todo. Vuelve a entrar en un momento.</p>` : ''}
-    <div class="v-stats">${stat('Ventas de hoy', vusd(suma(d => d.fecha_emision === hoy)), 'Total del día')}${stat('Ventas de la semana', vusd(suma(d => d.fecha_emision >= lunes)), 'Desde el lunes')}${stat('Ventas de 30 días', vusd(suma(() => true)), docs.length + (docs.length === 1 ? ' venta' : ' ventas'))}${stat('Por cobrar', vusd(deu.total || 0), (deu.clientes || []).length + ' cliente(s)')}</div>
-    <div class="v-2c">${card('Por vendedor', table([{h: 'Vendedor', f: v => `<b>${vtxt(v.n)}</b>`}, {h: 'Hoy', r: 1, f: v => vusd(v.dia)}, {h: 'Semana', r: 1, f: v => vusd(v.sem)}, {h: '30 días', r: 1, f: v => vusd(v.mes)}, {h: 'Clientes', r: 1, f: v => v.cli.size}], vend, {empty: 'Todavía no hay ventas en estos días.'}))}
-    ${card('Últimas ventas', table([{h: 'Fecha', f: d => vfecha(d.fecha_emision)}, {h: 'Documento', f: d => `<button type="button" class="btn sm ghost" data-act="vVerDoc" data-id="${d.id_documento}">${vtxt(d.numero_externo || d.nro_control_interno)}</button>`}, {h: 'Cliente', f: d => vtxt(d.razon_social)}, {h: 'Total', r: 1, f: d => `<b>${vusd(d.total_cents / 100)}</b>`}], ult, {empty: 'Todavía no hay ventas en estos días.'}))}</div>
+    ${rvPanel()}
+    <div class="v-2c">${card('Últimas ventas', table([{h: 'Fecha', f: d => vfecha(d.fecha_emision)}, {h: 'Documento', f: d => `<button type="button" class="btn sm ghost" data-act="vVerDoc" data-id="${d.id_documento}">${vtxt(d.numero_externo || d.nro_control_interno)}</button>`}, {h: 'Cliente', f: d => vtxt(d.razon_social)}, {h: 'Total', r: 1, f: d => `<b>${vusd(d.total_cents / 100)}</b>`}], ult, {empty: 'Todavía no hay ventas en estos días.'}))}</div>
     ${card('Pedidos recientes (PDF al vender)', table([{h: 'Pedido', f: p => `<b>${vtxt(p.nro)}</b>`}, {h: 'Fecha', f: p => vfecha(p.fecha)}, {h: 'Cliente', f: p => vtxt(p.razon_social)}, {h: 'Bultos', r: 1, f: p => N0.format(p.bultos)}, {h: 'Estado', f: p => vtxt(p.estado.toLowerCase())}, {h: '', f: p => `<button type="button" class="btn sm acc" data-act="vPdfPed" data-id="${p.id_pedido}">${ic('download', 14)}PDF de la ${p.tipo === 'FACTURA' ? 'factura' : 'nota'}</button>`}], peds, {empty: 'Todavía no hay pedidos.'}))}`;
   });
 }

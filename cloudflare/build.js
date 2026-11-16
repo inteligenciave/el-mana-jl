@@ -16,10 +16,10 @@ function comoModulo(archivo, nombre) {
   if (/^\s*import\s/m.test(t)) throw new Error(archivo + ' no puede importar nada para ir en la página');
   return 'const ' + nombre + ' = (() => {\n' + t + '\nreturn {' + nombres.join(', ') + '};\n})();\n';
 }
-const FRONT = ['v-core.js', 'v-docs.js', 'v-pedido.js', 'v-cobro.js', 'v-listas.js', 'v-admin.js', 'v-importar.js', 'v-registro.js'];
+const FRONT = ['v-core.js', 'v-docs.js', 'v-pedido.js', 'v-cobro.js', 'v-listas.js', 'v-admin.js', 'v-importar.js', 'v-rep-ventas.js', 'v-registro.js'];
 const ventasJS = '(function () {\n"use strict";\n' + comoModulo('src/ventas/dominio.js', 'VD') + comoModulo('src/ventas/permisos.js', 'VP') + FRONT.map(f => '/* ---- ' + f + ' ---- */\n' + leer('front/ventas/' + f)).join('\n') + '\n})();';
 const ventasCSS = leer('front/ventas/ventas.css');
-const pdfJS = leer('front/comun/pdf.js'); /* generador de PDF (sin librerías): nota de entrega y factura */
+const pdfJS = leer('front/comun/pdf.js') + ';' + leer('front/comun/xlsx.js'); /* generador de PDF (sin librerías): nota de entrega y factura */
 if (/<\/script/i.test(pdfJS)) throw new Error('pdf.js contiene </script>');
 const buscarJS = leer('front/comun/buscar.js'), buscarCSS = leer('front/comun/buscar.css'); /* buscador común de todo el sistema */
 if (/<\/script/i.test(leer('front/comun/borrador.js'))) throw new Error('borrador.js contiene </script>');

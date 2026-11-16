@@ -132,7 +132,7 @@ function gBloque(titulo, cifras, enlace, extra, k, sec, cls) {
     '<div class="gr-body"><div class="gr-l">' + cifras.map(c => '<div class="gr-c"><b class="' + (gSinCifra(c.v) ? 'muted' : '') + '">' + c.v + '</b><span>' + c.l + '</span></div>').join('') +
     (sec && sec.length ? '<div class="gr-sec">' + sec.map(x => '<p><span>' + x[0] + '</span><b>' + x[1] + '</b></p>').join('') + '</div>' : '') + '</div>' +
     (extra ? '<div class="gr-r">' + extra + '</div>' : '') + '</div>' +
-    (gVa(enlace) ? '<a class="btn pri gr-btn" href="#' + enlace + '">Ver detalle</a>' : '') + '</div></article>';
+    (gVa(enlace) ? '<a class="btn pri gr-btn" href="#' + enlace + '"' + (enlace === 'ventas' ? ' data-rv="mes"' : '') + '>Ver detalle</a>' : '') + '</div></article>';
 }
 function gBarras(mm, M) {
   const g = {}; mm.filter(m => gEnMes(m.fecha, M) && m.estado !== 'rech').forEach(m => { const n = String(m.prod || m.causa || m.etapa || 'Otros').trim() || 'Otros'; g[n] = (g[n] || 0) + (+m.usd || 0); });
@@ -223,7 +223,7 @@ function scrGerencia(modo) {
   return `<h1 class="sr">${adm ? 'Administración' : 'Gerencia'}</h1>
   <div class="gr-top"><p class="gr-per">Resumen del mes: ${M.t}</p>${gPlanta()}</div>
   <div class="gr-grid${adm ? ' gr-adm' : ''}">
-    ${gBloque('Ventas', [{v: vv != null ? gUsd(vv) : (cargando ? '…' : SD), l: 'Total vendido del mes'}], adm ? gPrim(['ventas', 'v-pagos', 'v-pedido']) : 'v-pedido', adm ? '' : gMedidor('ventas', vv, gUsd), 'ventas', [['Por cobrar', GER.deuda ? gUsd(GER.deuda.total || 0) : (cargando ? '…' : SD)]])}
+    ${gBloque('Ventas', [{v: vv != null ? gUsd(vv) : (cargando ? '…' : SD), l: 'Total vendido del mes'}], 'ventas', adm ? '' : gMedidor('ventas', vv, gUsd), 'ventas', [['Por cobrar', GER.deuda ? gUsd(GER.deuda.total || 0) : (cargando ? '…' : SD)]])}
     ${gBloque('Administración', [{v: cv != null ? gUsd(cv) : SD, l: 'Compras del mes'}], 'analisis', adm ? '' : gMedidor('compras', cv, gUsd), 'compras', [['Por pagar a proveedores', u(porPagar)], ['Caja chica', u(caja)]])}
     ${adm ? '' : (() => { const E = gEquilibrio(vv); return gBloque('Punto de equilibrio', [{v: E.v, l: 'Ventas mínimas del mes'}], 'gestion', E.pe ? '<div class="gr-pb" role="img" aria-label="Avance ' + N0.format(E.pct) + ' %"><u style="width:' + Math.min(100, E.pct) + '%"></u></div><p class="gr-meta">Llevas ' + gUsd(E.vv) + ' de ' + gUsd(E.pe) + ' (' + N0.format(E.pct) + ' %)</p>' : '<p class="gr-meta">' + E.m + '</p>', null, null, 'gr-pe'); })()}
     ${gBloque('Producción', adm ? [{v: kilos != null ? nf(kilos) + ' kg' : (cargando ? '…' : SD), l: 'Kilos procesados del mes'}] : [{v: SD, l: 'Nómina de hoy'}], 'mermas', '<div class="gr-pm"><p class="gr-meta">Mermas del mes</p>' + (mm ? gBarras(mm, M) : '<p class="gr-meta">' + SD + '</p>') + '</div>', null, adm ? null : [['Kilos procesados', kilos != null ? nf(kilos) + ' kg' : SD], ['Bultos empacados', SD]], 'gr-prod')}
@@ -521,8 +521,8 @@ renderTop = function () {
   if (!(S.entry === 'in' && Boot.state === 'ready')) return;
   const w = document.querySelector('#top .who'); if (!w) return;
   const dueno = S.rol === 'dueno', pend = window.ppPend ? window.ppPend() : 0;
-  w.insertAdjacentHTML('beforeend', '<span class="top-fijos"><button type="button" class="btn sm ghost" data-act="ayuda">' + ic('book', 16) + '<span>Ayuda</span>' + (pend ? '<span class="badge w" title="Pasos por hacer">' + pend + '</span>' : '') + '</button>' +
-    (dueno ? '<a class="btn sm ghost" href="#g-solic">' + ic('shield', 16) + '<span>Solicitudes</span></a>' : '<button type="button" class="btn sm ghost" data-act="autorizar">' + ic('shield', 16) + '<span>Autorización</span></button>') + '</span>');
+  w.insertAdjacentHTML('beforeend', '<span class="top-fijos"><button type="button" class="btn sm ghost" data-act="ayuda" aria-label="Ayuda" title="Ayuda">' + ic('book', 16) + '<span>Ayuda</span>' + (pend ? '<span class="badge w" title="Pasos por hacer">' + pend + '</span>' : '') + '</button>' +
+    (dueno ? '<a class="btn sm ghost" href="#g-solic" aria-label="Solicitudes" title="Solicitudes">' + ic('shield', 16) + '<span>Solicitudes</span></a>' : '<button type="button" class="btn sm ghost" data-act="autorizar" aria-label="Autorización" title="Autorización">' + ic('shield', 16) + '<span>Autorización</span></button>') + '</span>');
 };
 Object.assign(ACT, {
   irA: el => { closeModal(); location.hash = '#' + el.dataset.r; },

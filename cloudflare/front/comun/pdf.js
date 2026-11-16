@@ -3,7 +3,7 @@
    Fuentes estándar Helvetica (vienen en todo lector de PDF); logo JPEG incrustado. El texto queda legible/extraíble. */
 const ElManaPDF = (() => {
   const RED = [0.788, 0.129, 0.129], YEL = [0.949, 0.718, 0.18], INK = [0.1, 0.1, 0.1], GRY = [0.42, 0.42, 0.42], LINE = [0.8, 0.8, 0.8], SOFT = [0.97, 0.95, 0.9];
-  const W = 595.28, H = 841.89, M = 40;
+  let W = 595.28, H = 841.89; const M = 40; /* W y H cambian solo mientras se arma un reporte horizontal */
   /* Anchos Helvetica / Helvetica-Bold (AFM) de los caracteres 32..126, en milésimas de punto */
   const WR = [278,278,355,556,556,889,667,191,333,333,389,584,278,333,278,278,556,556,556,556,556,556,556,556,556,556,278,278,584,584,584,556,1015,667,667,722,722,667,611,778,722,278,500,667,556,833,722,778,667,778,722,667,611,722,667,944,667,667,611,278,278,278,469,556,333,556,556,500,556,556,278,556,556,222,222,500,222,833,556,556,556,556,333,500,278,556,500,722,500,500,500,334,260,334,584];
   const WB = [278,333,474,556,556,889,722,238,333,333,389,584,278,333,278,278,556,556,556,556,556,556,556,556,556,556,333,333,584,584,584,611,975,722,722,722,722,667,611,778,722,278,556,722,611,833,722,778,667,778,722,667,611,722,667,944,667,667,611,333,278,333,584,556,333,556,611,556,611,556,333,611,611,278,278,556,278,889,611,611,611,611,389,556,333,611,556,778,556,556,500,389,280,389,584];
@@ -178,5 +178,44 @@ const ElManaPDF = (() => {
   async function descargar(d, logoSrc) {
     const bytes = generar(d, await cargarLogo(logoSrc)); bajar(bytes, d.archivo || 'Documento.pdf'); return bytes;
   }
-  return {generar, descargar, cargarLogo};
+
+  /* ---- reporte en tabla (ventas por rubro, vendedor, zona o producto): logo, título, periodo, encabezado repetido, totales y paginado.
+     d = {titulo, subtitulo, cols: [{h, al: 'l'|'r', w: peso relativo}], filas: [[texto,…]], totales: [texto,…] | null, nota, archivo}.
+     Más de 5 columnas → hoja horizontal. */
+  function generarTabla(d, logo) {
+    const horiz = d.cols.length > 5, W0 = W, H0 = H;
+    if (horiz) { W = 841.89; H = 595.28; }
+    try {
+      const L = Lienzo(), E = d.empresa || {}, anchoT = W - 2 * M, suma = d.cols.reduce((a, c) => a + (c.w || 1), 0);
+      let xa = M; const cols = d.cols.map(c => { const w = anchoT * (c.w || 1) / suma, o = {...c, x0: xa, w}; xa += w; o.x = c.al === 'r' ? o.x0 + w - 6 : o.x0 + 6; return o; });
+      const franja = () => { L.rect(0, 0, W, 9, RED); L.rect(0, 9, W, 3.5, YEL); };
+      const cab = () => { L.rect(M, y, anchoT, 20, RED); for (const c of cols) L.texto(c.h, c.x, y + 13.5, 9, {b: 1, al: c.al === 'r' ? 'r' : 'l', color: [1, 1, 1]}); y += 20; };
+      let y = 0;
+      L.nueva(); franja();
+      let x0 = M; if (logo) { L.imagen(M, 26, 46, 46 * logo.h / logo.w); x0 = M + 56; }
+      L.texto(E.razon || 'El Maná JL', x0, 44, 14, {b: 1, color: RED});
+      L.texto(d.titulo, x0, 62, 12, {b: 1}); if (d.subtitulo) L.texto(d.subtitulo, x0, 75, 9.5, {color: GRY});
+      L.texto('Generado el ' + fecha(new Date().toISOString().slice(0, 10)), W - M, 44, 8.5, {al: 'r', color: GRY});
+      y = 92; cab();
+      const limite = H - 60, pintarFila = (f, i, tot) => {
+        const lns = f.map((v, k) => envolver(v, 9, tot, cols[k].w - 12)), n = Math.max(...lns.map(l => l.length)), h = n * 11 + 8;
+        if (y + h > limite) { L.nueva(); franja(); y = 30; cab(); }
+        if (tot) L.rect(M, y, anchoT, h, [0.99, 0.93, 0.7]); else if (i % 2) L.rect(M, y, anchoT, h, [0.985, 0.985, 0.985]);
+        lns.forEach((ls, k) => ls.forEach((t, j) => L.texto(t, cols[k].x, y + 12 + j * 11, 9, {al: cols[k].al === 'r' ? 'r' : 'l', b: tot})));
+        L.linea(M, y + h, W - M, y + h); y += h;
+      };
+      if (!d.filas.length) { L.texto('No hay ventas en este periodo.', M + 6, y + 16, 9.5, {color: GRY}); y += 28; }
+      d.filas.forEach((f, i) => pintarFila(f, i, false));
+      if (d.totales) pintarFila(d.totales, 0, true);
+      if (d.nota) for (const ln of envolver(d.nota, 8, 0, anchoT)) { if (y + 12 > limite) { L.nueva(); franja(); y = 30; } y += 11; L.texto(ln, M, y, 8, {color: GRY}); }
+      const total = L.pags.length;
+      for (let i = 0; i < total; i++) {
+        L.pags[i].push('BT ' + RED.map(v => v.toFixed(3)).join(' ') + ' rg /F1 7.5 Tf ' + M + ' ' + f2(24) + ' Td (' + esc(bytesTxt(d.titulo + ' · ' + (E.razon || 'El Maná JL'))) + ') Tj ET');
+        const pg = 'Página ' + (i + 1) + ' de ' + total; L.pags[i].push('BT 0.42 0.42 0.42 rg /F1 7.5 Tf ' + f2(W - M - ancho(pg, 7.5)) + ' ' + f2(24) + ' Td (' + esc(bytesTxt(pg)) + ') Tj ET');
+      }
+      return armar(L.pags.map(p => p.map(String)), logo, d.titulo);
+    } finally { W = W0; H = H0; }
+  }
+  async function descargarTabla(d, logoSrc) { const bytes = generarTabla(d, await cargarLogo(logoSrc)); bajar(bytes, d.archivo || 'Reporte.pdf'); return bytes; }
+  return {generar, descargar, cargarLogo, generarTabla, descargarTabla};
 })();

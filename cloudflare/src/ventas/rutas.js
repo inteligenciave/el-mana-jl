@@ -5,6 +5,7 @@ import * as S from './servicio.js';
 import * as R from './repo.js';
 import * as P from '../precios/servicio.js';
 import {puede, ROL_TXT} from './permisos.js';
+import {reporteVentas} from './reportes.js';
 
 const json = (o, status = 200) => new Response(JSON.stringify(o), {status, headers: {'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', 'x-content-type-options': 'nosniff'}});
 const MAX = 900 * 1024;
@@ -25,6 +26,7 @@ export async function rutasVentas(req, env, url) {
     if (m === 'GET') {
       if (p === '/arranque') { ver('ver'); return json(await S.arranque(db)); }
       if ((r = p.match(/^\/productos\/(\d+)\/imagen$/))) { ver('ver'); return await S.respuestaImagen(db, +r[1]); }
+      if (p === '/reportes/ventas') { if (!['dueno', 'adm', 'ventas'].includes(rol)) throw S.err(403, 'Tu puesto no tiene acceso a los reportes de ventas.'); return json(await reporteVentas(db, {agrupar: q.get('agrupar'), desde: q.get('desde'), hasta: q.get('hasta'), rol, vendedor: entero(q.get('vendedor'))})); }
       if (p === '/pedidos-recientes') { ver('ver'); return json(await S.pedidosRecientes(db)); }
       if ((r = p.match(/^\/pdf\/pedido\/(\d+)$/))) { ver('ver'); return json(await S.datosPdfPedido(db, +r[1])); }
       if ((r = p.match(/^\/pdf\/documento\/(\d+)$/))) { ver('verDeuda'); return json(await S.datosPdfDocumento(db, +r[1])); }
