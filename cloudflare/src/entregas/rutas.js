@@ -41,7 +41,7 @@ export async function rutasEntregas(req, env, url) {
     } else {
       const b = await cuerpo(req);
       if (p === '/' && m === 'POST') return json(await S.subirEntrega(ctx, b), 201);
-      if (p === '/ajustes' && m === 'PUT') return json(await P.cambiarAjustesCredito(ctx, b));   // Dueño: rige ya · Administración: queda pendiente · otros: 403
+      if (p === '/ajustes' && m === 'PUT') return json(await P.cambiarAjustesCredito(ctx, b));   // Gerente: rige ya · Administración: queda pendiente · otros: 403
       if ((r = p.match(/^\/(\d{1,12})\/(confirmar|rechazar)$/)) && m === 'POST') return json(await S.resolverEntrega(ctx, +r[1], r[2], b.motivo));
       if ((r = p.match(/^\/disputas\/(\d{1,12})\/resolver$/)) && m === 'POST') return json(await S.resolverDisputa(ctx, +r[1], b));
     }

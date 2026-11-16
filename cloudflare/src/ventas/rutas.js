@@ -48,7 +48,7 @@ export async function rutasVentas(req, env, url) {
       if ((r = p.match(/^\/pagos\/(\d+)\/anular$/)) && m === 'POST') return json(await S.anularPago(ctx, +r[1], b.motivo));
       if (p === '/clientes' && m === 'POST') return json(await S.guardarCliente(ctx, null, b), 201);
       if ((r = p.match(/^\/clientes\/(\d+)$/)) && m === 'PUT') return json(await S.guardarCliente(ctx, +r[1], b));
-      if ((r = p.match(/^\/clientes\/(\d+)\/reglas$/)) && m === 'PUT') return json(await P.cambiarPreciosCliente(ctx, +r[1], b.reglas));   // Dueño: rige ya · Administración: queda pendiente · otros: 403
+      if ((r = p.match(/^\/clientes\/(\d+)\/reglas$/)) && m === 'PUT') return json(await P.cambiarPreciosCliente(ctx, +r[1], b.reglas));   // Gerente: rige ya · Administración: queda pendiente · otros: 403
       if (p === '/productos' && m === 'POST') return json(await S.guardarProducto(ctx, null, b), 201);
       if ((r = p.match(/^\/productos\/(\d+)$/)) && m === 'PUT') return json(await S.guardarProducto(ctx, +r[1], b));
       if ((r = p.match(/^\/productos\/(\d+)\/imagen$/)) && m === 'PUT') return json(await S.guardarImagenProducto(ctx, +r[1], b));

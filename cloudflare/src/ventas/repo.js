@@ -143,7 +143,7 @@ export const pendientesParaDeuda = (db, {vendedor, q, qn} = {}) => {
     a.push('%' + (qn || q).trim().toUpperCase() + '%'); const n = a.length; a.push('%' + q.trim().toUpperCase() + '%'); const r = a.length;
     f.push(`(c.razon_norm LIKE ?${n} OR UPPER(COALESCE(c.rif_id,'')) LIKE ?${r} OR UPPER(d.nro_control_interno) LIKE ?${r} OR UPPER(COALESCE(d.numero_externo,'')) LIKE ?${r} OR UPPER(COALESCE(d.nro_factura_fiscal,'')) LIKE ?${r})`);
   }
-  return all(db, `SELECT d.id_documento, c.rif_id, d.nro_control_interno, d.numero_externo, d.tipo_origen, d.fecha_emision, d.total_cents, d.sin_lineas, d.id_cliente, c.razon_social, c.zona, v.nombre AS vendedor_nombre, ${SALDO} AS saldo_cents FROM documentos_venta d JOIN clientes c ON c.id_cliente = d.id_cliente LEFT JOIN vendedores v ON v.id = d.id_vendedor WHERE ${f.join(' AND ')} ORDER BY c.razon_social, d.fecha_emision`, a);
+  return all(db, `SELECT d.id_documento, c.rif_id, d.nro_control_interno, d.numero_externo, d.tipo_origen, d.fecha_emision, d.total_cents, d.sin_lineas, d.id_cliente, c.razon_social, c.zona, c.telefono, c.dias_credito_normal, v.nombre AS vendedor_nombre, ${SALDO} AS saldo_cents FROM documentos_venta d JOIN clientes c ON c.id_cliente = d.id_cliente LEFT JOIN vendedores v ON v.id = d.id_vendedor WHERE ${f.join(' AND ')} ORDER BY c.razon_social, d.fecha_emision`, a);
 };
 export const contarLiquidadosPor = (db, idPago) => one(db, "SELECT COUNT(*) AS n FROM pago_aplicaciones a JOIN documentos_venta d ON d.id_documento = a.id_documento WHERE a.id_pago = ?1 AND a.liquido = 1 AND d.sin_lineas = 0", [idPago]);
 

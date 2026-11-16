@@ -1,6 +1,6 @@
 /* Entrega con foto + temporizador de descuentos · DOMINIO PURO (sin base de datos, sin HTTP, sin pantalla).
    Lo usan el servidor y las páginas (build la inlinea quitando `export`, por eso no importa nada).
-   Regla del dueño: los días de crédito corren DESDE la fecha y hora de la foto de entrega. Sin foto no arrancan.
+   Regla del Gerente: los días de crédito corren DESDE la fecha y hora de la foto de entrega. Sin foto no arrancan.
    Tramo 1: hasta `dias_tramo1` días (descuento A) · Tramo 2: hasta `dias_tramo2` días (descuento B) · después: vencida (mora).
    NADA de porcentajes inventados: descuento A, descuento B y recargo llegan de la tabla ajustes_credito; vacíos = no se aplica nada. */
 
@@ -17,7 +17,7 @@ export function normalizarAjustes(a) {
   const d2 = Number.isInteger(+x.dias_tramo2) && +x.dias_tramo2 > d1 ? +x.dias_tramo2 : Math.max(AJUSTES_DEF.dias_tramo2, d1 + 1);
   return {dias_tramo1: d1, dias_tramo2: d2, descuento1_pct: pctOrNull(x.descuento1_pct), descuento2_pct: pctOrNull(x.descuento2_pct), recargo_mora_pct: pctOrNull(x.recargo_mora_pct)};
 }
-/* Lista de lo que el dueño todavía no cargó */
+/* Lista de lo que el Gerente todavía no cargó */
 export function ajustesFaltantes(a) {
   const n = normalizarAjustes(a), f = [];
   if (n.descuento1_pct == null) f.push('descuento A (tramo 1)');
@@ -25,7 +25,7 @@ export function ajustesFaltantes(a) {
   if (n.recargo_mora_pct == null) f.push('recargo por mora');
   return f;
 }
-/* Valida lo que escribe el dueño. Devuelve {error} o {ajustes}. Campo vacío = null (sin cargar). */
+/* Valida lo que escribe el Gerente. Devuelve {error} o {ajustes}. Campo vacío = null (sin cargar). */
 export function validarAjustes(b) {
   const x = b || {}, num = v => (v === '' || v == null) ? null : Number(v);
   const d1 = num(x.dias_tramo1), d2 = num(x.dias_tramo2);
@@ -52,7 +52,7 @@ export function pausadoMs(pausas, entregaTs, ahora) {
 }
 
 /* EL TEMPORIZADOR. entrega_ts = instante de la foto (null/undefined = sin foto válida: no arranca).
-   Devuelve el estado, los días, cuánto falta para que termine el tramo y el descuento o recargo VIGENTE (null si el dueño no lo cargó). */
+   Devuelve el estado, los días, cuánto falta para que termine el tramo y el descuento o recargo VIGENTE (null si el Gerente no lo cargó). */
 export function calcularTemporizador({entrega_ts, ahora, pausas = [], ajustes}) {
   const a = normalizarAjustes(ajustes), ml = ajustesFaltantes(a);
   const base = {dias_tramo1: a.dias_tramo1, dias_tramo2: a.dias_tramo2, ajustes_faltantes: ml, descuento_pct: null, recargo_pct: null, aplica_ajuste: false, aviso: null};
@@ -64,9 +64,9 @@ export function calcularTemporizador({entrega_ts, ahora, pausas = [], ajustes}) 
   const descuento = tramo === 1 ? a.descuento1_pct : tramo === 2 ? a.descuento2_pct : null, recargo = tramo === 3 ? a.recargo_mora_pct : null;
   const restante = fin == null ? 0 : fin - ef;
   let aviso = null;
-  if (tramo === 1 && descuento == null) aviso = 'El Dueño todavía no cargó el descuento A: se muestran los días pero no se aplica descuento.';
-  else if (tramo === 2 && descuento == null) aviso = 'El Dueño todavía no cargó el descuento B: se muestran los días pero no se aplica descuento.';
-  else if (tramo === 3 && recargo == null) aviso = 'Vencida. El Dueño todavía no cargó el recargo por mora: no se aplica recargo.';
+  if (tramo === 1 && descuento == null) aviso = 'El Gerente todavía no cargó el descuento A: se muestran los días pero no se aplica descuento.';
+  else if (tramo === 2 && descuento == null) aviso = 'El Gerente todavía no cargó el descuento B: se muestran los días pero no se aplica descuento.';
+  else if (tramo === 3 && recargo == null) aviso = 'Vencida. El Gerente todavía no cargó el recargo por mora: no se aplica recargo.';
   return {...base, estado: pausada ? 'PAUSADA' : tramo === 1 ? 'TRAMO1' : tramo === 2 ? 'TRAMO2' : 'VENCIDA', tramo, corre: !pausada, pausada,
     dias: Math.floor(ef / MS_DIA), transcurrido_ms: ef, restante_ms: restante, vence_ts: (pausada || fin == null) ? null : ahora + restante,
     dias_vencida: tramo === 3 ? Math.floor((ef - t2) / MS_DIA) : null,
@@ -93,7 +93,7 @@ export function montoHoy({total_cents, pagado_cents = 0, temporizador}) {
 export const usdABs = (cents, tasa) => (tasa > 0 && cents != null) ? Math.round(cents * tasa) : null; // centavos de Bs
 
 /* Integración con el motor de liquidación de Ventas (aislada). `liqBase` es lo que devolvió calcularLiquidacion() con las reglas de siempre.
-   Si no hay foto, o el dueño no cargó el porcentaje del tramo actual, devuelve `liqBase` SIN TOCAR (los cobros existentes no cambian).
+   Si no hay foto, o el Gerente no cargó el porcentaje del tramo actual, devuelve `liqBase` SIN TOCAR (los cobros existentes no cambian).
    Si hay porcentaje, rehace el neto con el descuento/recargo del tramo (Ruta A: factura con el ajuste · Ruta B: nota de crédito/débito) sobre `liqNeutra`
    (la liquidación calculada con precios base, caso «en plazo»).
    Uso: const neutra = calcularLiquidacion({...args, cliente: {dias_pronto_pago: null, dias_credito_normal: null}});

@@ -52,7 +52,7 @@ function vPantalla(fn) {
   return fn();
 }
 const vph = (e, t, l, a) => ph(e, t, l, a);
-const vNota = () => `<p class="perm-note">${ic('info')}<span>Los datos de esta versión son de ejemplo (marcados <b>EJEMPLO</b>). Los precios, plazos, porcentajes, límites y números fiscales los define el Dueño; el formato fiscal de los documentos está <b>por confirmar con el contador</b>.</span></p>`;
+const vNota = () => `<p class="perm-note">${ic('info')}<span>Los datos de esta versión son de ejemplo (marcados <b>EJEMPLO</b>). Los precios, plazos, porcentajes, límites y números fiscales los define el Gerente; el formato fiscal de los documentos está <b>por confirmar con el contador</b>.</span></p>`;
 
 /* ---------- Buscador de cliente compartido (pedido y cobro) ---------- */
 function vPicker(clave, seleccionado, filtro) {
@@ -80,10 +80,10 @@ const vHoy = () => V.hoy || HOY_ISO;
 const vRestar = (f, n) => VD.sumarDias(f, -n);
 function vLunes(f) { const d = new Date(f + 'T12:00:00'), dow = (d.getDay() + 6) % 7; return VD.sumarDias(f, -dow); }
 
-/* Bancos de la empresa (lista plegable). Los carga Dueño o Administración; aquí todos los roles que cobran eligen.
+/* Bancos de la empresa (lista plegable). Los carga Gerente o Administración; aquí todos los roles que cobran eligen.
    Si todavía no hay ninguno, se muestra el aviso y se deja escribir el banco como antes. `pre` = 'cob' | 'ped'. */
 function vBancos() {
-  if (V.bancos === undefined) { V.bancos = null; vApi('GET', '/bancos').then(r => { V.bancos = r; render(); }).catch(() => { V.bancos = {bancos: [], mensaje_vacio: 'Todavía no hay bancos cargados. Pídele al Dueño o a Administración que los carguen'}; render(); }); }
+  if (V.bancos === undefined) { V.bancos = null; vApi('GET', '/bancos').then(r => { V.bancos = r; vCobPintar(); }).catch(() => { V.bancos = {bancos: [], mensaje_vacio: 'Todavía no hay bancos cargados. Pídele al Gerente o a Administración que los carguen'}; vCobPintar(); }); }
   return V.bancos;
 }
 window.vBancos = vBancos;

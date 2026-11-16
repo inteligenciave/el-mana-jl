@@ -1,4 +1,4 @@
-/* Quién puede qué en Entregas. Sin dependencias (se inlinea en la página). El Dueño puede todo.
+/* Quién puede qué en Entregas. Sin dependencias (se inlinea en la página). El Gerente puede todo.
    Despachos = rol «Empaque y despacho» (empaque) y «Jefe de producción» (jefeprod). Cobranza = cobranza y Administración (adm). */
 export const ENT_ACCIONES = {
   ver: ['dueno', 'jefeprod', 'empaque', 'cobranza', 'adm'],

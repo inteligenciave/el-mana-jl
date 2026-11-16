@@ -1,6 +1,6 @@
 /* Cambios de precio · pantallas del equipo. Todos los precios son POR BULTO.
-   Dueño: sus cambios rigen de una vez y aprueba o rechaza los de Administración (Gerencia → «Precios por aprobar»).
-   Administración: sus cambios quedan pendientes hasta que el Dueño responda (Administración → «Precios»). */
+   Gerente: sus cambios rigen de una vez y aprueba o rechaza los de Administración (Gerencia → «Precios por aprobar»).
+   Administración: sus cambios quedan pendientes hasta que el Gerente responda (Administración → «Precios»). */
 const PP = {prod: null, cli: null, cambios: null, cargando: {}, pag: {}, filtro: 'PENDIENTE', busy: {}};
 const pHTTP = () => !!window.__EM_HTTP;
 const ptxt = s => esc(s == null ? '' : s);
@@ -50,7 +50,7 @@ function pPaginar(k, total, porPag) {
 const pLineaHTML = l => `<li><span>${ptxt(l.que)}${l.que ? ': ' : ''}${ptxt(l.campo)}</span> <s class="muted">${ptxt(l.antes)}</s> → <b>${ptxt(l.despues)}</b></li>`;
 const pChip = c => c.estado === 'PENDIENTE' ? '<span class="chip c-warn">Cambio de precio pendiente de aprobar</span>' : c.estado === 'RECHAZADO' ? '<span class="chip c-crit">Rechazado</span>' : '<span class="chip c-ok">Aprobado</span>';
 
-/* ---------- Administración / Dueño: precios por lista (A y B), contado y crédito, todo POR BULTO ---------- */
+/* ---------- Administración / Gerente: precios por lista (A y B), contado y crédito, todo POR BULTO ---------- */
 const P_MOD = {contado: 'de contado', credito: 'a crédito'};
 const pCentsATxt = c => N2.format(c / 100);
 const pBs = c => { const t = S.tasaInfo && S.tasaInfo.valor; return t ? 'Bs ' + N2.format(c / 100 * t) : ''; };
@@ -77,7 +77,7 @@ function scrPrecios() {
       ${PP.listas.filter(p => (p.listas || {})[sel]).map(p => `<tr><td><b>${pNom(p)}</b></td>${pCelda(p, sel, 'contado')}${pCelda(p, sel, 'credito')}</tr>`).join('')}</tbody></table></div>`)}`;
   });
 }
-/* Estados y listas: cada estado usa UNA lista; varios pueden compartirla. Solo el Dueño cambia la asignación. */
+/* Estados y listas: cada estado usa UNA lista; varios pueden compartirla. Solo el Gerente cambia la asignación. */
 function pEstadosModal() {
   const dueno = pDueno(), ls = PP.lm.listas;
   modal('Estados y listas de precios', `
@@ -100,7 +100,7 @@ function pEditarModal(id, lista, mod) {
   const p = (PP.listas || []).find(x => x.id_producto === id); if (!p) return;
   const x = p.listas[lista], c = mod === 'contado' ? x.contado_cents : x.credito_cents, dueno = pDueno(), cam = pUltimo('L:' + id + ':' + lista + ':' + mod), bloqueado = !dueno && cam && cam.estado === 'PENDIENTE';
   modal(`Precio ${P_MOD[mod]} por bulto · lista ${lista}`, `<div class="form"><p><b>${pNom(p)}</b><br>Precio vigente: <b>$ ${pCentsATxt(c)} por bulto</b> <span class="muted">(${pBs(c) || 'sin tasa BCV'})</span></p>
-    ${bloqueado ? '<p class="v-alerta v-aviso" role="status">Ya hay un cambio pendiente de aprobar para este precio. Espera la respuesta del Dueño.</p>' : ''}
+    ${bloqueado ? '<p class="v-alerta v-aviso" role="status">Ya hay un cambio pendiente de aprobar para este precio. Espera la respuesta del Gerente.</p>' : ''}
     <label class="fld">Precio nuevo por bulto ($)<input type="text" inputmode="decimal" id="p-nuevo" placeholder="Ej.: 45,00" ${bloqueado ? 'disabled' : ''}></label>
     <p class="hint"><b>Este cambio aplica a: ${ptxt(pTxtEstados(lista))}.</b></p>
     <p class="err" id="p-e" role="alert" hidden></p><div class="btnrow"><button type="button" class="btn pri" data-act="pEditarOk" data-id="${id}" data-l="${lista}" data-m="${mod}" ${bloqueado ? 'disabled' : ''}>${dueno ? 'Cambiar precio' : 'Enviar para aprobar'}</button><button type="button" class="btn" data-act="closeModal">Cancelar</button></div></div>`);
@@ -132,7 +132,7 @@ async function pReglasModal(id) {
     if (!PP.cambios) PP.cambios = (await pApi('GET', '/cambios')).cambios;
     const r = await pGet('/clientes/' + id + '/precios'), rm = Object.fromEntries(r.reglas.map(x => [x.id_producto, x])), pm = Object.fromEntries(r.precios.map(x => [x.id_producto, x])), cd = x => x == null ? '' : String(x / 100).replace('.', ','), c = pUltimo('C:' + id), bloqueado = !pDueno() && c && c.estado === 'PENDIENTE';
     modal('Precios por bulto: ' + ptxt(r.cliente.razon_social), `<div class="form">
-      ${bloqueado ? '<p class="v-alerta v-aviso" role="status">Ya hay un cambio pendiente de aprobar para este cliente. Espera la respuesta del Dueño.</p>' : ''}
+      ${bloqueado ? '<p class="v-alerta v-aviso" role="status">Ya hay un cambio pendiente de aprobar para este cliente. Espera la respuesta del Gerente.</p>' : ''}
       <div class="tw"><table class="v-reglas p-reglas"><thead><tr><th>Producto</th><th class="r">Rige hoy, por bulto</th><th class="r">A crédito, por bulto ($)</th><th class="r">Pronto pago, por bulto ($)</th><th class="r">Con mora, por bulto ($)</th><th class="r">Descuento pronto pago %</th><th class="r">Recargo por mora %</th></tr></thead><tbody>
       ${PP.prod.map(p => { const x = rm[p.id_producto] || {}; return `<tr data-p="${p.id_producto}"><td>${pNom(p)}</td><td class="r">${(pm[p.id_producto] || {}).base == null ? '—' : '$ ' + N2.format(pm[p.id_producto].base)}</td>
         <td><input class="v-dec" data-r="precio_base_credito" value="${cd(x.precio_base_credito_cents)}" ${bloqueado ? 'disabled' : ''}></td><td><input class="v-dec" data-r="precio_pronto_pago" value="${cd(x.precio_pronto_pago_cents)}" ${bloqueado ? 'disabled' : ''}></td><td><input class="v-dec" data-r="precio_mora_vencido" value="${cd(x.precio_mora_vencido_cents)}" ${bloqueado ? 'disabled' : ''}></td>
@@ -165,7 +165,7 @@ function pVerTodo(id) {
   modal(ptxt(c.titulo), `<div class="form"><p>${pChip(c)} · pedido por ${ptxt(c.pedido_por)} el ${pFecha(c.pedido_ts)}</p><ul class="p-lin">${c.lineas.map(pLineaHTML).join('')}</ul><div class="btnrow"><button type="button" class="btn" data-act="closeModal">Cerrar</button></div></div>`);
 }
 
-/* ---------- Gerencia: lista de cambios por aprobar (solo el Dueño) ---------- */
+/* ---------- Gerencia: lista de cambios por aprobar (solo el Gerente) ---------- */
 function scrAprobar() {
   return pPantalla(() => {
     if (!PP.cambios) { pCargarCambios(); return card('', emptyState('Cargando…', 'Un momento.')); }
@@ -212,7 +212,7 @@ Object.assign(ACT, {
   pVerTodo: el => pVerTodo(+el.dataset.id),
   pAprobar: el => pResolver(+el.dataset.id, 'aprobar'), pRechazar: el => pRechazarModal(+el.dataset.id), pRechazarOk: el => pResolver(+el.dataset.id, 'rechazar', $('#p-mot').value)
 });
-/* Insignia en el menú: cuántos cambios esperan al Dueño */
+/* Insignia en el menú: cuántos cambios esperan al Gerente */
 const _badgesP = badges;
 badges = function () {
   const b = _badgesP(); pFrescura();

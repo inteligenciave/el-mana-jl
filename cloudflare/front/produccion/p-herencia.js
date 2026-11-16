@@ -115,7 +115,7 @@ function scrDif() {
     return `<article class="pr-dif ${d.estado === 'PENDIENTE' ? 'pend' : ''}"><div class="pr-dif-t"><b>${prT(d.etapa_texto)}</b><span class="chip ${d.estado === 'APROBADA' || d.estado === 'AUTOMATICA' ? 'c-ok' : d.estado === 'PENDIENTE' ? 'c-warn' : ''}">${prDifEst[d.estado] || d.estado}</span></div>
       <p>${sobra ? 'Sobran' : 'Faltan'} <b>${prN(Math.abs(d.diferencia), 1)} ${u}</b> · llegó ${prN(d.heredado, 1)}, se usó ${prN(d.usado, 1)} · lo anotó ${prT(d.creado_por)}</p>
       <p class="pr-sub">${prT(d.tipo_texto)}: ${prT(d.motivo)}${d.nota_decision ? ' · Nota: ' + prT(d.nota_decision) : ''}</p>
-      ${d.estado === 'PENDIENTE' ? (espDueno ? '<p><span class="chip c-warn">Espera al Dueño</span></p>' : `<div class="btnrow"><button type="button" class="btn pri" data-act="prDifAprobar" data-id="${d.id}">Aprobar</button><button type="button" class="btn" data-act="prDifRechazar" data-id="${d.id}">Rechazar</button></div>`) : ''}</article>`;
+      ${d.estado === 'PENDIENTE' ? (espDueno ? '<p><span class="chip c-warn">Espera al Gerente</span></p>' : `<div class="btnrow"><button type="button" class="btn pri" data-act="prDifAprobar" data-id="${d.id}">Aprobar</button><button type="button" class="btn" data-act="prDifRechazar" data-id="${d.id}">Rechazar</button></div>`) : ''}</article>`;
   };
   return `${ph('Producción', 'Diferencias', '', '')}<div class="btnrow pr-filtros">${filtros.map(([k, t]) => `<button type="button" class="btn sm ${k === f ? 'pri' : ''}" data-act="prDifFiltro" data-f="${k}" aria-pressed="${k === f}">${t}</button>`).join('')}</div>
     ${L.length ? `<div class="pr-scroll">${L.map(tarj).join('')}</div>` : card('', emptyState('No hay diferencias aquí', f === 'PENDIENTE' ? 'No hay nada por aprobar.' : 'Todavía no hay ninguna.'))}`;
@@ -152,8 +152,8 @@ function prCargaCard() {
   if (!(S.rol === 'dueno' || S.rol === 'jefeprod' || S.rol === 'empaque') || !window.__EM_HTTP) return '';
   if (PR.rol !== S.rol) { PR.rol = S.rol; PR.tab = PR.turno = PR.proc = PR.inv = PR.aj = PR.z = PR.sals = null; }
   if (!PR.sals) { prCargar('sals', '/salidas?estado=ARMANDO', 'sals'); return card('Contar la carga de las salidas', '<p class="hint">Cargando…</p>'); }
-  const L = Array.isArray(PR.sals) ? PR.sals : [];
-  return card('Contar la carga de las salidas', L.length ? `<ul class="pr-lin">${L.map(s => `<li><span><b>${prT(s.nro)}</b> · ${prT(s.zona)} · ${prN(s.bultos)} bultos</span>${s.cargada_ts ? '<span class="chip c-ok">Carga contada</span>' : `<button type="button" class="btn pri sm" data-act="prCargaAbrir" data-id="${s.id_salida}">Contar la carga</button>`}</li>`).join('')}</ul>` : '<p class="muted">No hay salidas armadas por cargar.</p>');
+  const L0 = Array.isArray(PR.sals) ? PR.sals : [], zf = PR.zonaDesp, L = zf ? L0.filter(s => s.zona === zf) : L0;
+  return card(zf ? 'Zona ' + prT(zf) + ': contar la carga' : 'Contar la carga de las salidas', L.length ? `<ul class="pr-lin">${L.map(s => `<li><span><b>${prT(s.nro)}</b> · ${prT(s.zona)} · ${prN(s.bultos)} bultos</span>${s.cargada_ts ? '<span class="chip c-ok">Carga contada</span>' : `<button type="button" class="btn pri sm" data-act="prCargaAbrir" data-id="${s.id_salida}">Contar la carga</button>`}</li>`).join('')}</ul>` : '<p class="muted">' + (zf ? 'No hay salidas armadas por cargar en esta zona.' : 'No hay salidas armadas por cargar.') + '</p>', zf ? {act: '<button type="button" class="btn sm" data-act="emzTodas">Ver todas las zonas</button>'} : {});
 }
 
 /* ---------- Papa de recepciones validadas ---------- */
@@ -163,7 +163,7 @@ function prRecepcionCard() {
   return `<div class="pr-mov pr-rec"><select id="pr-rec" aria-label="Recepción validada">${L.map(r => `<option value="${prT(r.id)}">${prT(r.id)} · ${prT(r.prov || '')} · libres ${prN(r.kg_libres)} kg</option>`).join('')}</select><input type="text" inputmode="decimal" id="pr-rec-k" placeholder="Kilos" aria-label="Kilos que toma el turno"><button type="button" class="btn sm" data-act="prRecTomar">Tomar papa</button></div>`;
 }
 
-/* ---------- Motivos de merma (Dueño) ---------- */
+/* ---------- Motivos de merma (Gerente) ---------- */
 function scrMotivos() {
   const w = prEspera('Motivos de merma', 'mot', '/motivos-merma?todos=1', 'mot'); if (w) return w;
   const L = Array.isArray(PR.mot) ? PR.mot : [];

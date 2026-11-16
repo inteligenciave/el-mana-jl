@@ -43,7 +43,7 @@ function eFilaSin(x) {
 }
 function eSubirCard() {
   const U = EN.up, puede = lvl('e-entregas') >= 2;
-  if (!puede) return card('Subir foto de entrega', '<p class="hint">Tu rol solo consulta las entregas. La foto la sube Despachos, el Jefe de producción o el Dueño.</p>');
+  if (!puede) return card('Subir foto de entrega', '<p class="hint">Tu rol solo consulta las entregas. La foto la sube Despachos, el Jefe de producción o el Gerente.</p>');
   let cuerpo;
   if (!U.doc) {
     const lista = Busca.filtrar(EN.sin || [], U.q, Busca.textosDe(E_DEF_ENT)).slice(0, 5);

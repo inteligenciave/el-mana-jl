@@ -9,9 +9,12 @@ import {rutasProduccion} from './produccion/rutas.js';
 import {rutasBancos} from './bancos/rutas.js';
 import {rutasCompras} from './compras/rutas.js';
 import {rutasFlota} from './flota/rutas.js';
+import {rutasRrhh} from './rrhh/rutas.js';
+import {rutasSolicitudes} from './solicitudes/rutas.js';
 import {rutasPantallas} from './pantallas/rutas.js';
 import * as Tasa from './tasa/servicio.js';
-import {rolDe, puedeLeer, puedeEscribir, filtrarDoc} from './acceso.js';
+import {ROL_TXT} from './ventas/permisos.js';
+import {rolDe, puedeLeer, puedeEscribir, filtrarDoc, cambiaCamposDueno} from './acceso.js';
 const COLS = new Set(['ajustes', 'meta', 'proveedores', 'productos', 'partidas', 'recepciones', 'compras', 'cxp', 'pagos', 'movimientos', 'lotes', 'salsas_lotes',
   'empaques', 'reposiciones', 'bultos', 'despachos', 'flota', 'empleados', 'caja_gastos', 'caja_reposiciones', 'caja_arqueos', 'prestamos', 'gestion', 'mermas', 'asistencia', 'clientes', 'auditoria', 'solicitudes_compra']);
 const ID_RE = /^[A-Za-z0-9_.~:@+-]{1,120}$/;
@@ -57,23 +60,70 @@ function checkDoc(c, id, d) {
 const curVer = async db => { const v = await db.prepare('SELECT v FROM ver WHERE id = 1').first(); return v ? v.v : 0; };
 const bump = db => db.prepare('UPDATE ver SET v = v + 1 WHERE id = 1');
 
-async function apply(db, op) {
-  const now = Date.now();
-  if (op.op === 'set') { const s = checkDoc(op.c, op.id, {...op.d, id: op.id}); return [db.prepare('INSERT INTO docs (col, id, data, updated) VALUES (?1, ?2, ?3, ?4) ON CONFLICT(col, id) DO UPDATE SET data = ?3, updated = ?4').bind(op.c, op.id, s, now)]; }
-  if (op.op === 'del') { checkDoc(op.c, op.id); return [db.prepare('DELETE FROM docs WHERE col = ?1 AND id = ?2').bind(op.c, op.id)]; }
+/* ---- Protección de la auditoría y borrado por anulación ---- */
+const SIN_ANULAR = new Set(['ajustes', 'meta']);   // configuración y contadores: se pueden reescribir o quitar de verdad (queda en la auditoría)
+const MSG_AUD = 'La auditoría solo se puede agregar: no se edita ni se borra.';
+const esLocal = url => ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname) || url.hostname.endsWith('.localhost');
+const recortar = (v, n = 70) => { if (v && typeof v === 'object') v = JSON.stringify(v); return typeof v === 'string' && v.length > n ? v.slice(0, n) + '…' : v; };
+function resumir(d, claves) {
+  const o = {}; let n = 0;
+  for (const k of (claves || Object.keys(d || {}))) { if (k === 'id' || !d || !(k in d)) continue; o[k] = recortar(d[k]); if (++n >= 12) break; }
+  return o;
+}
+function stAud(db, ctx, c, id, accion, detalle) {
+  let t = JSON.stringify(detalle || {}); if (t.length > 2500) t = JSON.stringify({resumen: t.slice(0, 2400)});
+  return db.prepare('INSERT INTO auditoria_sistema (ts, rol, ent, ref, accion, detalle) VALUES (?1, ?2, ?3, ?4, ?5, ?6)').bind(Date.now(), ctx.rolTxt || '—', c, String(id ?? ''), accion, t);
+}
+async function previo(db, c, id) { const r = await db.prepare('SELECT data FROM docs WHERE col = ?1 AND id = ?2').bind(c, id).first(); try { return r ? JSON.parse(r.data) : null; } catch (e) { return null; } }
+function motivoDe(m) {
+  const t = typeof m === 'string' ? m.trim() : '';
+  if (t.length < 3) throw {status: 400, message: 'Para quitar esto escribe un motivo corto (al menos 3 letras).'};
+  return t.slice(0, 200);
+}
+
+async function apply(db, op, ctx = {}) {
+  const now = Date.now(), c = op.c, sql = [];
+  const auditar = ctx.rolTxt && !ctx.masivo && c !== 'meta' && c !== 'auditoria';
+  if (c === 'auditoria') {   // solo agregar: ni editar, ni borrar, ni sobrescribir una fila que ya existe
+    if (op.op !== 'set') throw {status: 403, message: MSG_AUD};
+    checkDoc(c, op.id);
+    if (await previo(db, c, op.id)) throw {status: 409, message: MSG_AUD};
+  }
+  if (op.op === 'set') {
+    const s = checkDoc(op.c, op.id, {...op.d, id: op.id});
+    const ant = auditar ? await previo(db, c, op.id) : null;
+    if (auditar) sql.push(stAud(db, ctx, c, op.id, ant ? 'cambiar' : 'agregar', {antes: ant ? resumir(ant) : null, despues: resumir(op.d)}));
+    return [db.prepare('INSERT INTO docs (col, id, data, updated) VALUES (?1, ?2, ?3, ?4) ON CONFLICT(col, id) DO UPDATE SET data = ?3, updated = ?4').bind(op.c, op.id, s, now), ...sql];
+  }
+  if (op.op === 'del') {
+    checkDoc(op.c, op.id);
+    if (ctx.purga) return [db.prepare('DELETE FROM docs WHERE col = ?1 AND id = ?2').bind(op.c, op.id)];   // reinicio de desarrollo local
+    const ant = await previo(db, c, op.id);
+    if (!ant) return [];
+    if (SIN_ANULAR.has(c)) return [db.prepare('DELETE FROM docs WHERE col = ?1 AND id = ?2').bind(op.c, op.id), ...(auditar ? [stAud(db, ctx, c, op.id, 'quitar', {antes: resumir(ant)})] : [])];
+    if (ant.anulado) return [];
+    const motivo = motivoDe(op.motivo);
+    const nuevo = {...ant, id: op.id, anulado: true, anuladoMotivo: motivo, anuladoPor: ctx.rolTxt || '—', anuladoTs: now};
+    sql.push(db.prepare('UPDATE docs SET data = ?3, updated = ?4 WHERE col = ?1 AND id = ?2').bind(c, op.id, JSON.stringify(nuevo), now));
+    if (ctx.rolTxt) sql.push(stAud(db, ctx, c, op.id, 'anular', {antes: resumir(ant), motivo}));
+    return sql;
+  }
   if (op.op === 'update') {
     checkDoc(op.c, op.id, op.d || {});
     const cur = await db.prepare('SELECT data FROM docs WHERE col = ?1 AND id = ?2').bind(op.c, op.id).first();
     if (!cur) throw {status: 404, message: 'El documento no existe.'};
-    const s = checkDoc(op.c, op.id, {...JSON.parse(cur.data), ...op.d, id: op.id});
-    return [db.prepare('UPDATE docs SET data = ?3, updated = ?4 WHERE col = ?1 AND id = ?2').bind(op.c, op.id, s, now)];
+    const ant = JSON.parse(cur.data);
+    const s = checkDoc(op.c, op.id, {...ant, ...op.d, id: op.id});
+    if (auditar) sql.push(stAud(db, ctx, c, op.id, 'cambiar', {antes: resumir(ant, Object.keys(op.d || {})), despues: resumir(op.d)}));
+    return [db.prepare('UPDATE docs SET data = ?3, updated = ?4 WHERE col = ?1 AND id = ?2').bind(op.c, op.id, s, now), ...sql];
   }
   throw {status: 400, message: 'Operación desconocida.'};
 }
-async function allDocs(db, rol) {
+async function polActual(db) { const r = await db.prepare("SELECT data FROM docs WHERE col = 'ajustes' AND id = 'politicas'").first(); try { return r ? JSON.parse(r.data) : {}; } catch (e) { return {}; } }
+async function allDocs(db, rol, conAnulados) {
   const r = await db.prepare('SELECT col, data FROM docs').all(), cols = {};
   for (const c of COLS) cols[c] = [];
-  for (const x of r.results) { try { const d = JSON.parse(x.data); if (puedeLeer(rol, x.col, d && d.id)) (cols[x.col] ||= []).push(filtrarDoc(rol, x.col, d)); } catch (e) {} }
+  for (const x of r.results) { try { const d = JSON.parse(x.data); if (puedeLeer(rol, x.col, d && d.id) && (conAnulados || !(d && d.anulado))) (cols[x.col] ||= []).push(filtrarDoc(rol, x.col, d)); } catch (e) {} }
   const v = await db.prepare('SELECT v FROM ver WHERE id = 1').first();
   return {ver: v ? v.v : 0, cols};
 }
@@ -93,9 +143,11 @@ async function handle(req, env, url) {
   if (p === '/api/p' || p.startsWith('/api/p/')) return rutasProduccion(req, env, url);                         // producción por zonas: pedidos, salidas, turnos
   if (p === '/api/v/pantallas' || p.startsWith('/api/v/pantallas/')) return rutasPantallas(req, env, url);       // funciones extra por rol (lanzador Opciones)
   if (p === '/api/f' || p.startsWith('/api/f/')) return rutasFlota(req, env, url);                                 // flota de vehículos y choferes de nómina
+  if (p === '/api/s' || p.startsWith('/api/s/')) return rutasSolicitudes(req, env, url);                         // solicitudes de autorización al Gerente
+  if (p === '/api/h' || p.startsWith('/api/h/')) return rutasRrhh(req, env, url);                                 // marcas de entrada y salida (En planta hoy)
   if (p === '/api/v/compras' || p.startsWith('/api/v/compras/')) return rutasCompras(req, env, url);              // hacer una compra al proveedor (pedidos)
   if (p === '/api/v/bancos' || p.startsWith('/api/v/bancos/')) return rutasBancos(req, env, url);                // bancos de la empresa
-  if (p === '/api/v/precios' || p.startsWith('/api/v/precios/')) return rutasPrecios(req, env, url);          // cambios de precio con aprobación del Dueño
+  if (p === '/api/v/precios' || p.startsWith('/api/v/precios/')) return rutasPrecios(req, env, url);          // cambios de precio con aprobación del Gerente
   if (p === '/api/v/tasa' || p.startsWith('/api/v/tasa/')) return rutasTasa(req, env, url);
   if (p.startsWith('/api/v/')) return rutasVentas(req, env, url);
   if (m === 'GET' && p === '/api/ver') { const v = await db.prepare('SELECT v FROM ver WHERE id = 1').first(); return json({ver: v ? v.v : 0}); }
@@ -103,22 +155,31 @@ async function handle(req, env, url) {
   /* Desde aquí, todo lo de la app principal exige puesto (x-rol válido) */
   const rol = rolDe(req);
   if (!rol && (p === '/api/all' || p === '/api/batch' || p === '/api/lock' || p.startsWith('/api/c/'))) return err(403, 'Falta indicar tu puesto.');
-  if (m === 'GET' && p === '/api/all') return json(await allDocs(db, rol));
+  if (m === 'GET' && p === '/api/all') return json(await allDocs(db, rol, url.searchParams.get('anulados') === '1'));
 
   if (m === 'POST' && p === '/api/batch') {
     const b = await readJson(req);
     if (!isObj(b) || !Array.isArray(b.ops)) return err(400, 'Falta la lista de operaciones.');
     if (b.ops.length > MAX_OPS) return err(413, 'Demasiadas operaciones en un lote.');
     
+    const ctx = {rolTxt: ROL_TXT[rol], purga: false, masivo: false};
+    if (req.headers.get('x-purga') === '1') {   // reinicio de datos de ejemplo: solo en desarrollo local y solo Gerencia
+      if (!esLocal(url)) return err(403, 'Empezar en limpio y volver a cargar el ejemplo solo están disponibles en el equipo de desarrollo, no en el sitio real.');
+      if (rol !== 'dueno') return err(403, 'Solo Gerencia puede hacer esto.');
+      ctx.purga = true;
+    }
+    ctx.masivo = !ctx.purga && b.ops.length > 20;
     let stm = [];
     // las actualizaciones dependen del estado actual: se aplican en orden, vaciando antes lo pendiente
     for (const op of b.ops) {
       if (!isObj(op)) return err(400, 'Operación no válida.');
-      if (!puedeEscribir(rol, op.c, op.id)) return err(403, 'Tu puesto no puede modificar esta información.');
+      if (!puedeEscribir(rol, op.c, op.id) || (op.c === 'ajustes' && op.id === 'politicas' && cambiaCamposDueno(rol, op, await polActual(db)))) return err(403, 'Tu puesto no puede modificar esta información.');
       if (op.op === 'update' && stm.length) { await db.batch(stm); stm = []; }
-      stm.push(...await apply(db, op));
+      stm.push(...await apply(db, op, ctx));
       if (op.op === 'update') { await db.batch(stm); stm = []; }
     }
+    if (ctx.purga) { const n = {}; for (const o of b.ops) n[o.c] = (n[o.c] || 0) + 1; stm.push(stAud(db, ctx, 'sistema', 'purga', 'reinicio de datos (desarrollo)', {colecciones: n})); }
+    else if (ctx.masivo) { const n = {}; for (const o of b.ops) if (o.c !== 'meta' && o.c !== 'auditoria') n[o.op + ':' + o.c] = (n[o.op + ':' + o.c] || 0) + 1; if (Object.keys(n).length) stm.push(stAud(db, ctx, 'sistema', 'lote', 'carga masiva', {operaciones: n})); }
     stm.push(bump(db)); await db.batch(stm);
     return json({ok: true, n: b.ops.length, ver: await curVer(db)});
   }
@@ -130,22 +191,36 @@ async function handle(req, env, url) {
     return json({acquired: !!(r.meta && r.meta.changes > 0)});
   }
   const ml = p.match(/^\/api\/c\/([^/]+)$/);
-  if (m === 'GET' && ml) { const c = decodeURIComponent(ml[1]); if (!COLS.has(c)) return err(400, 'Colección desconocida.'); const r = await db.prepare('SELECT data FROM docs WHERE col = ?1').bind(c).all(); return json(r.results.map(x => JSON.parse(x.data)).filter(d => puedeLeer(rol, c, d && d.id)).map(d => filtrarDoc(rol, c, d))); }
+  if (m === 'GET' && ml) { const c = decodeURIComponent(ml[1]); if (!COLS.has(c)) return err(400, 'Colección desconocida.'); const r = await db.prepare('SELECT data FROM docs WHERE col = ?1').bind(c).all(); return json(r.results.map(x => JSON.parse(x.data)).filter(d => puedeLeer(rol, c, d && d.id) && (url.searchParams.get('anulados') === '1' || !(d && d.anulado))).map(d => filtrarDoc(rol, c, d))); }
   const mm = p.match(/^\/api\/c\/([^/]+)\/([^/]+)$/);
   if (mm) {
     const c = decodeURIComponent(mm[1]), id = decodeURIComponent(mm[2]);
     if ((m === 'PUT' || m === 'PATCH' || m === 'DELETE') && !puedeEscribir(rol, c, id)) return err(403, 'Tu puesto no puede modificar esta información.');
     if (m === 'GET' && !puedeLeer(rol, c, id)) return err(403, 'Tu puesto no puede ver esta información.');
     if (m === 'PUT' || m === 'PATCH') {
-      const d = await readJson(req); if (!isObj(d)) return err(400, 'El documento debe ser un objeto.'); const st = await apply(db, {op: m === 'PUT' ? 'set' : 'update', c, id, d});
+      const d = await readJson(req); if (!isObj(d)) return err(400, 'El documento debe ser un objeto.');
+      if (c === 'ajustes' && id === 'politicas' && cambiaCamposDueno(rol, {op: m === 'PUT' ? 'set' : 'update', c, id, d}, await polActual(db))) return err(403, 'Tu puesto no puede modificar esta información.'); const st = await apply(db, {op: m === 'PUT' ? 'set' : 'update', c, id, d}, {rolTxt: ROL_TXT[rol]});
       await db.batch([...st, bump(db)]); return json({ok: true, ver: await curVer(db)});
     }
-    if (m === 'DELETE') { const st = await apply(db, {op: 'del', c, id}); await db.batch([...st, bump(db)]); return json({ok: true, ver: await curVer(db)}); }
+    if (m === 'DELETE') {
+      const purga = req.headers.get('x-purga') === '1';
+      if (purga && !esLocal(url)) return err(403, 'Esta acción solo está disponible en el equipo de desarrollo, no en el sitio real.');
+      if (purga && rol !== 'dueno') return err(403, 'Solo Gerencia puede hacer esto.');
+      const hm = req.headers.get('x-motivo'); let mot = url.searchParams.get('motivo'); if (!mot && hm) { try { mot = decodeURIComponent(hm); } catch (e) { mot = hm; } }
+      const st = await apply(db, {op: 'del', c, id, motivo: mot}, {rolTxt: ROL_TXT[rol], purga}); await db.batch([...st, bump(db)]); return json({ok: true, ver: await curVer(db)}); }
     if (m === 'GET') { checkDoc(c, id); const r = await db.prepare('SELECT data FROM docs WHERE col = ?1 AND id = ?2').bind(c, id).first(); return r ? json(filtrarDoc(rol, c, JSON.parse(r.data))) : err(404, 'No existe.'); }
   }
   return err(404, 'Ruta no encontrada.');
 }
 
+/* Texto visible: la palabra «Dueño» no se muestra nunca. Los datos viejos guardaron el puesto con ese nombre; al salir se muestra como «Gerencia» (el puesto) o «Gerente» (en frases). La clave interna «dueno» no se toca. */
+async function sinDueno(r) {
+  if (!/json/i.test(r.headers.get('content-type') || '')) return r;
+  const t = await r.text();
+  if (!/[Dd]ueñ[oa]/.test(t)) return new Response(t, {status: r.status, statusText: r.statusText, headers: r.headers});
+  const h = new Headers(r.headers); h.delete('content-length');
+  return new Response(t.replace(/Dueñ[oa]/g, 'Gerencia').replace(/dueñ[oa]/g, 'Gerente'), {status: r.status, statusText: r.statusText, headers: h});
+}
 export default {
   /* Tarea diaria (wrangler.toml [triggers]): consulta la tasa oficial del BCV. Si falla, queda el aviso y se usa la última guardada. */
   async scheduled(event, env, ctx) { ctx.waitUntil(Tasa.consultar(env.DB)); },
@@ -161,7 +236,7 @@ export default {
       h.set('cache-control', (!ext || ext.toLowerCase() === 'html') ? 'no-cache' : 'public, max-age=86400');
       return new Response(r.body, {status: r.status, statusText: r.statusText, headers: h});
     }
-    try { return await handle(req, env, url); }
+    try { return await sinDueno(await handle(req, env, url)); }
     catch (e) {
       if (e && e.status) return err(e.status, e.message);
       console.error((e && e.stack) || e);

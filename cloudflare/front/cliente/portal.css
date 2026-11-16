@@ -142,7 +142,7 @@ td.r,th.r{text-align:right}
 @media (max-width:640px){.seg{display:grid;grid-template-columns:1fr 1fr;overflow:visible}.seg button{flex:none;padding:0 8px;font-size:14px}}
 
 .comp-prev{display:flex;gap:12px;align-items:center;margin-top:8px}.comp-prev img{width:96px;max-height:120px;object-fit:cover;border-radius:8px;border:1px solid var(--linea)}.comp-prev>div{display:grid;gap:6px;justify-items:start}
-/* COMPACTO (pedido del dueño): en computador, menos espacio en blanco. El celular queda igual. */
+/* COMPACTO (pedido del Gerente): en computador, menos espacio en blanco. El celular queda igual. */
 @media (min-width:900px){
 body{font-size:14px;line-height:1.4;padding-bottom:16px}
 .cab-i{padding:5px 16px}.cab img{width:34px;height:34px}.cab b{font-size:16px}.cab small{font-size:12.5px}

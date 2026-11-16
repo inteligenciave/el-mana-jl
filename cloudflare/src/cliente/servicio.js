@@ -231,7 +231,7 @@ export async function pagosEquipo(ctx, estado) {
   const filas = await R.pagosReportadosEquipo(ctx.db, estado === 'TODOS' ? null : (estado || 'POR_VERIFICAR'));
   return filas.map(r => ({...formatoReporte(r), id_cliente: r.id_cliente, cliente: r.razon_social, rif_id: r.rif_id, zona: r.zona, resuelto_rol: r.resuelto_rol}));
 }
-/* Comprobante de un pago reportado: lo ve el equipo que verifica pagos (Cobranza, Administración, Dueño…) */
+/* Comprobante de un pago reportado: lo ve el equipo que verifica pagos (Cobranza, Administración, Gerente…) */
 export async function comprobantePago(ctx, id) {
   exigir(ctx, 'verPagos', 'Tu rol no ve pagos.');
   const r = await R.comprobanteDe(ctx.db, id); if (!r) throw err(404, 'Pago reportado no encontrado.');

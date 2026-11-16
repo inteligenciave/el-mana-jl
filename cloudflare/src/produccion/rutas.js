@@ -16,14 +16,14 @@ export async function rutasProduccion(req, env, url) {
   try {
     let r;
     if (m === 'GET') {
-      if (!puede(rol, 'ver') && !(p === '/inventario' || p === '/pedidos' || p.startsWith('/pedidos/') || (puede(rol, 'verSalidas') && (p === '/salidas' || /^\/salidas\/\d+$/.test(p))) || (puede(rol, 'verDif') && (p.startsWith('/diferencias') || p === '/kpi-merma')) || (p === '/motivos-merma' && puede(rol, 'verSalidas')))) throw S.err(403, 'Tu puesto no tiene acceso a esta información.');
+      if (!puede(rol, 'ver') && !(p === '/inventario' || (p === '/tablero' && rol === 'empaque') || p === '/pedidos' || p.startsWith('/pedidos/') || (puede(rol, 'verSalidas') && (p === '/salidas' || /^\/salidas\/\d+$/.test(p))) || (puede(rol, 'verDif') && (p.startsWith('/diferencias') || p === '/kpi-merma')) || (p === '/motivos-merma' && puede(rol, 'verSalidas')))) throw S.err(403, 'Tu puesto no tiene acceso a esta información.');
       if (p === '/motivos-merma') return json(await S.listaMotivos(ctx, q.get('todos') === '1'));
       if (p === '/kpi-merma') return json(await S.kpiMerma(ctx, {desde: q.get('desde'), hasta: q.get('hasta')}));
       if (p === '/turno/por-resolver') return json(await S.porResolver(db));
       if (p === '/diferencias/contador') return json(await S.contadorDiferencias(ctx));
       if (p === '/diferencias') return json(await S.listaDiferencias(ctx, {estado: q.get('estado') || null, etapa: q.get('etapa') || null, desde: q.get('desde') ? +q.get('desde') : null, hasta: q.get('hasta') ? +q.get('hasta') : null}));
       if (p === '/turno/recepciones-libres') return json(await S.recepcionesLibres(db));
-      if (p === '/tablero') return json(await S.tablero(db));
+      if (p === '/tablero') { const t = await S.tablero(db); if (rol === 'empaque') { const q1 = z => { const {monto, monto_cents, ...r1} = z; return r1; }; return json({...t, activas: t.activas.map(q1), pausadas: t.pausadas.map(q1)}); } return json(t); }
       if ((r = p.match(/^\/zonas\/([^/]+)$/))) return json(await S.zonaDetalle(db, decodeURIComponent(r[1])));
       if (p === '/salidas') return json(await S.listaSalidas(db, q.get('estado') || null));
       if ((r = p.match(/^\/salidas\/(\d+)$/))) return json(await S.detalleSalida(db, +r[1]));

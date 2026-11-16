@@ -45,7 +45,7 @@ export async function vigente(db, fecha) {
 export async function tasaPara(db, fecha) {
   if (!fecha || fecha === hoyVE()) await asegurarDelDia(db);
   const t = await vigente(db, fecha);
-  if (!t) throw err(409, 'No hay tasa BCV guardada para el ' + (fecha || hoyVE()) + '. Pide al Dueño o a Administración que consulten la tasa antes de cobrar.', {codigo: 'SIN_TASA'});
+  if (!t) throw err(409, 'No hay tasa BCV guardada para el ' + (fecha || hoyVE()) + '. Pide al Gerente o a Administración que consulten la tasa antes de cobrar.', {codigo: 'SIN_TASA'});
   return t;
 }
 export async function estado(db) {

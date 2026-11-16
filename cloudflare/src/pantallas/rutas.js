@@ -1,6 +1,6 @@
 /* Funciones extra por rol · rutas HTTP (/api/v/pantallas/*). El rol llega en x-rol.
-   GET /extras               Dueño: todas · otro rol: solo las suyas
-   PUT /extras/:rol {claves} solo el Dueño (403 al resto) */
+   GET /extras               Gerente: todas · otro rol: solo las suyas
+   PUT /extras/:rol {claves} solo el Gerente (403 al resto) */
 import * as S from './servicio.js';
 import {ROL_TXT} from '../ventas/permisos.js';
 const json = (o, status = 200) => new Response(JSON.stringify(o), {status, headers: {'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', 'x-content-type-options': 'nosniff'}});

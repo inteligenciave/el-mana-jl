@@ -1,9 +1,9 @@
 /* Bancos · reglas puras (sin base de datos ni HTTP). */
 export const ROLES_GESTIONA = ['dueno', 'adm'];
 export const puedeGestionar = rol => ROLES_GESTIONA.includes(rol);
-export const MSG_SIN_PERMISO = 'Solo el Dueño y Administración agregan, editan o desactivan bancos.';
+export const MSG_SIN_PERMISO = 'Solo el Gerente y Administración agregan, editan o desactivan bancos.';
 export const MONEDAS = {BS: 'Bolívares', USD: 'Dólares'};
-export const MSG_LISTA_VACIA = 'Todavía no hay bancos cargados. Pídele al Dueño o a Administración que los carguen';
+export const MSG_LISTA_VACIA = 'Todavía no hay bancos cargados. Pídele al Gerente o a Administración que los carguen';
 
 /* Datos de un banco como llegan de la pantalla. Devuelve {banco} o {error} */
 export function validarBanco(b) {

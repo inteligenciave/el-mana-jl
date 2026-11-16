@@ -52,7 +52,7 @@ export async function guardarProducto(ctx, id, b) {
     const prev = await R.getProducto(ctx.db, id); if (!prev) throw err(404, 'Producto no encontrado.');
     c.precio_ref_cents = prev.precio_ref_cents ?? null;
     const borraImg = D.esImagenInterna(prev.imagen_blanca_url) && !D.esImagenInterna(c.imagen_blanca_url);
-    await enLote(ctx.db, [R.stActualizarProducto(ctx.db, id, c), ...(borraImg ? [R.stBorrarImagen(ctx.db, id)] : []), PR.stCerrarPendiente(ctx.db, PD.claveProducto(id), ROL_TXT[ctx.rol] || ctx.rol, 'El Dueño fijó el precio directamente.'), ...audit(ctx, 'producto', c.codigo_sku, c.nombre, 'modificó', {antes: {precio: dol(prev.precio_ref_cents), iva: prev.alicuota_iva}, despues: {precio: dol(c.precio_ref_cents), iva: c.alicuota_iva}})]);
+    await enLote(ctx.db, [R.stActualizarProducto(ctx.db, id, c), ...(borraImg ? [R.stBorrarImagen(ctx.db, id)] : []), PR.stCerrarPendiente(ctx.db, PD.claveProducto(id), ROL_TXT[ctx.rol] || ctx.rol, 'El Gerente fijó el precio directamente.'), ...audit(ctx, 'producto', c.codigo_sku, c.nombre, 'modificó', {antes: {precio: dol(prev.precio_ref_cents), iva: prev.alicuota_iva}, despues: {precio: dol(c.precio_ref_cents), iva: c.alicuota_iva}})]);
     return R.getProducto(ctx.db, id);
   }
   const rs = await enLote(ctx.db, [R.stInsertarProducto(ctx.db, {...c, orden: 99}), ...audit(ctx, 'producto', c.codigo_sku, c.nombre, 'agregó', {})]);
@@ -79,7 +79,7 @@ export async function respuestaImagen(db, id) {
   const bin = Uint8Array.from(atob(im.datos), c => c.charCodeAt(0));
   return new Response(bin, {headers: {'content-type': im.mime || 'image/jpeg', 'cache-control': 'private, max-age=86400', 'x-content-type-options': 'nosniff', 'content-length': String(bin.length)}});
 }
-/* Peso por bulto: solo Dueño y Administración (comprobado aquí con el rol, no solo en pantalla). Vacío = sin cargar; no se inventa. */
+/* Peso por bulto: solo Gerente y Administración (comprobado aquí con el rol, no solo en pantalla). Vacío = sin cargar; no se inventa. */
 export async function guardarPesoBulto(ctx, id, b) {
   if (!puedePesoBulto(ctx.rol)) throw err(403, MSG_SIN_INVENTARIO);
   const kg = D.validarKgBulto(b.kg_por_bulto); if (!kg.ok) throw err(400, kg.msg);
@@ -88,7 +88,7 @@ export async function guardarPesoBulto(ctx, id, b) {
   await enLote(ctx.db, [R.stPesoBulto(ctx.db, id, kg.valor, un.valor), ...audit(ctx, 'producto', p.codigo_sku, p.nombre, 'cargó peso por bulto', {antes: {kg_por_bulto: p.kg_por_bulto ?? null, unidades_por_bulto: p.unidades_por_bulto ?? null}, despues: {kg_por_bulto: kg.valor, unidades_por_bulto: un.valor}})]);
   return R.getProducto(ctx.db, id);
 }
-/* Entrada manual de inventario: solo el Dueño y con motivo. La producción entra sola al cerrar el turno. */
+/* Entrada manual de inventario: solo el Gerente y con motivo. La producción entra sola al cerrar el turno. */
 export async function entradaStock(ctx, idProducto, cantidad, nota) {
   if (!puedeInventario(ctx.rol)) throw err(403, MSG_SIN_INVENTARIO);
   if (!D.entero(cantidad)) throw err(400, 'La cantidad debe ser un número entero mayor que cero.');
@@ -98,7 +98,7 @@ export async function entradaStock(ctx, idProducto, cantidad, nota) {
   return R.getProducto(ctx.db, idProducto);
 }
 export async function guardarVendedor(ctx, id, b) {
-  exigir(ctx, 'condiciones', 'Solo el Dueño cambia vendedores y comisiones.');
+  exigir(ctx, 'condiciones', 'Solo el Gerente cambia vendedores y comisiones.');
   const nombre = txt(b.nombre, 80), pct = numOrNull(b.comision_pct);
   if (!nombre) throw err(400, 'El nombre es obligatorio.'); if (!pctOk(pct) || Number.isNaN(pct)) throw err(400, 'El porcentaje de comisión debe estar entre 0 y 100.');
   const st = id ? R.stActualizarVendedor(ctx.db, id, {nombre, comision_pct: pct}) : R.stInsertarVendedor(ctx.db, {nombre, comision_pct: pct});
@@ -146,7 +146,7 @@ export async function guardarCliente(ctx, id, b) {
   await enLote(ctx.db, [R.stInsertarCliente(ctx.db, c), ...audit(ctx, 'cliente', c.razon_social, c.razon_social, 'agregó', {})]);
   const nuevo = await R.clientePorNorm(ctx.db, c.razon_norm); return R.getCliente(ctx.db, nuevo.id_cliente);
 }
-/* Los precios especiales por cliente (reglas) se cambian en src/precios/servicio.js: el Dueño rige de una vez, Administración deja un cambio pendiente. */
+/* Los precios especiales por cliente (reglas) se cambian en src/precios/servicio.js: el Gerente rige de una vez, Administración deja un cambio pendiente. */
 /* Precio de un producto para un cliente según su lista regional (A o B). Si el producto tiene lista y el cliente no la tiene, no se vende. */
 export async function contextoPrecios(db, cli) { await cargarMapaListas(db); const lista = D.listaDeCliente(cli); return {lista, ...await R.contextoListas(db, lista)}; }
 export function precioDe(p, regla, cx) {
@@ -369,13 +369,13 @@ export async function previsualizar(db, {id_cliente, fecha, docs, exonerar}) {
 async function verificarPin(ctx, pin, motivo) {
   const cfg = await R.leerConfig(ctx.db);
   const fallo = async (msg, accion) => { await R.lote(ctx.db, audit(ctx, 'seguridad', 'PIN', 'PIN de gerencia', accion, {motivo})); throw err(403, msg, {codigo: 'PIN'}); };
-  if (!cfg.pin_hash) return fallo('Esta operación exige el PIN de gerencia y todavía no hay uno configurado. El Dueño debe crearlo.', 'PIN exigido sin PIN configurado');
+  if (!cfg.pin_hash) return fallo('Esta operación exige el PIN de gerencia y todavía no hay uno configurado. El Gerente debe crearlo.', 'PIN exigido sin PIN configurado');
   if (!pin) throw err(403, 'Esta operación exige el PIN de gerencia: ' + motivo + '.', {codigo: 'PIN_REQUERIDO'});
   if (await hashPin(pin, cfg.pin_sal) !== cfg.pin_hash) return fallo('PIN de gerencia incorrecto.', 'PIN incorrecto');
 }
 async function hashPin(pin, sal) { const b = new TextEncoder().encode(sal + ':' + pin); return [...new Uint8Array(await crypto.subtle.digest('SHA-256', b))].map(x => x.toString(16).padStart(2, '0')).join(''); }
 export async function fijarPin(ctx, pin) {
-  exigir(ctx, 'config', 'Solo el Dueño cambia el PIN de gerencia.');
+  exigir(ctx, 'config', 'Solo el Gerente cambia el PIN de gerencia.');
   if (!/^\d{4,12}$/.test(String(pin || ''))) throw err(400, 'El PIN debe tener de 4 a 12 dígitos.');
   const sal = crypto.randomUUID();
   await enLote(ctx.db, [R.stConfig(ctx.db, 'pin_sal', sal), R.stConfig(ctx.db, 'pin_hash', await hashPin(String(pin), sal)), ...audit(ctx, 'seguridad', 'PIN', 'PIN de gerencia', 'cambió el PIN', {})]);
@@ -465,7 +465,7 @@ export async function cobrar(ctx, b, o = {}) {
 }
 
 export async function anularPago(ctx, id, motivo) {
-  exigir(ctx, 'anularPago', 'Solo el Dueño anula pagos.');
+  exigir(ctx, 'anularPago', 'Solo el Gerente anula pagos.');
   const m = txt(motivo, 200); if (m.length < 3) throw err(400, 'Escribe el motivo de la anulación.');
   const p = await R.getPago(ctx.db, id); if (!p) throw err(404, 'Pago no encontrado.'); if (p.estado !== 'ACTIVO') throw err(409, 'El pago ya está anulado.');
   if ((await R.contarLiquidadosPor(ctx.db, id)).n > 0) throw err(409, 'Este pago liquidó un documento con detalle (emitió factura o nota). Anularlo exige una nota de crédito: por confirmar con el contador.', {codigo: 'LIQUIDO'});
@@ -493,7 +493,7 @@ export async function deuda(db, params) {
   const filas = await R.pendientesParaDeuda(db, {...params, qn: params && params.q ? D.normNombre(params.q) : ''}), hoy = D.hoyVE(), m = new Map();
   for (const f of filas) {
     if (f.saldo_cents <= 0) continue;
-    const c = m.get(f.id_cliente) || m.set(f.id_cliente, {id_cliente: f.id_cliente, razon_social: f.razon_social, rif: f.rif_id, zona: f.zona, vendedor: f.vendedor_nombre, saldo_cents: 0, desde: f.fecha_emision, notas: []}).get(f.id_cliente);
+    const c = m.get(f.id_cliente) || m.set(f.id_cliente, {id_cliente: f.id_cliente, razon_social: f.razon_social, rif: f.rif_id, zona: f.zona, vendedor: f.vendedor_nombre, telefono: f.telefono || null, dias_credito: f.dias_credito_normal ?? null, saldo_cents: 0, desde: f.fecha_emision, notas: []}).get(f.id_cliente);
     const dias = D.diasEntre(f.fecha_emision, hoy); c.saldo_cents += f.saldo_cents; if (f.fecha_emision < c.desde) c.desde = f.fecha_emision;
     c.notas.push({id_documento: f.id_documento, nro: f.numero_externo || f.nro_control_interno, tipo: f.tipo_origen, fecha: f.fecha_emision, dias, total: dol(f.total_cents), saldo: dol(f.saldo_cents), sin_detalle: !!f.sin_lineas});
   }
@@ -504,7 +504,7 @@ export async function deuda(db, params) {
 export async function listaPagos(db, p) { return (await R.listarPagos(db, p)).map(x => ({...formatoPago(x), id_cliente: x.id_cliente, cliente_rif: x.cliente_rif, docs: x.docs_txt, vendedor: x.vendedor_nombre, notas: x.notas, aplicado: dol(x.aplicado_cents), tasa: x.tasa, motivo_anulacion: x.motivo_anulacion, origen: x.origen, retroactivo: !!x.retroactivo, ejemplo: !!x.ejemplo, creado_rol: x.creado_rol})); }
 
 export async function guardarConfig(ctx, b) {
-  exigir(ctx, 'config', 'Solo el Dueño cambia la configuración.');
+  exigir(ctx, 'config', 'Solo el Gerente cambia la configuración.');
   const claves = ['membrete_razon', 'membrete_rif', 'membrete_direccion', 'membrete_telefono', 'fiscal_prefijo_factura', 'fiscal_prefijo_nc', 'fiscal_prefijo_nd', 'dias_alerta_deuda', 'ref_corta_max'], st = [];
   for (const k of claves) if (k in b) { const v = txt(b[k], 150); if (k === 'ref_corta_max' && !(/^\d+$/.test(v) && +v >= 4 && +v <= 20)) throw err(400, 'La longitud mínima de una referencia completa debe estar entre 4 y 20.'); if (k === 'dias_alerta_deuda' && v && !/^\d+$/.test(v)) throw err(400, 'Los días de alerta deben ser un entero.'); st.push(R.stConfig(ctx.db, k, v)); }
   for (const [campo, seq] of [['siguiente_factura', 'factura_fiscal'], ['siguiente_nc', 'nc_fiscal'], ['siguiente_nd', 'nd_fiscal']]) if (b[campo] != null && b[campo] !== '') { const n = +b[campo]; if (!Number.isInteger(n) || n < 1) throw err(400, 'El próximo número fiscal debe ser un entero desde 1.'); await R.fijarSecuencia(ctx.db, seq, n - 1); }
@@ -562,7 +562,7 @@ const EJ_PROD = [['Papas Naturales', '150 g', 'PAPAS'], ['Papas Onduladas', '150
   ['Salsa Tocineta', '200 g', 'SALSAS'], ['Salsa de Ajo', '200 g', 'SALSAS'], ['Salsa Mostaza', '200 g', 'SALSAS'], ['Salsa Mayonesa', '200 g', 'SALSAS'], ['Salsa de Tomate', '200 g', 'SALSAS']];
 export async function cargarEjemplo(ctx) {
   await cargarMapaListas(ctx.db);
-  exigir(ctx, 'ejemplo', 'Solo el Dueño carga los datos de ejemplo.');
+  exigir(ctx, 'ejemplo', 'Solo el Gerente carga los datos de ejemplo.');
   const {db} = ctx, hoy = D.hoyVE();
   if ((await R.contarEjemplo(db)).clientes > 0) throw err(409, 'Los datos de ejemplo ya están cargados.');
   await enLote(db, [R.stInsertarVendedor(db, {nombre: 'Vendedor 1 (EJEMPLO)', comision_pct: 5, ejemplo: 1}), R.stInsertarVendedor(db, {nombre: 'Vendedor 2 (EJEMPLO)', comision_pct: null, ejemplo: 1}), R.stInsertarVendedor(db, {nombre: 'Vendedor 3 (EJEMPLO)', comision_pct: null, ejemplo: 1}),
@@ -589,7 +589,7 @@ export async function cargarEjemplo(ctx) {
   return R.contarEjemplo(db);
 }
 export async function borrarEjemplo(ctx) {
-  exigir(ctx, 'ejemplo', 'Solo el Dueño borra los datos de ejemplo.');
+  exigir(ctx, 'ejemplo', 'Solo el Gerente borra los datos de ejemplo.');
   const r = await R.borrarEjemplo(ctx.db);
   await R.lote(ctx.db, audit(ctx, 'ejemplo', 'ventas', 'Datos de ejemplo', 'borró los datos de ejemplo', r));
   return {...r, ejemplo: await R.contarEjemplo(ctx.db)};

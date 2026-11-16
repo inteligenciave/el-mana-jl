@@ -1,0 +1,100 @@
+/* En planta hoy y Pagar nómina · marca: rojo #C92121, amarillo #F2B72E, blanco y gris casi negro; verde y ámbar solo como semáforo. */
+.hp-top{display:flex;flex-wrap:wrap;gap:10px;align-items:stretch;margin:0 0 10px}
+.hp-tot,.hp-tn{background:#fff;border:1px solid #E3E1E1;border-radius:12px;padding:8px 16px;display:flex;flex-direction:column;justify-content:center;min-width:110px}
+.hp-tot{border-left:6px solid #C92121;min-width:170px}
+.hp-tn{border-left:6px solid #F2B72E}
+.hp-tot b,.hp-tn b{font-size:34px;line-height:1;color:#1F1F1F}
+.hp-tot span,.hp-tn span{font-size:15px;font-weight:600;color:#5E5E5E}
+.hp-pagar{margin-left:auto;align-self:center;min-height:56px;padding:0 28px;font-size:18px;font-weight:700;background:#C92121;color:#fff;border-color:#C92121;display:inline-flex;align-items:center}
+.hp-pagar:hover{background:#A51B1B}
+.hp-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;align-items:start}
+.hp-izq{display:grid;gap:10px;min-width:0}
+.hp-turno h2,.hp-marcar h2{margin:0 0 6px;font-size:18px;display:flex;align-items:center;gap:8px}
+.hp-n{background:#F2B72E;color:#1F1F1F;border-radius:999px;padding:0 12px;font-size:16px;line-height:1.7}
+.hp-p{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:9px 0;border-top:1px solid #EEECEC}
+.hp-p div{display:flex;flex-direction:column;min-width:0}
+.hp-p b{font-size:17px}
+.hp-p span,.hp-q span{font-size:14px;color:#5E5E5E}
+.hp-p time{font-weight:700;font-size:16px;white-space:nowrap}
+.hp-vacio{color:#5E5E5E;margin:6px 0;font-size:15px}
+.hp-bus{margin:0 0 6px;max-width:none}
+.hp-lista{max-height:calc(100vh - 330px);min-height:200px;overflow:auto}
+.hp-fila{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-top:1px solid #EEECEC}
+.hp-q{display:flex;flex-direction:column;min-width:0;gap:1px}
+.hp-q b{font-size:17px}
+.hp-chips{display:flex;flex-wrap:wrap;gap:4px;margin-top:2px}
+.hp-btn{min-height:52px;min-width:150px;font-size:16px;font-weight:700;flex:none}
+.hp-sal{border:2px solid #C92121;color:#C92121;background:#fff}
+.c-n{background:#EEECEC;color:#3A3A3A}
+.hp-per{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:0 0 10px}
+.hp-seg{display:inline-flex;gap:6px}
+.hp-seg .btn{min-height:44px;min-width:92px;font-weight:700}
+.hp-seg .btn.pri{background:#C92121;border-color:#C92121;color:#fff}
+.hp-pl{font-size:17px}
+.hp-nav{display:flex;gap:6px;margin-left:auto}
+.hp-nav .btn{min-height:44px}
+.hp-tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0 0 10px}
+.hp-tiles .stat{padding:8px 12px}
+.hp-tabla td,.hp-tabla th{vertical-align:middle}
+.hp-pm{max-width:520px}
+.hp-sub{margin:0 0 6px}
+.hp-ln{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #EEECEC}
+.hp-prest{background:#FFF4D6;border:1px solid #F2B72E;border-radius:10px;padding:8px 12px;margin:8px 0}
+.hp-neto{display:flex;justify-content:space-between;align-items:center;font-size:17px;margin:10px 0}
+.hp-neto b{font-size:26px;color:#C92121}
+@media (max-width:900px){.hp-grid{grid-template-columns:minmax(0,1fr)}.hp-lista{max-height:none}.hp-pagar{margin-left:0;width:100%;justify-content:center}}
+@media (max-width:559px){.hp-top{gap:6px}.hp-tot,.hp-tn{padding:6px 10px;min-width:0;flex:1}.hp-tot b,.hp-tn b{font-size:28px}.hp-fila{flex-direction:column;align-items:stretch}.hp-btn{width:100%}.hp-tiles{grid-template-columns:1fr}.hp-nav{margin-left:0}}
+/* Franja de resumen y pestañas de Nómina y RRHH */
+.rh-cab{margin:0 0 8px}
+.rh-franja{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:0 0 8px}
+.rh-c{background:#fff;border:1px solid #E3E1E1;border-left:6px solid #F2B72E;border-radius:12px;padding:6px 12px;display:flex;flex-direction:column;min-width:0}
+.rh-c:first-child{border-left-color:#C92121}
+.rh-c span{font-size:13px;font-weight:600;color:#5E5E5E}
+.rh-c b{font-size:24px;line-height:1.15;color:#1F1F1F;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rh-c small{font-size:12.5px;color:#5E5E5E;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rh-c.rh-ver{border-left-color:#2E9E5B}.rh-c.rh-amb{border-left-color:#E8A317}
+.rh-tabs{display:flex;gap:6px;overflow-x:auto}
+.rh-tabs a{min-height:44px;padding:0 18px;display:inline-flex;align-items:center;border-radius:999px;border:1px solid #E3E1E1;background:#fff;color:#1F1F1F;font-weight:700;font-size:16px;text-decoration:none;white-space:nowrap}
+.rh-tabs a[aria-current="page"]{background:#C92121;border-color:#C92121;color:#fff}
+.rh-panel{max-height:calc(100vh - 285px);overflow:auto;min-height:0}
+@media (max-width:900px){.rh-franja{grid-template-columns:repeat(2,minmax(0,1fr))}.rh-panel{max-height:none;overflow:visible}}
+
+/* Turnos, parámetros de turnos y bonos */
+.tn-bar{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;margin:0 0 10px}
+.tn-f{margin:0;max-width:190px}
+.tn-bar .btn{min-height:44px;font-weight:700}
+.tn-bar .hp-seg .btn.pri{background:#C92121;border-color:#C92121;color:#fff}
+.tn-hor{align-self:center;font-size:14px}
+.tn-par{margin-left:auto}
+.tn-panel{max-height:calc(100vh - 225px);overflow:auto;min-height:0}
+.rh-panel .tn-panel{max-height:none;overflow:visible}
+.tn-bono{display:flex;flex-wrap:wrap;gap:8px;align-items:stretch;margin:0 0 10px}
+.tn-t{background:#fff;border:1px solid #E3E1E1;border-left:6px solid #F2B72E;border-radius:12px;padding:6px 14px;display:flex;flex-direction:column;min-width:130px}
+.tn-t span{font-size:13px;font-weight:600;color:#5E5E5E}
+.tn-t b{font-size:22px;line-height:1.2;color:#1F1F1F}
+.tn-m{border-left-color:#C92121}
+.tn-ap{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-left:auto}
+.tn-ap .btn{min-height:44px;font-weight:700}
+.tn-ap .hp-seg .btn.pri{background:#C92121;border-color:#C92121;color:#fff}
+.tn-grid{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:10px;align-items:start}
+.tn-sec h3{margin:8px 0 4px;font-size:15px;font-family:inherit;font-weight:700}
+.tn-sec:first-child h3{margin-top:0}
+.tn-ul{list-style:none;margin:0;padding:0}
+.tn-ul li{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-top:1px solid #EEECEC;font-size:14.5px}
+.tn-ul time{font-weight:700;white-space:nowrap}
+.tn-sh{margin:10px 0 0;padding:8px 12px;background:#FFF4D6;border:1px solid #F2B72E;border-radius:10px;font-size:14px}
+.tn-in{width:110px;min-height:40px;text-align:right}
+.tn-tab td,.tn-tab th{vertical-align:middle}
+.tn-pgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:10px;align-items:start}
+.tn-pgrid>.card:nth-child(3){grid-column:2;grid-row:1 / span 2}
+.tn-hr{display:grid;grid-template-columns:90px minmax(0,1fr) minmax(0,1fr) auto;gap:8px;align-items:end;margin:0 0 8px}
+.tn-trs{display:grid;gap:6px}
+.tn-tr{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;gap:8px;align-items:end}
+.tn-pie{grid-column:1 / -1;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.tn-ped{margin:0}
+@media (max-width:900px){.tn-grid,.tn-pgrid{grid-template-columns:minmax(0,1fr)}.tn-pgrid>.card:nth-child(3){grid-column:auto;grid-row:auto}.tn-par{margin-left:0}.tn-ap{margin-left:0}}
+@media (max-width:559px){.tn-t{min-width:0;flex:1 1 40%}.tn-hr{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.tn-hr b{grid-column:1 / -1}.tn-f{max-width:none;flex:1}}
+
+.tn-bono>*{min-width:0}.tn-panel,.tn-panel .card,.tn-panel .tw{min-width:0;max-width:100%}
+@media (max-width:559px){.tn-bono{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.tn-bono>.stat{grid-column:1 / -1;width:auto}.tn-bono>.tn-ap{grid-column:1 / -1}.tn-t{min-width:0}.tn-hor{flex:1 1 100%}.tn-tab{min-width:0!important;width:100%}.tn-tab thead{display:none}.tn-tab,.tn-tab tbody,.tn-tab tfoot,.tn-tab tr,.tn-tab td{display:block;width:100%;min-width:0;box-sizing:border-box}.tn-tab tr{border-top:1px solid #E3E1E1;padding:6px 0}.tn-tab td{display:flex;justify-content:space-between;align-items:baseline;gap:10px;text-align:right;border:0;padding:2px 4px}.tn-tab td::before{content:attr(data-l);font-weight:600;color:#5E5E5E;text-align:left;flex:0 0 auto}.tn-tab td:first-child{text-align:left;justify-content:flex-start}.tn-tab td:first-child::before,.tn-tab td:not([data-l])::before{content:none}.tn-tab tr.tsum td:empty{display:none}.tn-in{width:120px}}
+.tn-bono>.stat{flex:0 0 auto;min-width:230px;width:auto;margin:0}

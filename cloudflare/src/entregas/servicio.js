@@ -22,7 +22,7 @@ export async function verAjustes(db) {
   const fila = await R.leerAjustes(db), a = E.normalizarAjustes(fila);
   return {...a, faltantes: E.ajustesFaltantes(a), actualizado_ts: fila ? fila.actualizado_ts : null, actualizado_rol: fila ? fila.actualizado_rol : null};
 }
-/* Guardar los ajustes: src/precios/servicio.js (cambiarAjustesCredito). El Dueño rige de una vez; Administración deja un cambio pendiente de aprobar. */
+/* Guardar los ajustes: src/precios/servicio.js (cambiarAjustesCredito). El Gerente rige de una vez; Administración deja un cambio pendiente de aprobar. */
 
 /* ---------- Temporizador de un documento (lo que usan Cobranza, el portal y la liquidación) ---------- */
 export async function temporizadorDe(db, idDoc, ahora = Date.now(), ajustes) {
@@ -55,7 +55,7 @@ const fmtEntrega = e => ({id: e.id, id_documento: e.id_documento, nro: nroDoc(e)
 
 const fmtLlegadaCorta = l => l ? {id: l.id, recibidos: l.bultos_recibidos, despachados: l.bultos_despachados, coincide: l.coincide == null ? null : !!l.coincide, foto_ts: l.foto_ts} : null;
 export async function subirEntrega(ctx, b) {
-  exigir(ctx, 'subir', 'Tu rol no sube fotos de entrega: lo hacen Despachos, el Jefe de producción y el Dueño.');
+  exigir(ctx, 'subir', 'Tu rol no sube fotos de entrega: lo hacen Despachos, el Jefe de producción y el Gerente.');
   const {db} = ctx, ahora = Date.now(), id = +b.id_documento;
   if (!Number.isInteger(id) || id <= 0) throw err(400, 'Elige la factura o nota de entrega.');
   const msg = E.validarFoto(b.foto, b.mini); if (msg) throw err(400, msg);
@@ -101,7 +101,7 @@ export async function sinVerificar(ctx) {
   return filas.map(d => ({id_documento: d.id_documento, nro: nroDoc(d), tipo: d.tipo_origen, cliente: d.razon_social, rif: d.rif_id, fecha_emision: d.fecha_emision, dias_sin_foto: VD.diasEntre(d.fecha_emision, hoy), total: dol(d.total_cents), ultima: d.ultima, motivo: d.ultimo_motivo}));
 }
 export async function resolverEntrega(ctx, id, accion, motivo) {
-  exigir(ctx, 'confirmar', 'Confirmar o rechazar una entrega lo hace el Jefe de producción o el Dueño.');
+  exigir(ctx, 'confirmar', 'Confirmar o rechazar una entrega lo hace el Jefe de producción o el Gerente.');
   const e = await R.entregaPorId(ctx.db, id); if (!e) throw err(404, 'Entrega no encontrada.');
   if (accion === 'confirmar') {
     if (e.estado !== 'SUBIDA') throw err(409, 'Esta entrega ya no está por confirmar.');
@@ -117,7 +117,7 @@ export async function resolverEntrega(ctx, id, accion, motivo) {
 /* ---------- Cobranza: plazos, avisos y reclamos ---------- */
 const publicoTemp = t => ({estado: t.estado, tramo: t.tramo, dias: t.dias, dias_vencida: t.dias_vencida, restante_ms: t.restante_ms, vence_ts: t.vence_ts, descuento_pct: t.descuento_pct, recargo_pct: t.recargo_pct, aplica_ajuste: t.aplica_ajuste, pausada: t.pausada, caso: t.caso});
 export async function plazos(ctx, ahora = Date.now()) {
-  exigir(ctx, 'verCobranza', 'Esta pantalla es de Cobranza, Administración, Ventas y el Dueño.');
+  exigir(ctx, 'verCobranza', 'Esta pantalla es de Cobranza, Administración, Ventas y el Gerente.');
   const [filas, aj] = await Promise.all([R.conEntrega(ctx.db), R.leerAjustes(ctx.db)]);
   const pausas = await R.pausasDe(ctx.db, filas.map(f => f.id_documento)), porDoc = new Map();
   for (const p of pausas) (porDoc.get(p.id_documento) || porDoc.set(p.id_documento, []).get(p.id_documento)).push(p);
@@ -131,12 +131,12 @@ export async function plazos(ctx, ahora = Date.now()) {
     resumen: {tramo1: cuenta('TRAMO1'), tramo2: cuenta('TRAMO2'), vencidas: cuenta('VENCIDA'), pausadas: cuenta('PAUSADA'), sin_verificar: sv.length}};
 }
 export async function listarDisputas(ctx, estado) {
-  exigir(ctx, 'verCobranza', 'Esta pantalla es de Cobranza, Administración, Ventas y el Dueño.');
+  exigir(ctx, 'verCobranza', 'Esta pantalla es de Cobranza, Administración, Ventas y el Gerente.');
   return (await R.listarDisputas(ctx.db, estado === 'ABIERTA' || estado === 'RESUELTA' ? estado : null)).map(x => ({id: x.id, id_documento: x.id_documento, nro: nroDoc(x), cliente: x.razon_social, rif: x.rif_id, total: dol(x.total_cents), estado: x.estado, nota_cliente: x.nota_cliente, creado_ts: x.creado_ts,
     resuelto_ts: x.resuelto_ts, resuelto_rol: x.resuelto_rol, resolucion: x.resolucion, nota_resolucion: x.nota_resolucion}));
 }
 export async function resolverDisputa(ctx, id, {resolucion, nota}) {
-  exigir(ctx, 'cobranza', 'Resolver reclamos lo hace Cobranza, Administración o el Dueño.');
+  exigir(ctx, 'cobranza', 'Resolver reclamos lo hace Cobranza, Administración o el Gerente.');
   if (!['ENTREGA_VALIDA', 'NO_ENTREGADA'].includes(resolucion)) throw err(400, 'Elige cómo se resuelve el reclamo.');
   const n = txt(nota, 300); if (n.length < 3) throw err(400, 'Escribe una nota de la resolución.');
   const x = await R.disputaPorId(ctx.db, id); if (!x) throw err(404, 'Reclamo no encontrado.');

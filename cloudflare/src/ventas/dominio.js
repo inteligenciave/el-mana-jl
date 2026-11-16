@@ -32,7 +32,7 @@ export function preciosProducto(prod, regla, lp) {
    A = Lara, Trujillo, Yaracuy. B = Capital, Miranda, Aragua, Carabobo, Oriente. Sin zona reconocida: null (hay que completarla). */
 const sinTildes = t => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase();
 /* Zona de venta = ESTADO de Venezuela. El cliente elige el estado; la zona (Oriente, Capital…) y la lista (A/B) salen de él.
-   El mapa estado → lista vive en la tabla estados_lista (el Dueño asigna lista a un estado nuevo); estos valores son los de partida. */
+   El mapa estado → lista vive en la tabla estados_lista (el Gerente asigna lista a un estado nuevo); estos valores son los de partida. */
 export const ESTADOS = ['Amazonas', 'Anzoátegui', 'Apure', 'Aragua', 'Barinas', 'Bolívar', 'Carabobo', 'Cojedes', 'Delta Amacuro', 'Distrito Capital', 'Falcón', 'Guárico', 'Lara', 'Mérida', 'Miranda', 'Monagas', 'Nueva Esparta', 'Portuguesa', 'Sucre', 'Táchira', 'Trujillo', 'Vargas', 'Yaracuy', 'Zulia'];
 export const LISTA_INICIAL = {Lara: 'A', Trujillo: 'A', Yaracuy: 'A', 'Distrito Capital': 'B', Miranda: 'B', Aragua: 'B', Carabobo: 'B', Anzoátegui: 'B', Monagas: 'B', Sucre: 'B', Mérida: 'B', 'Nueva Esparta': 'B'};
 let MAPA = {...LISTA_INICIAL};
@@ -45,7 +45,7 @@ export const listaDeEstado = e => { const n = estadoReal(e); return n && MAPA[n]
 export const listaRegional = e => { const l = listaDeEstado(e); return l === 'A' || l === 'B' ? l : null; };   // columna de referencia (solo A/B)
 export const listaDeCliente = cli => listaDeEstado(cli && cli.zona);   // cli.zona guarda el ESTADO
 export const MSG_ELEGIR_ZONA = 'Elige el estado del cliente: de ahí sale su lista de precios.';
-export const MSG_SIN_LISTA_ESTADO = 'Todavía no hay lista de precios para este estado. Pídele al Dueño que la asigne.';
+export const MSG_SIN_LISTA_ESTADO = 'Todavía no hay lista de precios para este estado. Pídele al Gerente que la asigne.';
 export const MSG_SIN_LISTA = MSG_ELEGIR_ZONA + ' Hasta entonces no se le puede vender.';
 export const mensajeSinLista = cli => estadoReal(cli && cli.zona) ? MSG_SIN_LISTA_ESTADO : MSG_ELEGIR_ZONA;
 export const MSG_FALTA_ENVIO = 'Falta zona/dirección de entrega';
@@ -178,7 +178,7 @@ export const tieneUnidadesBulto = p => !!p && p.unidades_por_bulto != null && Nu
 export const bultoCompleto = p => tienePesoBulto(p) && tieneUnidadesBulto(p);
 /* qué datos de bulto faltan: 'kg por bulto', 'unidades por bulto' o ambos; '' si está completo */
 export const faltaBulto = p => [tienePesoBulto(p) ? '' : 'kg por bulto', tieneUnidadesBulto(p) ? '' : 'unidades por bulto'].filter(Boolean).join(' y ');
-export const MSG_SIN_PESO = (nombre, falta = 'kg por bulto y unidades por bulto') => `«${nombre}» no se puede vender: le falta ${falta}. El Dueño o Administración debe completarlo en Productos e inventario.`;
+export const MSG_SIN_PESO = (nombre, falta = 'kg por bulto y unidades por bulto') => `«${nombre}» no se puede vender: le falta ${falta}. El Gerente o Administración debe completarlo en Productos e inventario.`;
 
 /* ---------- Validación de un pedido ---------- */
 export function validarPedido(lineas) {

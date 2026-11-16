@@ -29,10 +29,10 @@ export const stCambio = (db, c) => bind(db, "INSERT INTO cambios_precio (tipo, c
 /* Reclamar el cambio: solo uno gana aunque lleguen dos resoluciones a la vez (la segunda no encuentra nada «pendiente») */
 export const reclamar = (db, id, estado, rol, motivo) => run(db, "UPDATE cambios_precio SET estado = ?2, resuelto_rol = ?3, resuelto_ts = ?4, motivo = ?5 WHERE id = ?1 AND estado = 'PENDIENTE'", [id, estado, rol, Date.now(), motivo || null]);
 export const soltar = (db, id, estado) => run(db, 'UPDATE cambios_precio SET estado = \'PENDIENTE\', resuelto_rol = NULL, resuelto_ts = NULL, motivo = NULL WHERE id = ?1 AND estado = ?2', [id, estado]);
-/* Si el Dueño fija el valor directamente, el cambio pendiente de esa misma cosa queda sin efecto */
+/* Si el Gerente fija el valor directamente, el cambio pendiente de esa misma cosa queda sin efecto */
 export const stCerrarPendiente = (db, clave, rolTxt, motivo) => bind(db, "UPDATE cambios_precio SET estado = 'RECHAZADO', resuelto_rol = ?2, resuelto_ts = ?3, motivo = ?4 WHERE clave = ?1 AND estado = 'PENDIENTE'", [clave, rolTxt, Date.now(), motivo]);
 
-/* Aplicar el valor nuevo (lo mismo que hace un cambio directo del Dueño) */
+/* Aplicar el valor nuevo (lo mismo que hace un cambio directo del Gerente) */
 export const stPrecioProducto = (db, id, cents) => bind(db, 'UPDATE productos SET precio_ref_cents = ?2 WHERE id_producto = ?1', [id, cents]);
 export const stPrecioLista = (db, id, lista, mod, cents) => bind(db, `UPDATE precios_lista SET ${mod === 'contado' ? 'contado_cents' : 'credito_cents'} = ?3, actualizado_ts = ?4 WHERE id_producto = ?1 AND lista = ?2`, [id, lista, cents, Date.now()]);
 export const stUpsertRegla = VR.stUpsertRegla;

@@ -1,5 +1,5 @@
 /* Flota · casos de uso. No conoce HTTP. Todos los puestos válidos ven los vehículos ACTIVOS y los choferes (para elegir al despachar);
-   solo el Dueño y Administración agregan, editan o cambian el estado, y solo ellos ven los que no están activos. */
+   solo el Gerente y Administración agregan, editan o cambian el estado, y solo ellos ven los que no están activos. */
 import * as F from './dominio.js';
 import * as R from './repo.js';
 import {ROL_TXT} from '../ventas/permisos.js';

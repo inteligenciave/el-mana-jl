@@ -1,4 +1,4 @@
-/* Clientes, catálogo, vendedores y ajustes del módulo. Lo que define dinero (precios, plazos, límites, comisiones, numeración fiscal, PIN) lo edita solo el Dueño. */
+/* Clientes, catálogo, vendedores y ajustes del módulo. Lo que define dinero (precios, plazos, límites, comisiones, numeración fiscal, PIN) lo edita solo el Gerente. */
 const vVal = id => { const e = document.getElementById(id); return e ? e.value : ''; };
 const vDec = id => { const s = vVal(id); if (s.trim() === '') return ''; const n = vNum(s); return Number.isNaN(n) ? NaN : n; };
 const vFld = (id, t, v, o = {}) => `<label class="fld">${t}<input type="${o.type || 'text'}" id="${id}" value="${esc(v ?? '')}" ${o.ph ? `placeholder="${esc(o.ph)}"` : ''} ${o.max ? `maxlength="${o.max}"` : ''} ${o.inputmode ? `inputmode="${o.inputmode}"` : ''} ${o.dis ? 'disabled' : ''}>${o.sm ? `<small>${o.sm}</small>` : ''}</label>`;
@@ -7,7 +7,7 @@ const vFld = (id, t, v, o = {}) => `<label class="fld">${t}<input type="${o.type
 async function vAdmClientes() { try { V.adm.clientes = await vApi('GET', '/clientes?limite=500'); } catch (e) { vErr(e); V.adm.clientes = []; } render(); }
 function vClienteModal(c) {
   const dueno = lvl('v-clientes') >= 3, nuevo = !c; c = c || {modalidad_despacho_pref: 'NOTA_ENTREGA'};
-  const cond = dueno ? `<h3 class="v-h3">Condiciones comerciales (las define el Dueño)</h3><div class="row2">${vFld('vc-desc', 'Descuento fijo (%)', c.descuento_fijo_pct, {inputmode: 'decimal', ph: 'ninguno'})}${vFld('vc-lim', 'Límite de crédito ($)', c.limite_credito_cents == null ? '' : c.limite_credito_cents / 100, {inputmode: 'decimal', ph: 'sin límite'})}</div>
+  const cond = dueno ? `<h3 class="v-h3">Condiciones comerciales (las define el Gerente)</h3><div class="row2">${vFld('vc-desc', 'Descuento fijo (%)', c.descuento_fijo_pct, {inputmode: 'decimal', ph: 'ninguno'})}${vFld('vc-lim', 'Límite de crédito ($)', c.limite_credito_cents == null ? '' : c.limite_credito_cents / 100, {inputmode: 'decimal', ph: 'sin límite'})}</div>
       <div class="row2">${vFld('vc-pp', 'Días de pronto pago', c.dias_pronto_pago, {inputmode: 'numeric', ph: 'sin definir', sm: 'Pagando hasta este día desde la emisión se aplica el precio de pronto pago.'})}${vFld('vc-cr', 'Días de crédito normal', c.dias_credito_normal, {inputmode: 'numeric', ph: 'sin definir', sm: 'Pasado este día se aplica el precio de mora.'})}</div>` : '';
   modal(nuevo ? 'Cliente nuevo' : 'Cliente: ' + vtxt(c.razon_social), `<div class="form">${vFld('vc-rs', 'Razón social o nombre', c.razon_social, {max: 150})}<div class="row2">${vFld('vc-rif', 'RIF o identificación', c.rif_id, {max: 20})}<label class="fld">Estado del cliente (obligatorio)<select id="vc-zona">${vZonaOpciones(c.zona)}</select></label></div>${vFld('vc-dir', 'Dirección de entrega', c.direccion_entrega, {max: 200})}<p class="hint" id="vc-lista-t">${vListaTxt(c.zona)}</p>
     <div class="row3"><label class="fld">Vendedor<select id="vc-vend"><option value="">Sin vendedor</option>${V.vendedores.map(v => `<option value="${v.id}" ${c.id_vendedor === v.id ? 'selected' : ''}>${vtxt(v.nombre)}</option>`).join('')}</select></label>
@@ -19,7 +19,7 @@ function vZonaOpciones(actual) {
   const real = VD.estadoReal(actual), op = n => { const l = VD.listaDeEstado(n); return '<option value="' + n + '" ' + (n === real ? 'selected' : '') + '>' + n + (l ? ' · Lista ' + esc(l) : ' · sin precios') + '</option>'; };
   const con = VD.ESTADOS.filter(n => VD.listaDeEstado(n)), sin = VD.ESTADOS.filter(n => !VD.listaDeEstado(n));
   return '<option value="">Elige el estado…</option>' + (actual && !real ? '<option value="' + esc(actual) + '" selected>' + esc(actual) + ' (no es un estado: elige otro)</option>' : '') +
-    '<optgroup label="Con lista de precios">' + con.map(op).join('') + '</optgroup><optgroup label="Sin precios (no se vende hasta que el Dueño asigne lista)">' + sin.map(op).join('') + '</optgroup>';
+    '<optgroup label="Con lista de precios">' + con.map(op).join('') + '</optgroup><optgroup label="Sin precios (no se vende hasta que el Gerente asigne lista)">' + sin.map(op).join('') + '</optgroup>';
 }
 const vListaTxt = est => { const e = VD.estadoReal(est); if (!e) return 'Estado · Zona · Lista: <b>falta elegir el estado</b>. De ahí sale la lista de precios.'; const l = VD.listaDeEstado(e);
   return 'Estado · Zona · Lista: <b>' + e + ' · ' + VD.zonaDeEstado(e) + ' · ' + (l ? 'Lista ' + esc(l) : 'sin precios') + '</b>' + (l ? '' : '<br><span class="v-alerta-i">' + VD.MSG_SIN_LISTA_ESTADO + '</span>'); };
@@ -111,7 +111,7 @@ async function vPesoGuardar(id) {
   catch (er) { e.textContent = er.message; e.hidden = false; }
 }
 function vEntradaModal(p) {
-  modal('Entrada de inventario: ' + vtxt(p.nombre) + ' ' + vtxt(p.gramaje || ''), `<div class="form"><p>Existencias actuales: <b>${N0.format(p.stock_entero)}</b> bultos. La producción entra sola al cerrar el turno; esto es solo para correcciones del Dueño.</p>
+  modal('Entrada de inventario: ' + vtxt(p.nombre) + ' ' + vtxt(p.gramaje || ''), `<div class="form"><p>Existencias actuales: <b>${N0.format(p.stock_entero)}</b> bultos. La producción entra sola al cerrar el turno; esto es solo para correcciones del Gerente.</p>
     <label class="fld">Bultos que entran (número entero)<input type="text" inputmode="numeric" class="v-int" id="ve-q" maxlength="7"></label>${vFld('ve-n', 'Motivo (obligatorio)', '', {max: 100, ph: 'Por qué se suman estos bultos'})}<p class="err" id="ve-e" role="alert" hidden></p>
     <div class="btnrow"><button type="button" class="btn pri" data-act="vEntradaGuardar" data-id="${p.id_producto}">Registrar entrada</button><button type="button" class="btn" data-act="closeModal">Cancelar</button></div></div>`);
   $('#ve-q').focus();

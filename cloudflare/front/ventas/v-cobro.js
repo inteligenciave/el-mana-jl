@@ -8,7 +8,7 @@ const vCasoChip = d => d.error ? `<span class="chip c-crit">${vtxt(d.error)}</sp
 /* La tasa la pone el servidor (BCV vigente en la fecha del pago): llega con las notas pendientes y aquí solo se lee. */
 const vCobTasa = () => { const t = vCob().prev && vCob().prev.tasa; return t && t.valor > 0 ? t.valor : NaN; };
 function vTasaAviso(t, fecha) {
-  if (!t) return `<p class="v-alerta">${ic('alert', 16)}No hay tasa BCV guardada para el ${vfecha(fecha)}: no se puede registrar el pago hasta que el Dueño o Administración consulten la tasa.</p>`;
+  if (!t) return `<p class="v-alerta">${ic('alert', 16)}No hay tasa BCV guardada para el ${vfecha(fecha)}: no se puede registrar el pago hasta que el Gerente o Administración consulten la tasa.</p>`;
   return `<p class="v-tasa"><b>Tasa BCV: ${N2.format(t.valor)} Bs por $ 1</b> <span class="muted">· rige para el ${vfecha(t.fecha)}${t.fecha < fecha ? ' (la última publicada hasta esa fecha)' : t.fecha > fecha ? ' (no hay tasa guardada del ' + vfecha(fecha) + ': se usa la más cercana)' : ''}</span></p>${t.respaldo ? `<p class="v-alerta v-aviso">${ic('alert', 16)}Usando la última tasa guardada, del día ${vfecha(t.fecha)}: la consulta al BCV falló.</p>` : ''}`;
 }
 function vCobUsd() {
@@ -27,7 +27,7 @@ function vCobDocs() {
   if (!pv.documentos.length) return '<p class="hint">Este cliente no tiene notas ni facturas pendientes de cobro.</p>';
   const hayMora = pv.documentos.some(d => d.caso === 3);
   const tabla = table([
-    {h: 'Nota / factura', f: d => `<button type="button" class="btn sm ghost" data-act="vVerDoc" data-id="${d.id_documento}">${vtxt(d.nro || '')}</button>`},
+    {h: 'Nota / factura', f: d => vCobEnModal ? `<b>${vtxt(d.nro || '')}</b>` : `<button type="button" class="btn sm ghost" data-act="vVerDoc" data-id="${d.id_documento}">${vtxt(d.nro || '')}</button>`},
     {h: 'Emisión', f: d => vfecha(d.fecha_emision)}, {h: 'Días', r: 1, f: d => d.dias ?? '—'},
     {h: 'Caso', f: d => vCasoChip(d)}, {h: 'Ruta', f: d => `<span class="v-ruta" title="${esc(vRutaTxt(d.ruta))}">${vtxt(d.ruta === 'SIN_DETALLE' ? 'Excel' : d.ruta || '')}</span>`},
     {h: 'Documento emitido al cobrar', f: d => d.error ? '' : d.ruta === 'A' ? `Factura por ${vusd(d.final.total)}` : d.nota ? `${d.nota.tipo === 'NOTA_CREDITO' ? 'Nota de crédito' : 'Nota de débito'} por ${vusd(d.nota.total)}` : d.ruta === 'B' ? 'Sin ajuste' : '—'},
@@ -40,17 +40,17 @@ function vCobDocs() {
 async function vCobCargar() {
   const C = vCob(); if (!C.cid) return;
   try { C.prev = await vApi('GET', '/clientes/' + C.cid + '/pendientes' + vQS({fecha: C.fecha || vHoy(), exonerar: C.exonerar ? 1 : ''})); } catch (e) { vErr(e); C.prev = {documentos: []}; }
-  render();
+  vCobPintar();
 }
 async function vCobElegir(id) {
   const C = vCob();
   try { const r = await vApi('GET', '/clientes/' + id + '/precios'); C.cli = r.cliente; } catch (e) { return vErr(e); }
-  C.cid = id; C.prev = null; C.apl = {}; C.fecha = C.fecha || vHoy(); render(); vCobCargar();
+  C.cid = id; C.prev = null; C.apl = {}; C.fecha = C.fecha || vHoy(); vCobPintar(); vCobCargar();
 }
-function scrCobro() {
-  return vPantalla(() => {
-    const C = vCob(), hoy = vHoy(), retro = C.fecha && C.fecha < hoy;
-    const form = !C.cli ? '' : `<div class="form v-pago"><div class="row3"><label class="fld">Fecha del pago<input type="date" data-act-change="vCobFecha" value="${esc(C.fecha || hoy)}" max="${hoy}"></label>
+/* Formulario del pago: lo usan la pantalla «Cobrar y liquidar» y la ventana de cobro de «Quién debe» */
+function vCobForm() {
+  const C = vCob(), hoy = vHoy(), retro = C.fecha && C.fecha < hoy;
+  return !C.cli ? '' : `<div class="form v-pago"><div class="row3"><label class="fld">Fecha del pago<input type="date" data-act-change="vCobFecha" value="${esc(C.fecha || hoy)}" max="${hoy}"></label>
       <label class="fld">Monto recibido (Bs)<input type="text" inputmode="decimal" class="v-dec" data-vk="cob.monto" value="${esc(C.monto)}" placeholder="0,00"></label>
       <div class="fld" id="v-tasa" aria-live="polite">${C.prev ? vTasaAviso(C.prev.tasa, C.fecha || hoy) : '<p class="hint">Consultando la tasa…</p>'}</div></div>
       <div class="row3">${vBancoCampo('cob', C, 'Banco de origen')}
@@ -59,6 +59,11 @@ function scrCobro() {
       ${retro ? `<p class="v-alerta v-pin">${ic('lock', 16)}La fecha es anterior a hoy: para registrar este pago el sistema pedirá el <b>PIN de gerencia</b> y quedará en la auditoría.</p>` : ''}
       <div id="v-res">${vCobResumenHTML()}</div>
       <div class="btnrow"><button type="button" class="btn pri" data-act="vCobrar" ${V.busy.cobrar ? 'disabled' : ''}>${ic('coins', 18)}Registrar pago</button></div></div>`;
+}
+function scrCobro() {
+  return vPantalla(() => {
+    const C = vCob(), hoy = vHoy();
+    const form = vCobForm();
     return `${vph('Ventas y liquidación · Fase 2', 'Cobrar y liquidar', 'Escribe el pago una sola vez. Verás qué caso corresponde por los días transcurridos y qué documento se emite.')}
     ${card('1 · Cliente', C.cli ? `<div class="v-cli-b"><div><p class="v-cli-n">${vtxt(C.cli.razon_social)}</p><p class="mono">${vtxt(C.cli.rif_id || 'sin RIF')} · debe ${vusd(C.cli.deuda_cents / 100)}</p></div><button type="button" class="btn sm ghost" data-act="vCobOtro">Cambiar cliente</button></div>` : vPicker('cob', null, C.q))}
     ${C.cli ? card('2 · Notas y facturas pendientes (al ' + vfecha(C.fecha || hoy) + ')', `<div id="v-docs">${vCobDocs()}</div>`, {}) : ''}
@@ -93,7 +98,7 @@ async function vCobEnviar(pin) {
     else if (e.info && (e.info.codigo === 'PIN' || e.info.codigo === 'PIN_REQUERIDO') && pin) throw e;
     else if (e.info && (e.info.codigo === 'PIN' || e.info.codigo === 'PIN_REQUERIDO')) vCobPedirPin(e.message, p => vCobEnviar(p));
     else if (pin) throw e; else vErr(e);
-  } finally { delete V.busy.cobrar; render(); }
+  } finally { delete V.busy.cobrar; vCobPintar(); }
 }
 function vCobDuplicado(e) {
   const x = e.info.existente || {};
@@ -107,4 +112,25 @@ function vCobExito(r) {
   const av = r.avisos.map(a => `<p class="v-alerta">${ic('alert', 16)}${vtxt(a.mensaje)} (recibo ${vtxt(a.existente.recibo)}, ${vbs(a.existente.monto_bs)})</p>`).join('');
   modal('Pago registrado', `<div class="form"><p><b>${vtxt(r.recibo)}</b> · ${vusd(r.usd)} · aplicado ${vusd(r.aplicado)}${r.sin_aplicar > 0 ? ` · saldo a favor sin aplicar ${vusd(r.sin_aplicar)}` : ''}</p>${av}${liq ? `<ul class="list">${liq}</ul>` : ''}
     <div class="btnrow"><button type="button" class="btn pri" data-act="vVerPago" data-id="${r.id_pago}">${ic('print', 16)}Ver e imprimir el recibo</button><button type="button" class="btn" data-act="closeModal">Seguir cobrando</button></div></div>`);
+}
+
+/* ---------- Cobro en ventana (desde «Quién debe»): misma lógica y mismas reglas, sin salir de la pantalla ---------- */
+let vCobEnModal = false;
+const vCobPintar = () => { if (document.querySelector('#modal .v-cm')) vCobModalPintar(); else render(); };
+function vCobModalPintar() {
+  const C = vCob(), caja = document.querySelector('#modal .mbox'), cuerpo = document.querySelector('#modal .mbox-b'); if (!caja || !cuerpo) return;
+  const top = caja.scrollTop, a = document.activeElement, sel = a && a.closest && a.closest('#modal') && (a.dataset.vk ? '[data-vk="' + a.dataset.vk + '"]' : a.dataset.apl ? '[data-apl="' + a.dataset.apl + '"]' : null), pos = sel && a.selectionStart;
+  vCobEnModal = true;
+  try {
+    const t = document.getElementById('mt'); if (t) t.textContent = C.cli ? 'Registrar cobro · ' + C.cli.razon_social : 'Registrar cobro';
+    cuerpo.innerHTML = `<div class="v-cm">${!C.cli ? '<p class="hint">Cargando…</p>' : `<p class="v-cm-deb">Debe <b>${vusd(C.cli.deuda_cents / 100)}</b></p>
+      <h3 class="v-h3">Notas y facturas pendientes</h3><div id="v-docs">${vCobDocs()}</div><h3 class="v-h3">Datos del pago</h3>${vCobForm()}`}</div>`;
+  } finally { vCobEnModal = false; }
+  caja.scrollTop = top;
+  if (sel) { const n = cuerpo.querySelector(sel); if (n) { n.focus(); try { n.setSelectionRange(pos, pos); } catch (e) { /* no admite cursor */ } } }
+}
+function vCobAbrirModal(id) {
+  const C = vCob(); if (C.cid !== id) { V.cob = null; }
+  modal('Registrar cobro', '<div class="v-cm"><p class="hint">Cargando…</p></div>');
+  vCobElegir(id);
 }

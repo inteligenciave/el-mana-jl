@@ -1,6 +1,6 @@
 /* Cambios de precio · casos de uso. No conoce HTTP.
-   Dueño: el cambio rige de una vez y queda en la auditoría. Administración: queda un cambio PENDIENTE y el valor anterior sigue vigente
-   (las ventas no se tocan: leen los mismos precios de siempre) hasta que el Dueño lo apruebe o lo rechace. */
+   Gerente: el cambio rige de una vez y queda en la auditoría. Administración: queda un cambio PENDIENTE y el valor anterior sigue vigente
+   (las ventas no se tocan: leen los mismos precios de siempre) hasta que el Gerente lo apruebe o lo rechace. */
 import * as P from './dominio.js';
 import * as R from './repo.js';
 import * as E from '../entregas/dominio.js';
@@ -23,12 +23,12 @@ function modoOExigir(ctx) {
 async function guardarPendiente(ctx, c, auditoria) {
   try { await R.lote(ctx.db, [R.stCambio(ctx.db, {...c, pedido_rol: rolTxt(ctx)}), ...auditoria]); }
   catch (e) {
-    if (/UNIQUE/i.test(String((e && e.message) || e))) throw err(409, 'Ya hay un cambio de precio de esto esperando la respuesta del Dueño. Espera a que lo apruebe o lo rechace antes de pedir otro.', {codigo: 'YA_PENDIENTE'});
+    if (/UNIQUE/i.test(String((e && e.message) || e))) throw err(409, 'Ya hay un cambio de precio de esto esperando la respuesta del Gerente. Espera a que lo apruebe o lo rechace antes de pedir otro.', {codigo: 'YA_PENDIENTE'});
     throw e;
   }
 }
 const SIN_CAMBIOS = {estado: 'SIN_CAMBIOS', mensaje: 'No hay nada que cambiar: el valor es el mismo.'};
-const PENDIENTE = {estado: 'PENDIENTE', mensaje: 'Cambio de precio enviado al Dueño para aprobar. Mientras tanto sigue vigente el precio anterior.'};
+const PENDIENTE = {estado: 'PENDIENTE', mensaje: 'Cambio de precio enviado al Gerente para aprobar. Mientras tanto sigue vigente el precio anterior.'};
 
 /* ---------- a) Precio por bulto de una lista (A/B) y modalidad (contado/crédito) ---------- */
 export async function listasPrecios(ctx) {
@@ -44,8 +44,8 @@ export async function listasPrecios(ctx) {
   return {productos: [...por.values()], listas, estados};
 }
 async function estadosDeLista(db, lista) { const m = await R.leerEstadosLista(db); return Object.keys(m).filter(e => m[e] === lista).sort(); }
-const soloDueno = ctx => { if (ctx.rol !== 'dueno') throw err(403, 'Solo el Dueño asigna listas de precios a los estados.'); };
-/* El Dueño apunta un estado a una lista que ya existe (o lo deja sin precios con lista = null) */
+const soloDueno = ctx => { if (ctx.rol !== 'dueno') throw err(403, 'Solo el Gerente asigna listas de precios a los estados.'); };
+/* El Gerente apunta un estado a una lista que ya existe (o lo deja sin precios con lista = null) */
 export async function asignarListaEstado(ctx, b) {
   soloDueno(ctx); b = b || {};
   const estado = VD.estadoReal(b.estado); if (!estado) throw err(400, 'Elige un estado de Venezuela.');
@@ -56,7 +56,7 @@ export async function asignarListaEstado(ctx, b) {
   await R.lote(ctx.db, [R.stEstadoLista(ctx.db, estado, lista), ...audit(ctx, 'precio', estado, 'Estado ' + estado, lista ? 'asignó la lista ' + lista : 'dejó el estado sin lista de precios', {antes, despues: lista})]);
   return {estado: 'APLICADO', mensaje: lista ? `${estado} ahora usa la lista ${lista}. Las ventas ya emitidas no cambian.` : `${estado} quedó sin precios: no se vende hasta que le asignes una lista.`};
 }
-/* El Dueño le da precios propios a un estado: se crea una lista nueva copiando otra y el estado pasa a usarla */
+/* El Gerente le da precios propios a un estado: se crea una lista nueva copiando otra y el estado pasa a usarla */
 export async function darPreciosPropios(ctx, b) {
   soloDueno(ctx); b = b || {};
   const estado = VD.estadoReal(b.estado); if (!estado) throw err(400, 'Elige un estado de Venezuela.');
@@ -80,7 +80,7 @@ export async function cambiarPrecioLista(ctx, b) {
   const nombre = `${nomProd(p)} · lista ${b.lista}`, clave = P.claveLista(id, b.lista, b.modalidad), campos = {[campo]: {antes, despues: v.cents}};
   const det = {lista: b.lista, modalidad: b.modalidad, antes: antes / 100}, que = b.modalidad === 'contado' ? 'de contado' : 'a crédito';
   if (modo === 'directo') {
-    await R.lote(ctx.db, [R.stPrecioLista(ctx.db, id, b.lista, b.modalidad, v.cents), R.stCerrarPendiente(ctx.db, clave, rolTxt(ctx), 'El Dueño fijó el precio directamente.'),
+    await R.lote(ctx.db, [R.stPrecioLista(ctx.db, id, b.lista, b.modalidad, v.cents), R.stCerrarPendiente(ctx.db, clave, rolTxt(ctx), 'El Gerente fijó el precio directamente.'),
       ...audit(ctx, 'precio', p.codigo_sku, nombre, `cambió el precio ${que} por bulto`, {...det, despues: v.cents / 100})]);
     return {estado: 'APLICADO', mensaje: 'Precio cambiado: ya rige.', estados_afectados: await estadosDeLista(ctx.db, b.lista)};
   }
@@ -108,7 +108,7 @@ export async function cambiarPreciosCliente(ctx, idCliente, reglas) {
   const resumen = items.map(i => ({producto: i.nombre, cambios: Object.fromEntries(Object.entries(i.campos).map(([k, v]) => [k, {antes: v.antes, despues: v.despues}]))}));
   if (modo === 'directo') {
     await R.lote(ctx.db, [...items.map(i => i.regla ? R.stUpsertRegla(ctx.db, idCliente, i.regla) : R.stBorrarRegla(ctx.db, idCliente, i.id)),
-      R.stCerrarPendiente(ctx.db, clave, rolTxt(ctx), 'El Dueño fijó los precios directamente.'),
+      R.stCerrarPendiente(ctx.db, clave, rolTxt(ctx), 'El Gerente fijó los precios directamente.'),
       ...audit(ctx, 'precio', idCliente, cli.razon_social, 'cambió precios especiales del cliente', {productos: items.length, cambios: resumen})]);
     return {estado: 'APLICADO', mensaje: 'Precios del cliente cambiados: ya rigen.', reglas: await R.reglasDeCliente(ctx.db, idCliente)};
   }
@@ -126,7 +126,7 @@ export async function cambiarAjustesCredito(ctx, b) {
   if (!Object.keys(campos).length) return SIN_CAMBIOS;
   const titulo = 'Plazos y porcentajes de crédito';
   if (modo === 'directo') {
-    await R.lote(ctx.db, [R.stAjustes(ctx.db, v.ajustes, rolTxt(ctx)), R.stCerrarPendiente(ctx.db, P.CLAVE_CREDITO, rolTxt(ctx), 'El Dueño fijó los ajustes directamente.'),
+    await R.lote(ctx.db, [R.stAjustes(ctx.db, v.ajustes, rolTxt(ctx)), R.stCerrarPendiente(ctx.db, P.CLAVE_CREDITO, rolTxt(ctx), 'El Gerente fijó los ajustes directamente.'),
       ...audit(ctx, 'ajustes_credito', 'Ajustes de crédito', titulo, 'cambió los ajustes de crédito', {antes: hoy, despues: v.ajustes})]);
     return {estado: 'APLICADO', mensaje: 'Ajustes guardados: ya rigen.'};
   }
@@ -160,7 +160,7 @@ export async function resolver(ctx, id, accion, motivo) {
   if (!P.puedeResolver(ctx.rol)) throw err(403, P.MSG_SOLO_DUENO);
   if (!['aprobar', 'rechazar'].includes(accion)) throw err(400, 'Acción no válida.');
   const c = await R.getCambio(ctx.db, id); if (!c) throw err(404, 'Cambio no encontrado.');
-  const ya = () => err(409, `Este cambio ya fue ${c.estado === 'APROBADO' ? 'aprobado' : 'rechazado'}${c.estado === 'PENDIENTE' ? '' : ' (' + (c.resuelto_rol || 'por el Dueño') + ')'}: no se puede resolver de nuevo.`, {codigo: 'YA_RESUELTO'});
+  const ya = () => err(409, `Este cambio ya fue ${c.estado === 'APROBADO' ? 'aprobado' : 'rechazado'}${c.estado === 'PENDIENTE' ? '' : ' (' + (c.resuelto_rol || 'por el Gerente') + ')'}: no se puede resolver de nuevo.`, {codigo: 'YA_RESUELTO'});
   if (c.estado !== 'PENDIENTE') throw ya();
   const estado = accion === 'aprobar' ? 'APROBADO' : 'RECHAZADO', mot = accion === 'rechazar' ? (txt(motivo, 200) || null) : null;
   const gana = await R.reclamar(ctx.db, id, estado, rolTxt(ctx), mot);                 // solo una resolución puede ganar

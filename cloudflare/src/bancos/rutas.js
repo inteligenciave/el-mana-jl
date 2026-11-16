@@ -1,6 +1,6 @@
 /* Bancos · rutas HTTP (/api/v/bancos/*), rol en x-rol.
-   GET /?todos=1   lista (todos los roles ven los activos; Dueño y Administración ven cuentas y desactivados)
-   POST /          crear · PUT /:id  editar · POST /:id/desactivar | /activar   (solo Dueño y Administración) */
+   GET /?todos=1   lista (todos los roles ven los activos; Gerente y Administración ven cuentas y desactivados)
+   POST /          crear · PUT /:id  editar · POST /:id/desactivar | /activar   (solo Gerente y Administración) */
 import * as S from './servicio.js';
 import {ROL_TXT} from '../ventas/permisos.js';
 

@@ -1,8 +1,8 @@
-/* Bancos de la empresa · pantalla de Administración (consulta para quien la ve; agregar, editar y desactivar solo Dueño y Administración).
+/* Bancos de la empresa · pantalla de Administración (consulta para quien la ve; agregar, editar y desactivar solo Gerente y Administración).
    La lista arranca vacía: no se carga ningún banco por nuestra cuenta. */
 const BK = {lista: null, cargando: false, busy: false, rol: null, filtro: 'activos'};
 const bkPuede = () => S.rol === 'dueno' || S.rol === 'adm';
-/* Bancos sugeridos: nombres frecuentes en Venezuela con número de cuenta de EJEMPLO (solo el código del banco; no es una cuenta real). Se agregan con un clic y el Dueño o Administración reemplaza el número. */
+/* Bancos sugeridos: nombres frecuentes en Venezuela con número de cuenta de EJEMPLO (solo el código del banco; no es una cuenta real). Se agregan con un clic y el Gerente o Administración reemplaza el número. */
 const BK_SUG = [['Banesco', '0134'], ['Banco de Venezuela', '0102'], ['Mercantil', '0105'], ['BBVA Provincial', '0108'], ['BNC', '0191'], ['Bancamiga', '0172'], ['Banplus', '0174'], ['Banco Bicentenario', '0175'], ['Banco del Tesoro', '0163'], ['Banco Exterior', '0115']].map(([nombre, cod]) => ({nombre, cuenta_numero: cod + '-0000-00-0000000000', cuenta_titular: 'EJEMPLO (reemplazar por el titular real)'}));
 const bkT = s => esc(s == null ? '' : s);
 async function bkApi(m, ruta, cuerpo) {
@@ -27,7 +27,7 @@ function scrBancos() {
   ${card('', ver.length ? table([{h: 'Banco', f: b => `<b>${bkT(b.nombre)}</b>`}, {h: 'Moneda de la cuenta', f: b => bkT(b.moneda_txt)}, {h: 'Número de cuenta', f: b => bkT(b.cuenta_numero) || '<span class="muted">sin cargar</span>'}, {h: 'Titular', f: b => bkT(b.cuenta_titular) || '<span class="muted">sin cargar</span>'},
     {h: 'Estado', f: b => b.activo ? '<span class="chip c-ok">Activo</span>' : '<span class="chip c-warn">Desactivado</span>'},
     ...(bkPuede() ? [{h: '', f: b => `<button type="button" class="btn sm" data-act="bkEditar" data-id="${b.id}">Editar</button> <button type="button" class="btn sm" data-act="bkActivo" data-id="${b.id}" data-v="${b.activo ? 0 : 1}">${b.activo ? 'Desactivar' : 'Activar'}</button>`}] : [])], ver)
-    : emptyState('Todavía no hay bancos cargados', bkPuede() ? 'Usa «Agregar banco» para cargar el primero.' : 'Pídele al Dueño o a Administración que los carguen.'))}`;
+    : emptyState('Todavía no hay bancos cargados', bkPuede() ? 'Usa «Agregar banco» para cargar el primero.' : 'Pídele al Gerente o a Administración que los carguen.'))}`;
 }
 function bkModal(id) {
   const b = id ? BK.lista.bancos.find(x => x.id === id) : {nombre: '', moneda: 'BS', cuenta_numero: '', cuenta_titular: ''}; if (!b) return;

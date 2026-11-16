@@ -1,7 +1,7 @@
 /* Compras · reglas puras (sin base de datos). «Hacer una compra»: pedido al proveedor eligiendo productos. */
 export const ROLES_COMPRAS = ['dueno', 'adm'];
 export const puedeComprar = rol => ROLES_COMPRAS.includes(rol);
-export const MSG_SIN_PERMISO = 'Solo Administración y el Dueño hacen compras.';
+export const MSG_SIN_PERMISO = 'Solo Administración y el Gerente hacen compras.';
 export const normFactura = s => String(s ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '');
 const fechaOk = s => typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s) && !isNaN(new Date(s + 'T00:00:00Z')) && new Date(s + 'T00:00:00Z').toISOString().slice(0, 10) === s;
 const num = v => (typeof v === 'number' || (typeof v === 'string' && v.trim() !== '')) ? Number(v) : NaN;

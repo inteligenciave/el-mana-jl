@@ -1,7 +1,7 @@
 /* Cambios de precio · reglas puras (sin base de datos, sin HTTP). Se inlinea también en la página (build.js quita `export`).
    Quién puede qué:
-   · Dueño: cambia y RIGE de una vez.
-   · Administración: PROPONE; queda pendiente y el valor anterior sigue vigente hasta que el Dueño apruebe.
+   · Gerente: cambia y RIGE de una vez.
+   · Administración: PROPONE; queda pendiente y el valor anterior sigue vigente hasta que el Gerente apruebe.
    · Cualquier otro rol: no puede colocar ni modificar precios. */
 export const ROLES_DIRECTO = ['dueno'];
 export const ROLES_PROPONE = ['adm'];
@@ -11,8 +11,8 @@ export const ROLES_VE = ['dueno', 'adm'];
 export const modoDe = rol => ROLES_DIRECTO.includes(rol) ? 'directo' : ROLES_PROPONE.includes(rol) ? 'pendiente' : null;
 export const puedeResolver = rol => ROLES_RESUELVE.includes(rol);
 export const puedeVerCambios = rol => ROLES_VE.includes(rol);
-export const MSG_SIN_PERMISO = 'Solo el Dueño y Administración pueden colocar o cambiar precios.';
-export const MSG_SOLO_DUENO = 'Solo el Dueño aprueba o rechaza cambios de precio.';
+export const MSG_SIN_PERMISO = 'Solo el Gerente y Administración pueden colocar o cambiar precios.';
+export const MSG_SOLO_DUENO = 'Solo el Gerente aprueba o rechaza cambios de precio.';
 
 export const TIPOS = {PRODUCTO: 'Precio por bulto', CLIENTE: 'Precios especiales por cliente', CREDITO: 'Plazos y porcentajes de crédito'};
 export const ESTADO_TXT = {PENDIENTE: 'Pendiente de aprobar', APROBADO: 'Aprobado', RECHAZADO: 'Rechazado'};
@@ -111,7 +111,7 @@ export const claveCliente = id => 'C:' + id;
 export const CLAVE_CREDITO = 'CRED';
 
 /* Listas de precios (A y B): precio por bulto de contado y a crédito. La clave es única por producto + lista + modalidad. */
-export const LISTAS = ['A', 'B'] /* listas de partida; el Dueño puede crear listas propias de un estado */, MODALIDADES = ['contado', 'credito'];
+export const LISTAS = ['A', 'B'] /* listas de partida; el Gerente puede crear listas propias de un estado */, MODALIDADES = ['contado', 'credito'];
 export const claveLista = (id, lista, mod) => 'L:' + id + ':' + lista + ':' + mod;
 export const campoLista = mod => 'lista_' + mod + '_cents';
 export function validarLista(lista, mod) {

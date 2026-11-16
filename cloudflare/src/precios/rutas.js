@@ -1,13 +1,13 @@
 /* Cambios de precio · rutas HTTP (/api/v/precios/*). El rol llega en x-rol, igual que en Ventas.
-   GET  /cambios?estado=PENDIENTE|APROBADO|RECHAZADO   lista (Dueño y Administración)
+   GET  /cambios?estado=PENDIENTE|APROBADO|RECHAZADO   lista (Gerente y Administración)
    GET  /pendientes                                   cuántos hay por aprobar
-   GET  /listas                                       tabla de precios por lista (Dueño y Administración)
+   GET  /listas                                       tabla de precios por lista (Gerente y Administración)
    PUT  /lista               {id_producto,lista,modalidad,precio}  precio por bulto de una lista (A/B) y modalidad (contado/credito)
-   PUT  /estado              {estado,lista|null}      Dueño: apunta un estado a una lista (o lo deja sin precios)
-   POST /estado/propios      {estado,copiar_de?}      Dueño: crea una lista propia para el estado copiando otra
+   PUT  /estado              {estado,lista|null}      Gerente: apunta un estado a una lista (o lo deja sin precios)
+   POST /estado/propios      {estado,copiar_de?}      Gerente: crea una lista propia para el estado copiando otra
    PUT  /cliente/:id         {reglas:[…]}             precios especiales del cliente
    PUT  /credito             {dias_tramo1,…}          plazos y porcentajes de crédito
-   POST /cambios/:id/aprobar | /rechazar {motivo?}    solo el Dueño */
+   POST /cambios/:id/aprobar | /rechazar {motivo?}    solo el Gerente */
 import * as S from './servicio.js';
 import {ROL_TXT} from '../ventas/permisos.js';
 

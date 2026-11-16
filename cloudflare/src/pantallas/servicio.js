@@ -1,4 +1,4 @@
-/* Funciones extra por rol · reglas. Solo el Dueño asigna. Esto no concede permisos: solo decide qué aparece en «Más opciones». */
+/* Funciones extra por rol · reglas. Solo el Gerente asigna. Esto no concede permisos: solo decide qué aparece en «Más opciones». */
 import * as R from './repo.js';
 import {ROL_TXT} from '../ventas/permisos.js';
 export const err = (status, message) => Object.assign(new Error(message), {status, message});
@@ -9,7 +9,7 @@ export async function leer(ctx) {
   return {extras: agrupar(ctx.rol === 'dueno' ? await R.listar(ctx.db) : await R.listarDe(ctx.db, ctx.rol))};
 }
 export async function asignar(ctx, rol, claves) {
-  if (ctx.rol !== 'dueno') throw err(403, 'Solo el Dueño puede asignar funciones extra.');
+  if (ctx.rol !== 'dueno') throw err(403, 'Solo el Gerente puede asignar funciones extra.');
   if (!ROL_TXT[rol] || rol === 'dueno') throw err(400, 'Ese puesto no admite funciones extra.');
   if (!Array.isArray(claves) || claves.length > 80 || claves.some(c => typeof c !== 'string' || !CLAVE.test(c))) throw err(400, 'La lista de funciones no es válida.');
   const nuevas = [...new Set(claves)].sort();

@@ -10,9 +10,9 @@ let n = 0; const ok = (cond, t) => { assert.ok(cond, t); n++; };
 
 // Permisos y ajustes
 ok((await v(null, 'GET', '/ajustes')).s === 401, 'sin rol = 401');
-let a = await v('dueno', 'GET', '/ajustes'); ok(a.j.dias_tramo1 === 7 && a.j.dias_tramo2 === 21, 'días 7/21 como datos del dueño');
+let a = await v('dueno', 'GET', '/ajustes'); ok(a.j.dias_tramo1 === 7 && a.j.dias_tramo2 === 21, 'días 7/21 como datos del Gerente');
 const aj0 = a.j; // se restaura al final
-ok((await v('cobranza', 'PUT', '/ajustes', {dias_tramo1: 7, dias_tramo2: 21})).s === 403, 'solo el Dueño cambia ajustes');
+ok((await v('cobranza', 'PUT', '/ajustes', {dias_tramo1: 7, dias_tramo2: 21})).s === 403, 'solo el Gerente cambia ajustes');
 ok((await v('dueno', 'PUT', '/ajustes', {dias_tramo1: 21, dias_tramo2: 7})).s === 400, 'tramo 2 debe ser mayor');
 ok((await v('dueno', 'PUT', '/ajustes', {dias_tramo1: 7, dias_tramo2: 21, descuento1_pct: 150})).s === 400, 'porcentaje fuera de rango');
 await v('dueno', 'PUT', '/ajustes', {dias_tramo1: 7, dias_tramo2: 21, descuento1_pct: '', descuento2_pct: '', recargo_mora_pct: ''});
@@ -39,7 +39,7 @@ const mi = await v('cobranza', 'GET', `/minis?ids=${e1.id}`); ok(mi.j[e1.id] ===
 // Hora real indicada: hace 8 días → tramo 2; hace 30 días (antes de emitir) → rechazado
 const hace = d => new Date(Date.now() - d * 864e5).toISOString();
 ok((await v('empaque', 'POST', '/', {id_documento: d2.id_documento, foto: JPG, fecha_hora: hace(30)})).s === 400, 'no puede ser anterior a la emisión');
-// Descuentos cargados por el Dueño
+// Descuentos cargados por el Gerente
 await v('dueno', 'PUT', '/ajustes', {dias_tramo1: 7, dias_tramo2: 21, descuento1_pct: 5, descuento2_pct: 2, recargo_mora_pct: 3});
 pz = await v('cobranza', 'GET', '/plazos'); const p1 = pz.j.documentos.find(x => x.id_documento === d1.id_documento);
 ok(p1.estado === 'TRAMO1' && p1.descuento_pct === 5 && Math.abs(p1.pagar_hoy - p1.saldo * 0.95) < 0.02, 'tramo 1: 5 % y pagar hoy con descuento');

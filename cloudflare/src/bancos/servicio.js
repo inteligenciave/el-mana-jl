@@ -1,5 +1,5 @@
 /* Bancos · casos de uso. No conoce HTTP. Cualquier rol con sesión ve la lista de bancos activos (para elegir en un cobro);
-   solo el Dueño y Administración ven los datos de cuenta y los desactivados, y solo ellos agregan, editan o desactivan. */
+   solo el Gerente y Administración ven los datos de cuenta y los desactivados, y solo ellos agregan, editan o desactivan. */
 import * as B from './dominio.js';
 import * as R from './repo.js';
 import {ROL_TXT} from '../ventas/permisos.js';

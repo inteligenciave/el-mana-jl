@@ -1,4 +1,4 @@
-/* Compras · casos de uso. «Hacer una compra»: Administración y Dueño registran el pedido al proveedor (estado PEDIDA);
+/* Compras · casos de uso. «Hacer una compra»: Administración y Gerente registran el pedido al proveedor (estado PEDIDA);
    Recepción lo ve como pendiente de recibir (solo lectura). No conoce HTTP. */
 import * as C from './dominio.js';
 import * as R from './repo.js';
@@ -12,7 +12,7 @@ const fila = (p, ls) => ({id: p.id, nro: p.nro, proveedor_id: p.proveedor_id, pr
   tasa: p.tasa, total_usd: p.total_usd_cents / 100, total_bs: p.total_bs_cents / 100, estado: p.estado, pide: ROL_TXT[p.rol] || p.rol, creado_ts: p.creado_ts,
   lineas: ls.filter(l => l.pedido_id === p.id).map(l => ({producto_id: l.producto_id, producto: l.producto_nombre, unidad: l.unidad, cantidad: l.cantidad, precio_usd: l.precio_usd, subtotal_usd: l.subtotal_cents / 100}))});
 
-/* Lista: Administración y Dueño ven todo; Recepción y Jefe de producción solo lo pendiente de recibir (sin precios ni banco). */
+/* Lista: Administración y Gerente ven todo; Recepción y Jefe de producción solo lo pendiente de recibir (sin precios ni banco). */
 export async function listar(ctx, estado) {
   const adm = C.puedeComprar(ctx.rol);
   if (!adm && ctx.rol !== 'recep' && ctx.rol !== 'jefeprod') throw err(403, C.MSG_SIN_PERMISO);

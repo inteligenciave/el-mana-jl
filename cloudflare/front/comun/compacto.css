@@ -1,4 +1,4 @@
-/* COMPACTO (pedido del dueño): menos espacio en blanco en computador. Va al FINAL de la hoja para ganar a las demás.
+/* COMPACTO (pedido del Gerente): menos espacio en blanco en computador. Va al FINAL de la hoja para ganar a las demás.
    Solo en pantalla ancha (>=1024px); el celular queda como estaba. Ajustar aquí las medidas, no pantalla por pantalla. */
 @media (min-width:1024px){
 :root{--cp-pad:10px;--cp-gap:8px;--cp-in:34px}

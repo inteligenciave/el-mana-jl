@@ -17,10 +17,10 @@ const exigir = (ctx, accion, msg) => { if (!puede(ctx.rol, accion)) throw err(40
 const hoy = () => VD.hoyVE();
 const auditar = (ctx, ref, nom, accion, detalle) => VS.audit(ctx, 'produccion', ref, nom, accion, detalle);
 
-/* ---------- Ajustes (solo el Dueño) ---------- */
+/* ---------- Ajustes (solo el Gerente) ---------- */
 export async function ajustes(db) { const a = await R.leerAjustes(db); return {meta_kg: a.meta, corte_ambar_kg: a.corteAmbar || null, tolerancia_kg: a.tolerancia || null, conteo_inicial_hecho: !!a.conteoInicialTs, herencia_desde_ts: a.herenciaDesde || null}; }
 export async function guardarAjustes(ctx, b) {
-  exigir(ctx, 'dueno', 'Solo el Dueño cambia la meta y los cortes.');
+  exigir(ctx, 'dueno', 'Solo el Gerente cambia la meta y los cortes.');
   const meta = D.validarAjuste(b.meta_kg, 'La meta'); if (!meta.ok || meta.valor === '') throw err(400, meta.ok ? 'La meta no puede quedar vacía.' : meta.msg);
   const amb = D.validarAjuste(b.corte_ambar_kg, 'El corte del semáforo'); if (!amb.ok) throw err(400, amb.msg);
   const tol = D.validarAjuste(b.tolerancia_kg, 'La tolerancia del cierre'); if (!tol.ok) throw err(400, tol.msg);
@@ -58,7 +58,7 @@ export async function zonaDetalle(db, zona) {
 
 /* ---------- Pausar zona ---------- */
 export async function pausar(ctx, zona, motivo) {
-  exigir(ctx, 'mover', 'Solo el Dueño y el Jefe de producción pausan una zona.');
+  exigir(ctx, 'mover', 'Solo el Gerente y el Jefe de producción pausan una zona.');
   const m = txt(motivo, 200); if (m.length < 3) throw err(400, 'Escribe el motivo de la pausa.');
   const z = txt(zona, 60); if (!z) throw err(400, 'Falta la zona.');
   if ((await R.pausasActivas(ctx.db)).some(p => p.zona === z)) throw err(409, 'Esa zona ya está pausada.');
@@ -66,7 +66,7 @@ export async function pausar(ctx, zona, motivo) {
   return {ok: true};
 }
 export async function reanudar(ctx, zona) {
-  exigir(ctx, 'mover', 'Solo el Dueño y el Jefe de producción reanudan una zona.');
+  exigir(ctx, 'mover', 'Solo el Gerente y el Jefe de producción reanudan una zona.');
   const z = txt(zona, 60);
   if (!(await R.pausasActivas(ctx.db)).some(p => p.zona === z)) throw err(409, 'Esa zona no está pausada.');
   await VS.enLote(ctx.db, [R.stReanudar(ctx.db, z, ROL_TXT[ctx.rol] || ctx.rol), ...auditar(ctx, z, 'Zona ' + z, 'reanudó la zona', {})]);
@@ -75,7 +75,7 @@ export async function reanudar(ctx, zona) {
 
 /* ---------- Salidas ---------- */
 export async function armarSalida(ctx, b) {
-  exigir(ctx, 'mover', 'Solo el Dueño y el Jefe de producción arman salidas.');
+  exigir(ctx, 'mover', 'Solo el Gerente y el Jefe de producción arman salidas.');
   const {db} = ctx, zona = txt(b.zona, 60); if (!zona) throw err(400, 'Falta la zona.');
   if (!Array.isArray(b.lineas) || !b.lineas.length) throw err(400, 'Elige qué pedidos salen.');
   if ((await R.pausasActivas(db)).some(p => p.zona === zona)) throw err(409, 'Esa zona está pausada: reanúdala para armar una salida.');
@@ -103,7 +103,7 @@ export async function armarSalida(ctx, b) {
   return {id_salida: id, nro, kilos: kilosSalida, divide, bajo_la_meta: aj.meta > 0 && kilosSalida < aj.meta};
 }
 export async function anularSalida(ctx, id) {
-  exigir(ctx, 'mover', 'Solo el Dueño y el Jefe de producción anulan salidas.');
+  exigir(ctx, 'mover', 'Solo el Gerente y el Jefe de producción anulan salidas.');
   const s = await R.getSalida(ctx.db, id); if (!s) throw err(404, 'Salida no encontrada.');
   if (s.estado !== 'ARMANDO') throw err(409, 'Esa salida ya no se puede anular.');
   await VS.enLote(ctx.db, [R.stSalidaAnulada(ctx.db, id), ...auditar(ctx, s.nro, 'Zona ' + s.zona, 'anuló la salida', {kilos: s.kilos})]);
@@ -118,7 +118,7 @@ export const listaSalidas = (db, estado) => R.listarSalidas(db, {estado});
 
 /* Cargar el camión: se cuenta lo que realmente subió. No puede ser más de lo armado; si es menos, motivo, y lo que faltó queda pendiente en el pedido. */
 export async function cargarSalida(ctx, id, b = {}) {
-  exigir(ctx, 'cargar', 'Solo Empaque y despacho, el Jefe de producción y el Dueño cuentan la carga.');
+  exigir(ctx, 'cargar', 'Solo Empaque y despacho, el Jefe de producción y el Gerente cuentan la carga.');
   const {db} = ctx, s = await R.getSalida(db, id); if (!s) throw err(404, 'Salida no encontrada.');
   if (s.estado !== 'ARMANDO') throw err(409, 'Esa salida ya fue despachada o anulada.');
   if (s.cargada_ts) throw err(409, 'Esa carga ya se contó. Si hubo un error, el Jefe de producción la rechaza y se cuenta de nuevo.');
@@ -149,7 +149,7 @@ export async function cargarSalida(ctx, id, b = {}) {
 
 /* Despachar: emite la nota o factura de lo que sale, baja apartado y existencias, y cierra la salida, todo en un solo lote. */
 export async function despachar(ctx, id, b = {}) {
-  exigir(ctx, 'mover', 'Solo el Dueño y el Jefe de producción despachan.');
+  exigir(ctx, 'mover', 'Solo el Gerente y el Jefe de producción despachan.');
   const {db} = ctx, s = await R.getSalida(db, id); if (!s) throw err(404, 'Salida no encontrada.');
   if (s.estado !== 'ARMANDO') throw err(409, 'Esa salida ya fue despachada o anulada.');
   if ((await R.pausasActivas(db)).some(p => p.zona === s.zona)) throw err(409, 'Esa zona está pausada: reanúdala para despachar.');
@@ -197,9 +197,9 @@ export async function detallePedido(db, id) {
   const lineas = await R.lineasDePedido(db, id);
   return {...p, pago_json: undefined, paga_ahora: !!p.pago_json, lineas: lineas.map(l => ({...l, pendiente: D.pendienteLinea(l), kilos: r3(l.bultos * l.kg_por_bulto)}))};
 }
-/* Solo el Dueño anula un pedido; libera los bultos apartados que faltaban por despachar */
+/* Solo el Gerente anula un pedido; libera los bultos apartados que faltaban por despachar */
 export async function anularPedido(ctx, id, motivo) {
-  exigir(ctx, 'dueno', 'Solo el Dueño anula pedidos.');
+  exigir(ctx, 'dueno', 'Solo el Gerente anula pedidos.');
   const m = txt(motivo, 200); if (m.length < 3) throw err(400, 'Escribe el motivo.');
   const p = await R.getPedido(ctx.db, id); if (!p) throw err(404, 'Pedido no encontrado.');
   if (!['PENDIENTE', 'PARCIAL'].includes(p.estado)) throw err(409, 'Ese pedido ya no se puede anular.');
@@ -226,7 +226,7 @@ export async function turnoActual(db) {
   return {turno: t ? await armarTurno(db, t) : null, productos: prods, ultimos: (await R.listarTurnos(db, 5)).filter(x => x.estado === 'CERRADO').map(x => ({id_turno: x.id_turno, fecha: x.fecha, cerrado_rol: x.cerrado_rol, cierre: x.cierre_json ? JSON.parse(x.cierre_json) : null}))};
 }
 export async function abrirTurno(ctx, b = {}) {
-  exigir(ctx, 'turno', 'Solo Producción y el Dueño llevan el turno.');
+  exigir(ctx, 'turno', 'Solo Producción y el Gerente llevan el turno.');
   if (await R.turnoAbierto(ctx.db)) throw err(409, 'Ya hay un turno abierto. Ciérralo antes de abrir otro.');
   try { await VS.enLote(ctx.db, [R.stAbrirTurno(ctx.db, hoy(), ROL_TXT[ctx.rol] || ctx.rol, txt(b.observaciones, 200)), ...auditar(ctx, 'turno', 'Turno ' + hoy(), 'abrió el turno', {})]); }
   catch (e) { if (/UNIQUE/i.test(String(e.message))) throw err(409, 'Ya hay un turno abierto.'); throw e; }
@@ -253,7 +253,7 @@ function motivoDe(b, msg, {exceso = false} = {}) {
 const VERBO = {lavado: 'lavar', fritado: 'freír', empacado: 'empacar'};
 
 export async function registrarMovimiento(ctx, b) {
-  exigir(ctx, 'turno', 'Solo Producción y el Dueño llevan el turno.');
+  exigir(ctx, 'turno', 'Solo Producción y el Gerente llevan el turno.');
   const {db} = ctx, t = await turnoAbiertoOError(db);
   if (!D.etapaValida(b.etapa)) throw err(400, 'Elige la etapa.');
   if (!['ENTRA', 'SALE'].includes(b.sentido)) throw err(400, 'Elige si entra o sale.');
@@ -287,7 +287,7 @@ export async function registrarMovimiento(ctx, b) {
   return turnoActual(db);
 }
 export async function registrarEmpaque(ctx, b) {
-  exigir(ctx, 'turno', 'Solo Producción y el Dueño llevan el turno.');
+  exigir(ctx, 'turno', 'Solo Producción y el Gerente llevan el turno.');
   const {db} = ctx, t = await turnoAbiertoOError(db);
   const n = D.validarBultos(b.bultos); if (!n.ok) throw err(400, n.msg);
   const p = await VR.getProducto(db, +b.id_producto); if (!p) throw err(404, 'Producto no encontrado.');
@@ -311,7 +311,7 @@ export async function registrarEmpaque(ctx, b) {
 /* Papa de recepciones validadas: el turno solo toma lo que se recibió y aún no usó otro turno */
 const REC_VALIDADAS = ['validado', 'compra', 'almacen'];
 export async function tomarRecepcion(ctx, b) {
-  exigir(ctx, 'turno', 'Solo Producción y el Dueño llevan el turno.');
+  exigir(ctx, 'turno', 'Solo Producción y el Gerente llevan el turno.');
   const {db} = ctx, t = await turnoAbiertoOError(db), id = txt(b.id_recepcion, 40);
   if (!id) throw err(400, 'Elige la recepción.');
   const k = D.validarKilos(b.kilos); if (!k.ok) throw err(400, k.msg);
@@ -364,7 +364,7 @@ function filasResolucion(db, t, etapa, etapaAnt, nombreAnt, kg, f, rol, ajusteAn
 }
 /* POST /turno/resolver-diferencia {etapa, faltante:'ANTERIOR'|'MERMA', id_motivo?, texto?}: resuelve lo que salió de la etapa anterior y no llegó a `etapa` */
 export async function resolverDiferencia(ctx, b = {}) {
-  exigir(ctx, 'turno', 'Solo Producción y el Dueño llevan el turno.');
+  exigir(ctx, 'turno', 'Solo Producción y el Gerente llevan el turno.');
   const {db} = ctx, t = await turnoAbiertoOError(db), i = D.ETAPAS.findIndex(e => e.k === b.etapa);
   if (i < 1) throw err(400, 'Elige la etapa a la que no llegó todo (lavado, fritado o empacado).');
   const pend = (await porLlegar(db)).find(x => x.etapa === b.etapa); if (!pend) throw err(409, 'No hay kilos por resolver en esa etapa.');
@@ -381,7 +381,7 @@ export async function resolverDiferencia(ctx, b = {}) {
    Cuerpo: {etapas:{lavado:'70'}, bultos:{id:n}, resoluciones:{etapas:{lavado:{faltante,id_motivo,texto}}, transiciones:{lavado:{...}}},
             motivos:{etapas:{fritado:{tipo,motivo}} (solo exceso), bultos:{id:{tipo,motivo}}}, nota}. */
 export async function cerrarTurno(ctx, b = {}) {
-  exigir(ctx, 'turno', 'Solo Producción y el Dueño llevan el turno.');
+  exigir(ctx, 'turno', 'Solo Producción y el Gerente llevan el turno.');
   const {db} = ctx, t = await turnoAbiertoOError(db), sumas = await R.sumasTurno(db, t.id_turno), aj = await R.leerAjustes(db);
   const regE = {}; for (const e of D.ETAPAS) regE[e.k] = 0;
   for (const x of sumas.etapas) regE[x.etapa] = r3((regE[x.etapa] || 0) + (x.sentido === 'ENTRA' ? x.kg : -x.kg));
@@ -451,15 +451,15 @@ export async function cerrarTurno(ctx, b = {}) {
   return {ok: true, cierre: cmp, bultos_sumados: entradas.reduce((a, [, n]) => a + n, 0)};
 }
 
-/* ---------- Motivos de merma (la lista la edita solo el Dueño) y KPIs ---------- */
+/* ---------- Motivos de merma (la lista la edita solo el Gerente) y KPIs ---------- */
 const motivoVista = m => ({id: m.id, nombre: m.nombre, activo: !!m.activo, es_otra: !!m.es_otra, orden: m.orden});
-/* GET /motivos-merma[?todos=1]: la lista para los botones (activos). Con todos=1 el Dueño ve también los quitados. */
+/* GET /motivos-merma[?todos=1]: la lista para los botones (activos). Con todos=1 el Gerente ve también los quitados. */
 export async function listaMotivos(ctx, todos = false) {
   return (await R.listarMotivos(ctx.db, todos && ctx.rol === 'dueno')).map(motivoVista);
 }
-/* POST /motivos-merma {nombre} crea · POST /motivos-merma/:id {nombre?, activo?, orden?} edita o quita (solo el Dueño). «Otra» no se cambia ni se quita. */
+/* POST /motivos-merma {nombre} crea · POST /motivos-merma/:id {nombre?, activo?, orden?} edita o quita (solo el Gerente). «Otra» no se cambia ni se quita. */
 export async function guardarMotivo(ctx, id, b = {}) {
-  exigir(ctx, 'dueno', 'Solo el Dueño cambia la lista de motivos de merma.');
+  exigir(ctx, 'dueno', 'Solo el Gerente cambia la lista de motivos de merma.');
   const {db} = ctx;
   if (id == null) {
     const nombre = txt(b.nombre, 40); if (nombre.length < 2) throw err(400, 'Escribe el nombre del motivo (al menos 2 letras).');
@@ -477,7 +477,7 @@ export async function guardarMotivo(ctx, id, b = {}) {
 }
 /* GET /kpi-merma?desde=&hasta= (ms; sin «desde» = desde que rige la regla): merma real, calculada, por etapa y motivo. Sin metas. % = merma / (kilos que entraron a la etapa + merma entre etapas). */
 export async function kpiMerma(ctx, {desde, hasta} = {}) {
-  exigir(ctx, 'verDif', 'Solo el Dueño y el Jefe de producción ven la merma.');
+  exigir(ctx, 'verDif', 'Solo el Gerente y el Jefe de producción ven la merma.');
   const aj = await R.leerAjustes(ctx.db), d = desde != null && desde !== '' && Number.isFinite(+desde) ? +desde : aj.herenciaDesde, h = hasta != null && hasta !== '' && Number.isFinite(+hasta) ? +hasta : 9e15, db = ctx.db;
   const [pm, otras, sigue, ent, trans] = await Promise.all([R.mermasPorMotivo(db, d, h), R.mermasOtras(db, d, h), R.siguenPorEtapa(db, d, h), R.entradasPeriodo(db, d, h), R.mermasTransPeriodo(db, d, h)]);
   const kgDe = (arr, k) => r3((arr.find(x => x.etapa === k) || {kg: 0}).kg);
@@ -497,20 +497,20 @@ export async function kpiMerma(ctx, {desde, hasta} = {}) {
 /* ---------- Diferencias: aprobar y rechazar ---------- */
 const difVista = d => ({...d, retiene: !!d.retiene, esperada: !!d.esperada, tipo_texto: (D.TIPOS_DIF.find(t => t.k === d.tipo) || {t: d.tipo}).t, etapa_texto: d.etapa === 'cierre' ? 'Cierre (bultos)' : d.etapa === 'carga' ? 'Carga del camión' : D.nombreEtapa(d.etapa), creado_por: ROL_TXT[d.creado_rol] || d.creado_rol, decidido_por: ROL_TXT[d.decidido_rol] || d.decidido_rol || null});
 export async function listaDiferencias(ctx, f = {}) {
-  exigir(ctx, 'verDif', 'Solo el Dueño y el Jefe de producción ven las diferencias.');
+  exigir(ctx, 'verDif', 'Solo el Gerente y el Jefe de producción ven las diferencias.');
   if (f.estado && !['PENDIENTE', 'APROBADA', 'RECHAZADA', 'AUTOMATICA'].includes(f.estado)) throw err(400, 'Estado no válido.');
   return (await R.listarDiferencias(ctx.db, f)).map(difVista);
 }
 export async function contadorDiferencias(ctx) {
-  exigir(ctx, 'verDif', 'Solo el Dueño y el Jefe de producción ven las diferencias.');
+  exigir(ctx, 'verDif', 'Solo el Gerente y el Jefe de producción ven las diferencias.');
   const c = await R.contadorDiferencias(ctx.db);
   return {pendientes: c.n, mas_vieja_horas: c.n ? Math.floor((Date.now() - c.mas_vieja_ts) / 3600000) : null};
 }
 export async function decidirDiferencia(ctx, id, accion, nota) {
-  exigir(ctx, 'aprobar', 'Solo el Jefe de producción y el Dueño aprueban o rechazan diferencias.');
+  exigir(ctx, 'aprobar', 'Solo el Jefe de producción y el Gerente aprueban o rechazan diferencias.');
   const {db} = ctx, d = await R.getDiferencia(db, id); if (!d) throw err(404, 'No encontré esa diferencia.');
   const n = txt(nota, 200), aprobar = accion === 'aprobar';
-  if (d.creado_rol === 'jefeprod' && ctx.rol !== 'dueno') throw err(403, 'La anotó el Jefe de producción: la aprueba o la rechaza el Dueño.');
+  if (d.creado_rol === 'jefeprod' && ctx.rol !== 'dueno') throw err(403, 'La anotó el Jefe de producción: la aprueba o la rechaza el Gerente.');
   if (!aprobar && n.length < 3) throw err(400, 'Escribe por qué la rechazas.');
   if (d.estado !== 'PENDIENTE') throw err(409, 'Esa diferencia ya fue decidida.');
   const st = [R.stDecidirDiferencia(db, id, aprobar ? 'APROBADA' : 'RECHAZADA', ctx.rol, n)];
@@ -534,10 +534,10 @@ export async function inventario(db) {
     existencias: p.stock_entero, apartado: p.stock_apartado || 0, disponible: Math.max(0, p.stock_entero - (p.stock_apartado || 0)), kilos: p.kg_por_bulto > 0 ? r3(p.stock_entero * p.kg_por_bulto) : null}));
   return {conteo_inicial_hecho: !!aj.conteoInicialTs, productos: filas, movimientos: await VR.all(db, "SELECT m.id, m.tipo, m.cantidad, m.fecha, m.nota, p.nombre FROM movimientos_inventario m JOIN productos p ON p.id_producto = m.id_producto WHERE m.tipo IN ('ENTRADA_CIERRE_TURNO','CONTEO_INICIAL','ENTRADA') ORDER BY m.id DESC LIMIT 30")};
 }
-/* Conteo inicial: una sola vez, solo el Dueño, en bultos. Deja las existencias exactamente en lo contado. */
+/* Conteo inicial: una sola vez, solo el Gerente, en bultos. Deja las existencias exactamente en lo contado. */
 export async function conteoInicial(ctx, b) {
-  exigir(ctx, 'dueno', 'Solo el Dueño carga el conteo inicial.');
-  const {db} = ctx, aj = await R.leerAjustes(db); if (aj.conteoInicialTs) throw err(409, 'El conteo inicial ya se cargó. Después solo cambian las existencias la producción, las ventas y el Dueño con motivo.');
+  exigir(ctx, 'dueno', 'Solo el Gerente carga el conteo inicial.');
+  const {db} = ctx, aj = await R.leerAjustes(db); if (aj.conteoInicialTs) throw err(409, 'El conteo inicial ya se cargó. Después solo cambian las existencias la producción, las ventas y el Gerente con motivo.');
   if (!Array.isArray(b.conteos) || !b.conteos.length) throw err(400, 'Escribe los bultos contados.');
   const prods = new Map((await VR.listarProductos(db)).map(p => [p.id_producto, p])), st = [], resumen = {}, vistos = new Set();
   for (const c of b.conteos) {

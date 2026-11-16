@@ -36,7 +36,7 @@ export function validarAjuste(v, nombre) {
 export const pendienteLinea = l => Math.max(0, l.bultos - l.bultos_despachados - l.bultos_anulados);
 export const zonaDe = ped => ped.zona || SIN_ZONA;
 
-/* Semáforo: solo verde y ámbar. Verde = la zona llegó a la meta. Ámbar solo si el Dueño cargó un corte y la zona ya lo pasó sin llegar.
+/* Semáforo: solo verde y ámbar. Verde = la zona llegó a la meta. Ámbar solo si el Gerente cargó un corte y la zona ya lo pasó sin llegar.
    Sin corte cargado: ni ámbar ni nada, solo «llegó» o «no llegó». */
 export function semaforo(kilos, meta, corteAmbar) {
   if (meta > 0 && kilos >= meta) return {color: 'verde', texto: 'Llegó a la meta'};
@@ -67,7 +67,7 @@ export function armarTarjetas(filas, {meta, corteAmbar, pausas = new Set(), hoy}
 /* Reglas para armar y despachar una salida. Devuelve {ok} o {ok:false, status, msg, codigo}. */
 export function reglasSalida({rol, kilosSalida, kilosZona, meta, motivo, divide}) {
   const m = String(motivo || '').trim();
-  if (meta > 0 && (kilosZona > meta || kilosSalida > meta) && rol !== 'dueno') return {ok: false, status: 403, codigo: 'DECIDE_DUENO', msg: 'La zona pasó de la meta: en ese caso decide el Dueño qué pedidos salen.'};
+  if (meta > 0 && (kilosZona > meta || kilosSalida > meta) && rol !== 'dueno') return {ok: false, status: 403, codigo: 'DECIDE_DUENO', msg: 'La zona pasó de la meta: en ese caso decide el Gerente qué pedidos salen.'};
   if (meta > 0 && kilosSalida < meta && m.length < 3) return {ok: false, status: 400, codigo: 'MOTIVO', msg: 'Esta salida lleva menos de la meta. Escribe el motivo para despachar antes.'};
   if (divide && m.length < 3) return {ok: false, status: 400, codigo: 'MOTIVO', msg: 'Para dividir un pedido escribe el motivo.'};
   return {ok: true};

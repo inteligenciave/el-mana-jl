@@ -42,7 +42,7 @@ function vPedEstado() {
   const lim = cli ? VD.revisarLimite(cli, cli.deuda_cents, tot.total) : {ok: true, sinLimite: true, disponible: null};
   const sinStock = ls.filter(l => l.cantidad > vDisp(l.p));
   const sinPeso = ls.filter(l => !VD.bultoCompleto(l.p));
-  const motivo = !cli ? 'Elige un cliente.' : !ls.length ? 'Agrega al menos un producto.' : sinPeso.length ? 'Hay productos sin kg o sin unidades por bulto (' + sinPeso.map(l => l.p.nombre + ': falta ' + VD.faltaBulto(l.p)).join('; ') + '): el Dueño o Administración debe completarlo.' : sinStock.length ? 'Sin inventario: hay cantidades mayores que lo disponible.' : !lim.ok ? 'El pedido supera el crédito disponible del cliente.' : '';
+  const motivo = !cli ? 'Elige un cliente.' : !ls.length ? 'Agrega al menos un producto.' : sinPeso.length ? 'Hay productos sin kg o sin unidades por bulto (' + sinPeso.map(l => l.p.nombre + ': falta ' + VD.faltaBulto(l.p)).join('; ') + '): el Gerente o Administración debe completarlo.' : sinStock.length ? 'Sin inventario: hay cantidades mayores que lo disponible.' : !lim.ok ? 'El pedido supera el crédito disponible del cliente.' : '';
   return {ls, tot, lim, sinStock, motivo};
 }
 const vDisp = p => p.disponible != null ? p.disponible : p.stock_entero;
@@ -66,7 +66,7 @@ function vPedCredito() {
   return `<p class="v-cred"><span>Límite de crédito</span><b>${vusd(lim)}</b></p><p class="v-cred"><span>Deuda y pedidos por despachar</span><b>${vusd(deuda)}</b></p><p class="v-cred"><span>Disponible</span><b>${vusd(Math.max(0, lim - deuda))}</b></p>
     <div class="v-meter ${tono}" role="img" aria-label="Crédito usado con este pedido: ${N2.format(pct)} %"><span style="width:${pct}%"></span></div>
     <p class="hint">Con este pedido: ${vusd(usado)} de ${vusd(lim)} (${N0.format(Math.round(usado / lim * 100))} %).</p>
-    ${usado > lim ? `<p class="v-alerta">${ic('alert', 16)}El pedido supera el crédito disponible. No se puede generar: pide al Dueño ampliar el límite o baja las cantidades.</p>` : ''}`;
+    ${usado > lim ? `<p class="v-alerta">${ic('alert', 16)}El pedido supera el crédito disponible. No se puede generar: pide al Gerente ampliar el límite o baja las cantidades.</p>` : ''}`;
 }
 function vPedTarjeta(p) {
   const P = vPed(), pr = P.precios[p.id_producto], q = P.cant[p.id_producto] || 0, sp = !VD.bultoCompleto(p), sinPrecio = !!P.cli && (!pr || pr.base == null), sinStock = vDisp(p) <= 0;
@@ -150,7 +150,7 @@ function vPedBloqueo(p) {
   const P = vPed(), pr = P.precios[p.id_producto];
   if (!P.cli) return 'Primero elige un cliente en el panel de la izquierda: los precios dependen de él.';
   if (!pr || pr.base == null) return 'Este producto no tiene precio cargado para este cliente.';
-  if (!VD.bultoCompleto(p)) return 'A este producto le falta ' + VD.faltaBulto(p) + ', así que no se puede vender. El Dueño o Administración debe completarlo en Clientes, catálogo y ajustes → Productos e inventario.';
+  if (!VD.bultoCompleto(p)) return 'A este producto le falta ' + VD.faltaBulto(p) + ', así que no se puede vender. El Gerente o Administración debe completarlo en Clientes, catálogo y ajustes → Productos e inventario.';
   if (vDisp(p) <= 0) return 'Sin inventario: este producto no tiene bultos disponibles.';
   return '';
 }

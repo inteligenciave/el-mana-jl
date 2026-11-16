@@ -1,4 +1,4 @@
-/* Tasa BCV · rutas HTTP (/api/v/tasa*). Leer la tasa: cualquier rol conocido. Consultar de nuevo: Dueño o Administración. */
+/* Tasa BCV · rutas HTTP (/api/v/tasa*). Leer la tasa: cualquier rol conocido. Consultar de nuevo: Gerente o Administración. */
 import * as S from './servicio.js';
 import {ROL_TXT} from '../ventas/permisos.js';
 
@@ -16,13 +16,13 @@ export async function rutasTasa(req, env, url) {
       return json({...(await S.estado(db)), tasa: await S.vigente(db, f)});
     }
     if (m === 'POST' && p === '/consultar') {
-      if (rol !== 'dueno' && rol !== 'adm') return json({error: 'Solo el Dueño o Administración consultan la tasa de nuevo.'}, 403);
+      if (rol !== 'dueno' && rol !== 'adm') return json({error: 'Solo el Gerente o Administración consultan la tasa de nuevo.'}, 403);
       return json({consulta: await S.consultar(db), ...(await S.estado(db)), tasa: await S.vigente(db)});
     }
     /* SOLO PRUEBAS LOCALES: tasa de desarrollo (no es real). Fuera de localhost responde 404 como si no existiera. */
     if (m === 'POST' && p === '/dev') {
       if (!esLocal(url)) return json({error: 'Ruta no encontrada.'}, 404);
-      if (rol !== 'dueno') return json({error: 'Solo el Dueño.'}, 403);
+      if (rol !== 'dueno') return json({error: 'Solo el Gerente.'}, 403);
       return json(await S.cargarTasaDev(db, await req.json()));
     }
     return json({error: 'Ruta no encontrada.'}, 404);

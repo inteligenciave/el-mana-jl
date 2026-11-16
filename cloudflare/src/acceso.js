@@ -9,21 +9,29 @@ export const rolDe = req => { const r = (req.headers.get('x-rol') || '').trim();
 /* r = quién lee completo · w = quién escribe. Colección que no aparece aquí: todos los puestos válidos. */
 const REGLAS = {
   empleados:         {r: ['dueno', 'rrhh'], w: ['dueno', 'rrhh']},                       // cédula, teléfono, tarifa: los demás reciben solo nombre/área
-  asistencia:        {r: ['dueno', 'rrhh'], w: ['dueno', 'rrhh']},
+  asistencia:        {r: ['dueno', 'rrhh'], w: ['dueno']},                               // se llena sola con las marcas (src/rrhh); a mano ya no se anota
   prestamos:         {r: ['dueno', 'rrhh', 'custodio', 'adm'], w: ['dueno', 'custodio']},
   caja_gastos:       {r: ['dueno', 'adm', 'custodio'], w: ['dueno', 'custodio']},
   caja_reposiciones: {r: ['dueno', 'adm', 'custodio'], w: ['dueno', 'custodio']},
   caja_arqueos:      {r: ['dueno', 'adm', 'custodio'], w: ['dueno', 'custodio']},
-  gestion:           {r: ['dueno', 'adm', 'ventas', 'cobranza'], w: ['dueno', 'ventas', 'cobranza']},
+  gestion:           {r: ['dueno', 'adm', 'ventas', 'cobranza'], w: ['dueno', 'adm', 'ventas', 'cobranza']},
   productos:         {r: null, w: ['dueno', 'jefeprod', 'produccion']},                    // existencias y fichas de producto: todos leen; solo Gerencia, Jefe de producción y Producción las cambian a mano (Ventas solo descuenta al vender)
   proveedores:       {r: null, w: ['dueno', 'adm']},                                       // todos los puestos ven los proveedores; solo Gerencia y Administración los crean, editan o desactivan
   clientes:          {r: ['dueno', 'adm', 'ventas', 'cobranza'], w: ['dueno', 'adm', 'ventas', 'cobranza']},
-  auditoria:         {r: ['dueno', 'adm'], w: null}
+  auditoria:         {r: ['dueno', 'adm'], w: Object.keys(ROL_TXT)}   // solo AGREGAR: worker.js rechaza editar, borrar o sobrescribir; agrega cualquier puesto con sesión
 };
 /* Documentos sueltos de «ajustes» */
-const AJ_LEE = {tel_clientes: ['dueno', 'adm', 'ventas', 'cobranza']};
-const AJ_ESCRIBE = {matriz: ['dueno'], metas_mes: ['dueno'], tel_clientes: ['dueno', 'ventas', 'cobranza']};
-/* Campos de empleados visibles para quien no es RRHH ni Dueño */
+const AJ_LEE = {tel_clientes: ['dueno', 'adm', 'ventas', 'cobranza'], turnos_bonos: ['dueno', 'adm', 'rrhh']};
+const AJ_ESCRIBE = {matriz: ['dueno'], metas_mes: ['dueno'], tel_clientes: ['dueno', 'adm', 'ventas', 'cobranza'], turnos_bonos: ['dueno']};
+/* Campos de «ajustes/politicas» que solo cambia Gerencia (reglas de pago de nómina): el lote genérico los rechaza a los demás puestos */
+export const POL_SOLO_DUENO = ['nomJornada', 'nomRecargo', 'nomLey'];
+/* ¿Esta operación cambia alguno de esos campos respecto a lo guardado (`actual`)? Si solo reenvía los mismos valores, no cuenta. */
+export function cambiaCamposDueno(rol, op, actual) {
+  if (rol === 'dueno' || !op || op.c !== 'ajustes' || op.id !== 'politicas' || !op.d || typeof op.d !== 'object') return false;
+  const cur = actual || {}, esSet = op.op === 'set' || op.op === undefined;
+  return POL_SOLO_DUENO.some(k => (esSet || k in op.d) && (+op.d[k] || 0) !== (+cur[k] || 0));
+}
+/* Campos de empleados visibles para quien no es RRHH ni Gerente */
 const EMP_PUBLICO = ['id', 'n', 'area', 'cargo', 'antig', 'orden', 'arch', 'archTs', 'archPor', 'estado', 'retiro'];
 
 export const puedeLeer = (rol, c, id) => {
@@ -41,8 +49,26 @@ export function filtrarDoc(rol, c, d) {
   return d;
 }
 
-/* Flota (vehículos de la empresa): agregan, editan y cambian el estado Dueño y Administración; los demás puestos válidos solo eligen (ven los activos). */
+/* Flota (vehículos de la empresa): agregan, editan y cambian el estado Gerente y Administración; los demás puestos válidos solo eligen (ven los activos). */
 export const FLOTA_GESTIONA = ['dueno', 'adm'];
 
 /* Ubicación de los vehículos (dónde están y qué cargan): la anotan Gerencia, Administración y Empaque y despacho; los demás puestos solo ven. */
 export const FLOTA_UBICA = ['dueno', 'adm', 'empaque'];
+
+/* Marcas de entrada y salida del personal (pantalla «En planta hoy»): marcan y ven quién está Gerencia y Nómina y RRHH; el conteo (solo cifras) también lo lee Administración. */
+export const RRHH_MARCA = ['dueno', 'rrhh'];
+export const RRHH_VE = ['dueno', 'rrhh'];
+export const RRHH_CONTEO = ['dueno', 'rrhh', 'adm'];
+
+/* Pagar nómina (montos de sueldo, descuentos de préstamo y recibos): solo Gerencia y Nómina y RRHH. */
+export const NOMINA_PAGA = ['dueno', 'rrhh'];
+
+/* Turnos, horarios, horas extra y bonos de producción:
+   ven la pantalla «Turnos» Gerencia, Jefe de producción, Nómina y RRHH y Administración (sin sueldos ni tarifas para Jefe de producción y Administración);
+   los parámetros (horarios, valor de la hora, recargo, bonos y su cumplimiento) los ven Gerencia, Administración y RRHH y los MODIFICA SOLO Gerencia;
+   aplican un bono (al turno o por persona) Gerencia y Administración. */
+export const TURNOS_VE = ['dueno', 'jefeprod', 'rrhh', 'adm'];
+export const TURNOS_DINERO = ['dueno', 'rrhh'];
+export const PARAM_VE = ['dueno', 'adm', 'rrhh'];
+export const PARAM_EDITA = ['dueno'];
+export const BONO_APLICA = ['dueno', 'adm'];

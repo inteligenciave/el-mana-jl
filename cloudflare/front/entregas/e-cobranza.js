@@ -1,4 +1,4 @@
-/* Cobranza: plazos desde la entrega, reclamos «no recibí esto» y Ajustes de crédito (solo Dueño). */
+/* Cobranza: plazos desde la entrega, reclamos «no recibí esto» y Ajustes de crédito (solo Gerente). */
 const E_EST = {TRAMO1: ['ok', 'Descuento A'], TRAMO2: ['warn', 'Descuento B'], VENCIDA: ['crit', 'Vencida'], PAUSADA: ['n', 'En pausa']};
 const E_FILTROS = [['TODOS', 'Todos'], ['TRAMO1', 'Descuento A'], ['TRAMO2', 'Descuento B'], ['VENCIDA', 'Vencidas'], ['PAUSADA', 'En pausa']];
 
@@ -18,7 +18,7 @@ function scrPlazos() {
   return ePantalla(() => {
     const P = EN.pl; if (!P.data) { ePlazosCargar(); return card('', emptyState('Cargando…', 'Un momento.')); }
     const d = P.data, abiertas = (P.disputas || []).filter(x => x.estado === 'ABIERTA').length, falt = d.ajustes.faltantes || [];
-    const avisos = (falt.length ? `<div class="v-alerta v-aviso" role="status">${ic('alert', 18)}<span><b>Faltan datos del Dueño: ${falt.join(', ')}.</b> Mientras estén vacíos se muestran los días y «vencida», pero no se aplica descuento ni recargo.${lvl('e-ajustes') >= 3 ? ' <a class="lnk" href="#e-ajustes">Cargarlos ahora</a>' : ' El Dueño los carga en «Ajustes de crédito».'}</span></div>` : '')
+    const avisos = (falt.length ? `<div class="v-alerta v-aviso" role="status">${ic('alert', 18)}<span><b>Faltan datos del Gerente: ${falt.join(', ')}.</b> Mientras estén vacíos se muestran los días y «vencida», pero no se aplica descuento ni recargo.${lvl('e-ajustes') >= 3 ? ' <a class="lnk" href="#e-ajustes">Cargarlos ahora</a>' : ''}</span></div>` : '')
       + (d.sin_verificar ? `<div class="v-alerta v-aviso" role="status">${ic('alert', 18)}<span><b>${d.sin_verificar} documento(s) con entrega sin verificar:</b> su plazo no ha arrancado. Avisa a Despachos para que suban la foto.</span></div>` : '');
     const tabs = `<button type="button" class="v-cat" data-act="ePlzTab" data-v="plazos" aria-pressed="${P.tab === 'plazos'}">Plazos (${d.documentos.length})</button><button type="button" class="v-cat" data-act="ePlzTab" data-v="reclamos" aria-pressed="${P.tab === 'reclamos'}">Reclamos (${abiertas} abiertos)</button>`;
     let cuerpo;
@@ -55,7 +55,7 @@ function eResolverModal(id) {
   });
 }
 
-/* ---------- Ajustes de crédito (solo Dueño) ---------- */
+/* ---------- Ajustes de crédito (solo Gerente) ---------- */
 async function eAjustesCargar() { try { EN.aj.data = await eApi('GET', '/ajustes'); EN.aj.err = null; } catch (e) { EN.aj.err = e; EN.aj.data = {}; } render(); }
 function scrAjustes() {
   return ePantalla(() => {
@@ -68,7 +68,7 @@ function scrAjustes() {
       <div class="row2">${f('dias_tramo1', 'Días del tramo 1 (descuento A)')}${f('dias_tramo2', 'Días del tramo 2 (descuento B)')}</div>
       <div class="row3">${f('descuento1_pct', 'Descuento A (%)', 'placeholder="vacío = sin descuento"')}${f('descuento2_pct', 'Descuento B (%)', 'placeholder="vacío = sin descuento"')}${f('recargo_mora_pct', 'Recargo por mora (%)', 'placeholder="vacío = sin recargo"')}</div>
       
-      <p class="err" id="e-aj-e" role="alert" hidden></p>${puede ? `<div class="btnrow"><button type="button" class="btn pri" data-act="eAjustesGuardar" ${EN.busy.aj ? 'disabled' : ''}>${S.rol === 'dueno' ? 'Guardar ajustes' : 'Enviar al Dueño para aprobar'}</button></div>` : ''}</div>`)}`;
+      <p class="err" id="e-aj-e" role="alert" hidden></p>${puede ? `<div class="btnrow"><button type="button" class="btn pri" data-act="eAjustesGuardar" ${EN.busy.aj ? 'disabled' : ''}>${S.rol === 'dueno' ? 'Guardar ajustes' : 'Enviar al Gerente para aprobar'}</button></div>` : ''}</div>`)}`;
   });
 }
 async function eAjustesGuardar() {

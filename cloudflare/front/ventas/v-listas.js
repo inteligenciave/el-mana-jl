@@ -61,21 +61,40 @@ async function vDeudaCargar() {
   render();
 }
 const V_DEF_DEUDA = [{tipo: 'Cliente', valores: c => c.razon_social, detalle: c => 'debe ' + vusd(c.saldo)}, {tipo: 'RIF', valores: c => c.rif, detalle: c => c.razon_social}, {tipo: 'Nota o factura', valores: c => c.notas.map(n => n.nro), detalle: c => c.razon_social}];
+/* Días de atraso: los días desde la nota más antigua menos el plazo de crédito del cliente (sin plazo, cuenta desde la emisión) */
+const vDeudaMora = c => Math.max(0, c.dias_desde - (c.dias_credito || 0));
+/* Teléfono para WhatsApp y llamadas: solo dígitos, con código de país 58 si falta */
+function vTelDigitos(t) {
+  let d = String(t || '').replace(/\D/g, '').replace(/^00/, ''); if (!d) return '';
+  if (d.startsWith('58') && d.length >= 12) return d;
+  return '58' + d.replace(/^0+/, '');
+}
+function vMensajeCobro(c) {
+  const mora = vDeudaMora(c), atraso = mora > 0 ? `con ${mora} ${mora === 1 ? 'día' : 'días'} de atraso` : `pendiente desde hace ${c.dias_desde} ${c.dias_desde === 1 ? 'día' : 'días'}`;
+  return `Hola, ${c.razon_social}. Le escribimos de El Maná JL. Le recordamos que tiene un saldo de ${vusd(c.saldo)} ${atraso}. ¿Nos indica en qué fecha realizará el pago? Gracias.`;
+}
+function vTarjetaDeuda(c, abierto) {
+  const mora = vDeudaMora(c), venc = mora > 0, tel = vTelDigitos(c.telefono), n = c.notas.length;
+  const wa = tel ? `<a class="btn v-dq-b" href="https://wa.me/${tel}?text=${encodeURIComponent(vMensajeCobro(c))}" target="_blank" rel="noopener">WhatsApp</a>` : `<span class="btn v-dq-b v-dq-off" aria-disabled="true" role="link">WhatsApp</span>`;
+  const ll = tel ? `<a class="btn v-dq-b" href="tel:+${tel}">Llamar</a>` : `<span class="btn v-dq-b v-dq-off" aria-disabled="true" role="link">Llamar</span>`;
+  return `<article class="v-dq-c ${venc ? 'venc' : 'ok'}"><div class="v-dq-h"><h3>${vtxt(c.razon_social)}</h3><span class="chip ${venc ? 'c-warn' : 'c-ok'}">${venc ? mora + (mora === 1 ? ' día' : ' días') + ' de atraso' : 'Al corriente'}</span></div>
+    <p class="v-dq-m">${vusd(c.saldo)}</p><p class="v-dq-s">${c.vendedor ? vtxt(c.vendedor) + ' · ' : ''}${n} ${n === 1 ? 'nota pendiente' : 'notas pendientes'}</p>
+    <div class="v-dq-a"><button type="button" class="btn pri v-dq-b v-dq-cobrar" data-act="vCobModal" data-id="${c.id_cliente}">${ic('coins', 18)}Registrar cobro</button>${wa}${ll}
+    <button type="button" class="btn ghost v-dq-b" data-act="vDeudaVer" data-id="${c.id_cliente}" aria-expanded="${abierto}">${abierto ? 'Ocultar detalle' : 'Ver detalle'}</button></div>
+    ${abierto ? `<div class="v-dq-d">${table([{h: 'Nota / factura', f: x => `<button type="button" class="btn sm ghost" data-act="vVerDoc" data-id="${x.id_documento}">${vtxt(x.nro)}</button>`}, {h: 'Fecha', f: x => vfecha(x.fecha)}, {h: 'Días', r: 1, f: x => x.dias}, {h: 'Saldo', r: 1, f: x => `<b>${vusd(x.saldo)}</b>`}], c.notas)}</div>` : ''}</article>`;
+}
 function scrDeuda() {
   return vPantalla(() => {
-    const f = V.deuda.f, d = V.deuda.data; if (!d || Date.now() - (V.deuda.ts || 0) > 5000) vDeudaCargar(); /* se actualiza al volver a esta pantalla */
-    const alerta = +V.cfg.dias_alerta_deuda || null;
-    const lista = !d ? '<p class="hint">Cargando…</p>' : !d.clientes.length ? emptyState('Nadie debe nada con este filtro', 'Cuando haya notas o facturas pendientes aparecerán aquí, de la deuda más antigua a la más reciente.')
-      : d.clientes.map(c => `<details class="v-deu"><summary><span class="v-deu-n">${vtxt(c.razon_social)}</span><span class="v-deu-v">${vtxt(c.vendedor || '—')}</span><b>${vusd(c.saldo)}</b>
-        <span>desde ${vfecha(c.desde)}</span><span class="chip c-${alerta && c.dias_desde >= alerta ? 'crit' : 'n'}">${c.dias_desde} días</span></summary>
-        ${table([{h: 'Nota / factura', f: n => `<button type="button" class="btn sm ghost" data-act="vVerDoc" data-id="${n.id_documento}">${vtxt(n.nro)}</button>`}, {h: 'Tipo', f: n => n.sin_detalle ? 'Del Excel' : n.tipo === 'NOTA_ENTREGA' ? 'Nota de entrega' : 'Factura'}, {h: 'Emisión', f: n => vfecha(n.fecha)}, {h: 'Días', r: 1, f: n => n.dias},
-          {h: 'Total', r: 1, f: n => vusd(n.total)}, {h: 'Saldo', r: 1, f: n => `<b>${vusd(n.saldo)}</b>`}], c.notas)}
-        <div class="btnrow"><button type="button" class="btn sm pri" data-act="vIrCobrar" data-id="${c.id_cliente}">${ic('coins', 16)}Cobrar a este cliente</button></div></details>`).join('');
-    return `${vph('Ventas y liquidación', 'Quién debe y desde cuándo', 'Los clientes con notas o facturas pendientes, del más antiguo al más reciente.', `<button type="button" class="btn" data-act="vDeudaCSV">${ic('download', 16)}Descargar CSV</button>`)}
-    ${card('Filtros', `<div class="form"><div class="row2">${vVendSel('vendedor', f.vendedor, 'vDeudaFiltro')}<label class="fld">Buscar<input type="search" aria-label="Buscar en la deuda" ${Busca.atr('v-deuda')} value="${esc(f.q)}" placeholder="Cliente, RIF o número de nota o factura"></label></div>
-      ${alerta ? '' : '<p class="hint">Los días de alerta no están definidos: el Dueño puede fijarlos en Clientes, catálogo y ajustes. Mientras tanto no se marca ninguna deuda como urgente.</p>'}</div>`)}
-    ${d ? `<div class="v-stats">${stat('Deuda total', vusd(d.total), d.clientes.length + ' cliente(s)')}</div>` : ''}
-    ${d && d.clientes.length ? `<div class="v-2c">${card('Por vendedor', table([{h: 'Vendedor', f: g => vtxt(g.nombre)}, {h: 'Clientes', r: 1, f: g => g.clientes}, {h: 'Debe', r: 1, f: g => `<b>${vusd(g.saldo)}</b>`}, {h: 'Más antigua', r: 1, f: g => g.dias_desde + ' días'}], d.por_vendedor || []))}${card('Por zona', table([{h: 'Zona', f: g => vtxt(g.nombre)}, {h: 'Clientes', r: 1, f: g => g.clientes}, {h: 'Debe', r: 1, f: g => `<b>${vusd(g.saldo)}</b>`}, {h: 'Más antigua', r: 1, f: g => g.dias_desde + ' días'}], d.por_zona || []))}</div>` : ''}${d && d.clientes.length ? '<div class="v-lista-sc">' + lista + '</div>' : lista}`;
+    const f = V.deuda.f, d = V.deuda.data, est = V.deuda.est || 'todos', abiertos = V.deuda.abierto || new Set(); if (!d || Date.now() - (V.deuda.ts || 0) > 5000) vDeudaCargar(); /* se actualiza al volver a esta pantalla */
+    const todos = d ? d.clientes.slice().sort((a, b) => vDeudaMora(b) - vDeudaMora(a) || b.saldo_cents - a.saldo_cents) : [];
+    const venc = todos.filter(c => vDeudaMora(c) > 0), vista = est === 'vencidos' ? venc : est === 'corriente' ? todos.filter(c => vDeudaMora(c) === 0) : todos;
+    const filt = [['todos', 'Todos', todos.length], ['vencidos', 'Vencidos', venc.length], ['corriente', 'Al corriente', todos.length - venc.length]];
+    const lista = !d ? '<p class="hint">Cargando…</p>' : !vista.length ? emptyState('No hay clientes aquí', 'Prueba con otro filtro o con otra búsqueda.') : `<div class="v-dq-grid">${vista.map(c => vTarjetaDeuda(c, abiertos.has(c.id_cliente))).join('')}</div>`;
+    return `${vph('Ventas y liquidación', 'Quién debe', '', `<button type="button" class="btn" data-act="vDeudaCSV">${ic('download', 16)}Descargar CSV</button>`)}
+    <div class="v-dq-top"><label class="fld v-dq-bus"><span class="sr">Buscar cliente</span><input type="search" aria-label="Buscar cliente" ${Busca.atr('v-deuda')} value="${esc(f.q)}" placeholder="Buscar cliente"></label>
+      <div class="v-dq-fil" role="group" aria-label="Filtrar">${filt.map(([k, t, n]) => `<button type="button" class="v-dq-f" data-act="vDeudaEst" data-v="${k}" aria-pressed="${est === k}">${t} <b>${n}</b></button>`).join('')}</div>
+      ${d ? `<p class="v-dq-res"><span>Por cobrar <b>${vusd(d.total)}</b></span><span><b>${d.clientes.length}</b> ${d.clientes.length === 1 ? 'cliente' : 'clientes'}</span></p>` : ''}</div>
+    ${lista}`;
   });
 }
 async function vDeudaCSV() {

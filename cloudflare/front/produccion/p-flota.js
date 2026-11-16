@@ -1,6 +1,6 @@
 /* Flota de vehículos · pantalla de Administración y listas del modal «Despachar salida».
    Los choferes salen de Personal (nómina); no se escriben a mano. La flota arranca vacía: no se carga ningún vehículo por nuestra cuenta.
-   Agregan y editan Dueño y Administración (el servidor lo vuelve a comprobar); los demás puestos solo eligen. */
+   Agregan y editan Gerente y Administración (el servidor lo vuelve a comprobar); los demás puestos solo eligen. */
 const FL = {lista: null, chof: null, cargando: false, busy: false, rol: null, filtro: 'activos', dsp: null};
 const flPuede = () => S.rol === 'dueno' || S.rol === 'adm';
 const flUbica = () => S.rol === 'dueno' || S.rol === 'adm' || S.rol === 'empaque'; /* quién anota dónde está cada vehículo (el servidor lo vuelve a comprobar) */

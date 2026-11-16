@@ -95,7 +95,7 @@ function scrTurno() {
   const w = prEspera('Turno', 'turno', '/turno', 'turno'); if (w) return w;
   const D = PR.turno, t = D.turno, ok = prTurnoOk();
   if (t && !PR.por) prCargar('por', '/turno/por-resolver', 'por');
-  if (!t) return `${ph('Producción', 'Turno', 'Aquí se anotan los kilos de cada etapa y los bultos empacados.', '')}${card('', `<p>No hay un turno abierto.</p>${ok ? '<button type="button" class="btn pri" data-act="prAbrirTurno">Abrir turno de hoy</button>' : '<p class="muted">Lo abre Producción o el Dueño.</p>'}`)}${prUltimos(D)}`;
+  if (!t) return `${ph('Producción', 'Turno', 'Aquí se anotan los kilos de cada etapa y los bultos empacados.', '')}${card('', `<p>No hay un turno abierto.</p>${ok ? '<button type="button" class="btn pri" data-act="prAbrirTurno">Abrir turno de hoy</button>' : '<p class="muted">Lo abre Producción o el Gerente.</p>'}`)}${prUltimos(D)}`;
   const etapas = t.etapas.map(e => `<article class="pr-card"><h3>${prT(e.nombre)}</h3><p class="pr-big">${prKg(e.saldo_kg)}</p><p class="pr-sub">Entró ${prKg(e.entra_kg)} · salió ${prKg(e.sale_kg)}</p>${ok ? `<div class="pr-mov"><input type="text" inputmode="decimal" id="pr-k-${e.k}" placeholder="Kilos" aria-label="Kilos de ${prT(e.nombre)}"><button type="button" class="btn sm" data-act="prMov" data-e="${e.k}" data-s="ENTRA">Entra</button><button type="button" class="btn sm" data-act="prMov" data-e="${e.k}" data-s="SALE">Sale</button></div>` : ''}</article>`).join('');
   const prods = D.productos.map(p => `<option value="${p.id_producto}">${prT(p.nombre)}</option>`).join('');
   return `${ph('Producción', 'Turno del ' + prT(t.fecha), 'Anota lo que entra y sale de cada etapa y lo que se empaca. Al cerrar, los bultos suman al inventario.', '')}
@@ -136,7 +136,7 @@ function scrInventario() {
   return `${ph('Producción', 'Inventario del producto terminado', 'Un solo inventario, en bultos: lo que cierra Producción lo ve Ventas, y lo apartado ya no se puede vender.', '')}
     ${dueno && !I.conteo_inicial_hecho ? `<div class="btnrow"><button type="button" class="btn pri" data-act="prConteo">Cargar el conteo inicial</button></div>` : ''}
     ${card('', table([{h: 'Producto', f: p => `<b>${prT(p.nombre)}</b>`}, {h: 'En bodega', r: 1, f: p => prN(p.existencias) + ' bultos'}, {h: 'Apartado por pedidos', r: 1, f: p => prN(p.apartado)}, {h: 'Disponible para vender', r: 1, f: p => p.disponible > 0 ? '<b>' + prN(p.disponible) + '</b>' : '<span class="chip c-warn">Sin inventario</span>'}, {h: 'Kilos en bodega', r: 1, f: p => p.kilos == null ? '<span class="muted">falta kg por bulto</span>' : prKg(p.kilos)}], I.productos))}
-    ${I.movimientos.length ? card('Últimas entradas', `<ul class="pr-lin">${I.movimientos.map(m => `<li><span>${prT(m.nombre)} · ${m.tipo === 'ENTRADA_CIERRE_TURNO' ? 'cierre de turno' : m.tipo === 'CONTEO_INICIAL' ? 'conteo inicial' : 'entrada del Dueño'}${m.nota && m.tipo === 'ENTRADA' ? ' · ' + prT(m.nota) : ''}</span><span class="muted">${prT(m.fecha)} · ${m.cantidad > 0 ? '+' : ''}${prN(m.cantidad)} bultos</span></li>`).join('')}</ul>`) : ''}`;
+    ${I.movimientos.length ? card('Últimas entradas', `<ul class="pr-lin">${I.movimientos.map(m => `<li><span>${prT(m.nombre)} · ${m.tipo === 'ENTRADA_CIERRE_TURNO' ? 'cierre de turno' : m.tipo === 'CONTEO_INICIAL' ? 'conteo inicial' : 'entrada del Gerente'}${m.nota && m.tipo === 'ENTRADA' ? ' · ' + prT(m.nota) : ''}</span><span class="muted">${prT(m.fecha)} · ${m.cantidad > 0 ? '+' : ''}${prN(m.cantidad)} bultos</span></li>`).join('')}</ul>`) : ''}`;
 }
 function prConteoModal() {
   modal('Conteo inicial en bultos', `<div class="form"><p>Se carga una sola vez. Escribe los bultos que hay hoy de cada producto (0 si no hay).</p>${PR.inv.productos.map(p => `<label class="fld">${prT(p.nombre)}<input type="text" inputmode="numeric" class="pr-ci" data-p="${p.id_producto}" value="${p.existencias}"></label>`).join('')}
@@ -147,11 +147,11 @@ async function prConteoOk() {
   try { await prApi('POST', '/inventario/conteo-inicial', {conteos}); closeModal(); toast('Conteo inicial guardado.'); prRefrescar('inv'); } catch (er) { e.textContent = er.message; e.hidden = false; } finally { PR.busy = false; }
 }
 
-/* ---------- Ajustes (solo el Dueño) ---------- */
+/* ---------- Ajustes (solo el Gerente) ---------- */
 function scrAjustes() {
   const w = prEspera('Ajustes de zonas', 'aj', '/ajustes', 'aj'); if (w) return w;
   const A = PR.aj, v = n => n == null ? '' : String(n).replace('.', ',');
-  return `${ph('Producción', 'Ajustes de zonas', 'Solo el Dueño cambia estas cifras.', '')}${card('', `<div class="form pr-form"><label class="fld">Meta por zona (kilos)<input type="text" inputmode="decimal" id="pr-a-m" value="${v(A.meta_kg)}"></label>
+  return `${ph('Producción', 'Ajustes de zonas', 'Solo el Gerente cambia estas cifras.', '')}${card('', `<div class="form pr-form"><label class="fld">Meta por zona (kilos)<input type="text" inputmode="decimal" id="pr-a-m" value="${v(A.meta_kg)}"></label>
     <label class="fld">Corte del semáforo ámbar (kilos, opcional)<input type="text" inputmode="decimal" id="pr-a-c" value="${v(A.corte_ambar_kg)}" placeholder="Vacío: sin ámbar"></label>
     <label class="fld">Diferencia permitida al cerrar el turno (kilos, opcional)<input type="text" inputmode="decimal" id="pr-a-t" value="${v(A.tolerancia_kg)}" placeholder="Vacío: sin marcar diferencias"></label>
     <p class="err" id="pr-e" role="alert" hidden></p><div class="btnrow"><button type="button" class="btn pri" data-act="prAjGuardar">Guardar</button></div></div>`)}`;

@@ -57,7 +57,7 @@ function scrCFicha() {
     const vista = l.slice(F.pag * tam, F.pag * tam + tam);
     const items = vista.length ? vista.map(c => `<li><button type="button" class="cp-it ${F.sel === c.id_cliente ? 'on' : ''}" data-act="cElegir" data-id="${c.id_cliente}"><span><b>${esc(c.razon_social)}</b><span class="mini">${esc(c.rif_id || 'sin RIF')} · ${esc(c.zona || 'sin zona')}</span></span>
       <span class="cp-tags">${c.enlace_activo ? '<span class="chip c-ok">Enlace</span>' : ''}${c.pedidos_por_confirmar ? `<span class="chip c-warn">${c.pedidos_por_confirmar} pedido${c.pedidos_por_confirmar > 1 ? 's' : ''}</span>` : ''}${c.pagos_por_verificar ? `<span class="chip c-warn">${c.pagos_por_verificar} pago${c.pagos_por_verificar > 1 ? 's' : ''}</span>` : ''}</span></button></li>`).join('') : '<li class="hint">Ningún cliente coincide.</li>';
-    return `${ph('Portal de clientes', 'Ficha del cliente y su enlace', '', '')}<div class="cp-cols"><section class="card cp-izq"><div class="card-b"><label class="fld">Buscar cliente<input type="search" aria-label="Buscar cliente" ${Busca.atr('c-cli')} value="${esc(F.q)}" placeholder="Nombre, RIF, zona o vendedor"></label>
+    return `${ph('Portal de clientes', 'Enlace del portal', '', '<a class="btn pri" href="/cliente.html" target="_blank" rel="noopener">Abrir el portal del cliente</a>')}<div class="cp-cols"><section class="card cp-izq"><div class="card-b"><label class="fld">Buscar cliente<input type="search" aria-label="Buscar cliente" ${Busca.atr('c-cli')} value="${esc(F.q)}" placeholder="Nombre, RIF, zona o vendedor"></label>
       <ul class="cp-lista">${items}</ul>${cPag(n, F.pag, tam, 'fich')}</div></section><section class="card cp-der"><div class="card-b">${cFichaHTML()}</div></section></div>`;
   });
 }

@@ -29,7 +29,7 @@
 .pt-opn{font-size:13.5px;font-weight:600;line-height:1.2}
 .pt-op .badge{position:absolute;top:4px;right:4px}
 .pt-vacio{margin:0;padding:8px;color:var(--muted)}
-/* Funciones extra por puesto (pantalla del Dueño) */
+/* Funciones extra por puesto (pantalla del Gerente) */
 .pt-sel{display:flex;align-items:center;gap:10px;margin-bottom:10px;font-weight:600}
 .pt-fs{border:1px solid var(--line-2);border-radius:10px;margin:0 0 10px;padding:8px 12px}
 .pt-fs legend{font-weight:700;padding:0 6px;color:var(--pri)}
@@ -172,3 +172,21 @@
 .gr-pe .gr-pb{height:16px;border-radius:8px;margin:8px 0 6px}
 .gr-pe .gr-pb u{border-radius:8px}
 .gr-pe .gr-meta{font-size:15px;font-weight:700;color:#1F1F1F;background:#FFF4D6;border:1px solid #F2B72E;border-radius:6px;padding:5px 8px}
+.gr-top{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:0 0 4px;flex-wrap:wrap}
+.gr-top .gr-per{margin:0}
+.gr-pl{display:inline-flex;align-items:baseline;gap:6px;background:#fff;border:1px solid #E3E1E1;border-left:5px solid #F2B72E;border-radius:10px;padding:2px 12px;font-size:15px;color:#1F1F1F;text-decoration:none;line-height:1.3}
+.gr-pl b{font-size:20px}
+.gr-pl small{font-size:13px;color:#5E5E5E}
+a.gr-pl:hover{border-color:#C92121}
+
+/* Opciones unidas: pestañas por dentro y botones fijos de arriba */
+.un-tabs{margin:0 0 8px}
+.un-tabs a.v-tab{display:inline-flex;align-items:center;text-decoration:none;color:inherit;border-radius:9px;cursor:pointer}
+.un-tabs a.v-tab[aria-current="page"]{background:var(--pri);border-color:var(--pri);color:var(--pri-ink)}
+.un-panel{min-height:0;position:relative}
+.top-fijos{display:inline-flex;gap:6px;flex-wrap:wrap}
+.top-fijos .btn{display:inline-flex;align-items:center;gap:6px;text-decoration:none}
+@media (min-width:1024px){.un-panel{overflow-y:auto;overflow-x:hidden}}
+.un-parte{margin:0 0 10px}
+.un-et{display:inline-block;margin:0 0 6px;padding:2px 10px;border-radius:999px;background:var(--y,#F2B72E);color:#1F1F1F;font-size:12px;font-weight:700}
+.un-panel .tn-panel,.un-panel .rh-panel{max-height:none;overflow:visible}

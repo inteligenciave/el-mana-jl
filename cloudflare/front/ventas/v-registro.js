@@ -15,10 +15,10 @@ S.perm = permInit();
 Object.assign(ROLE_HOME, {ventas: 'v-pedido', cobranza: 'v-cobro'});
 
 /* Qué permiso exige cada acción: [pantalla, nivel] (el servidor lo vuelve a comprobar) */
-const VACT_REQ = {vGenerar: ['v-pedido', 2], vCobrar: ['v-cobro', 2], vAnular: ['v-pagos', 3], vNuevoCliente: ['v-clientes', 2], vEditarCliente: ['v-clientes', 2], vClienteGuardar: ['v-clientes', 2], vReglas: ['v-clientes', 3], vReglasGuardar: ['v-clientes', 3],
+const VACT_REQ = {vGenerar: ['v-pedido', 2], vCobrar: ['v-cobro', 2], vCobModal: ['v-cobro', 2], vAnular: ['v-pagos', 3], vNuevoCliente: ['v-clientes', 2], vEditarCliente: ['v-clientes', 2], vClienteGuardar: ['v-clientes', 2], vReglas: ['v-clientes', 3], vReglasGuardar: ['v-clientes', 3],
   vVendedorGuardar: ['v-clientes', 3], vNuevoVendedor: ['v-clientes', 3], vEditarVendedor: ['v-clientes', 3],
   vAjustesGuardar: ['v-clientes', 3], vPinGuardar: ['v-clientes', 3], vEjemploCargar: ['v-clientes', 3], vEjemploBorrarOk: ['v-clientes', 3], vImpEnviar: ['v-importar', 2]};
-const VACT_LBL = {vGenerar: 'generar notas de entrega o facturas', vCobrar: 'registrar pagos', vAnular: 'anular pagos', vNuevoCliente: 'crear clientes', vEditarCliente: 'editar clientes', vClienteGuardar: 'guardar clientes', vReglas: 'cambiar precios por cliente', vReglasGuardar: 'guardar precios por cliente',
+const VACT_LBL = {vGenerar: 'generar notas de entrega o facturas', vCobrar: 'registrar pagos', vCobModal: 'registrar pagos', vAnular: 'anular pagos', vNuevoCliente: 'crear clientes', vEditarCliente: 'editar clientes', vClienteGuardar: 'guardar clientes', vReglas: 'cambiar precios por cliente', vReglasGuardar: 'guardar precios por cliente',
   vProductoGuardar: 'cambiar el catálogo', vNuevoProducto: 'crear productos', vEditarProducto: 'editar productos', vEntrada: 'registrar entradas de inventario', vEntradaGuardar: 'registrar entradas de inventario', vVendedorGuardar: 'cambiar vendedores y comisiones', vNuevoVendedor: 'crear vendedores', vEditarVendedor: 'editar vendedores',
   vAjustesGuardar: 'cambiar los ajustes de ventas', vPinGuardar: 'cambiar el PIN de gerencia', vEjemploCargar: 'cargar datos de ejemplo', vEjemploBorrarOk: 'borrar datos de ejemplo', vImpEnviar: 'importar datos'};
 Object.assign(ACT_REQ, VACT_REQ); Object.assign(ACT_LBL, VACT_LBL); Object.keys(VACT_REQ).forEach(k => WRITE_ACTS.add(k)); ['vPesoGuardar', 'vNuevoProducto', 'vEditarProducto', 'vProductoGuardar', 'vEntrada', 'vEntradaGuardar'].forEach(k => WRITE_ACTS.add(k));
@@ -56,18 +56,18 @@ const VACT = {
   vAdmTab: el => { V.adm.tab = el.dataset.v; render(); }, vAdmQ: el => { V.adm.q = el.value; render(); },
   /* cobro */
   vCobOtro: () => { V.cob = null; render(); },
-  vCobFecha: el => { const C = vCob(); C.fecha = el.value || vHoy(); C.apl = {}; C.prev = null; render(); vCobCargar(); },
-  vCobExo: el => { const C = vCob(); C.exonerar = el.checked; C.apl = {}; C.prev = null; render(); vCobCargar(); },
+  vCobFecha: el => { const C = vCob(); C.fecha = el.value || vHoy(); C.apl = {}; C.prev = null; vCobPintar(); vCobCargar(); },
+  vCobExo: el => { const C = vCob(); C.exonerar = el.checked; C.apl = {}; C.prev = null; vCobPintar(); vCobCargar(); },
   vAplTodo: el => {
     const C = vCob(), d = C.prev.documentos.find(x => x.id_documento === vElId(el)), usd = vCobUsd(), otros = Object.entries(C.apl).filter(([k]) => +k !== d.id_documento).reduce((t, [, v]) => t + (vNum(v) > 0 ? vNum(v) : 0), 0);
-    const tope = usd > 0 ? Math.max(0, Math.round((usd - otros) * 100) / 100) : d.restante; C.apl[d.id_documento] = String(Math.min(d.restante, tope || d.restante)); render();
+    const tope = usd > 0 ? Math.max(0, Math.round((usd - otros) * 100) / 100) : d.restante; C.apl[d.id_documento] = String(Math.min(d.restante, tope || d.restante)); vCobPintar();
   },
   vAplRepartir: () => {
     const C = vCob(), usd = vCobUsd(); if (!(usd > 0)) return toast('Escribe primero el monto en bolívares (y que haya tasa BCV para la fecha).', 'warn');
     const r = VD.repartirAntiguoPrimero(Math.round(usd * 100), C.prev.documentos.filter(d => !d.error && d.restante_cents > 0).map(d => ({id_documento: d.id_documento, fecha_emision: d.fecha_emision, pendiente_cents: d.restante_cents})));
-    C.apl = Object.fromEntries(r.aplicaciones.map(a => [a.id_documento, String(a.usd_cents / 100)])); render();
+    C.apl = Object.fromEntries(r.aplicaciones.map(a => [a.id_documento, String(a.usd_cents / 100)])); vCobPintar();
   },
-  vAplLimpiar: () => { vCob().apl = {}; render(); },
+  vAplLimpiar: () => { vCob().apl = {}; vCobPintar(); },
   vCobrar: () => {
     const C = vCob(), b = vCobArmar(); if (V.busy.cobrar) return;
     if (!(b.monto_bs > 0)) return toast('Escribe el monto en bolívares.', 'warn'); if (!(vCobTasa() > 0)) return toast('No hay tasa BCV para esa fecha: pide que la consulten antes de cobrar.', 'warn');
@@ -76,6 +76,8 @@ const VACT = {
     if (retro || b.exonerar_mora) vCobPedirPin(retro && b.exonerar_mora ? 'La fecha del pago es anterior a hoy y se exonera el recargo por mora.' : retro ? 'La fecha del pago es anterior a hoy.' : 'Se exonera el recargo por mora.', p => vCobEnviar(p));
     else vCobEnviar(null);
   },
+  vCobModal: el => vCobAbrirModal(vElId(el)), vDeudaEst: el => { V.deuda.est = el.dataset.v; render(); },
+  vDeudaVer: el => { const k = vElId(el), S2 = V.deuda.abierto ||= new Set(); S2.has(k) ? S2.delete(k) : S2.add(k); render(); },
   vIrCobrar: el => { const C = vCob(); Object.assign(C, {cid: null, cli: null, prev: null, apl: {}}); enter('v-cobro'); vCobElegir(vElId(el)); },
   /* listas */
   vPagosFiltro: el => { V.pagos.f[el.dataset.vf] = el.value; vPagosCargar(); },

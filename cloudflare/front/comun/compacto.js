@@ -14,15 +14,17 @@ const CFG = {
   analisis: [['Proveedores', ['Ranking', 'Concentración']], ['Qué se compró', ['Qué se compró']], ['Lote por lote', ['Lote por lote']], ['Rendimiento', ['Rendimiento', 'Lectura', 'Recomendaciones']], ['Gráficas', ['Gráficas', 'Comparar', 'Materia prima frente']]],
   mermas: [['Alertas', ['Alertas']], ['Registrar merma', ['Registrar merma']], ['Por etapa y causa', ['Merma por etapa', 'Causas principales', 'Mermas por proveedor']], ['Tolerancias', ['Tolerancias']], ['Gráficas', ['Gráficas', 'Comparar', 'Merma % por proceso']], ['Exportar', ['Exportar']]],
   nomina: [['Nómina', ['Nómina por área', 'Reglas de pago']], ['Recibos de pago', ['Recibos de pago']], ['Gastos fijos', ['Gastos fijos']], ['Gráficas', ['Gráficas', 'Comparar', 'Nómina pagada']], ['Exportar', ['Exportar']]],
+  inventario: [['Existencia', ['Existencia frente', 'Inventario']], ['Límites y movimientos', ['Límites de', 'Movimientos de']], ['Solicitudes de compra', ['Solicitudes de compra']]],
+  'inventario-adm': [['Existencia', ['Existencia frente', 'Inventario']], ['Límites y movimientos', ['Límites de', 'Movimientos de']], ['Solicitudes de compra', ['Solicitudes de compra']]],
   asistencia: [['Asistencia', ['.as-grid']], ['Exportar', ['Exportar']]]
 };
 const MEMO = {};
 const wide = () => window.innerWidth >= 1024;
-const HEAD = el => /^(NAV|H1)$/.test(el.tagName) || /\b(v-top|perm-note|v-alerta|tiles|pt-bar)\b/.test(el.className) || el.matches('label.fld');
+const HEAD = el => /^(NAV|H1)$/.test(el.tagName) || /\b(v-top|perm-note|v-alerta|tiles|pt-bar|rh-cab)\b/.test(el.className) || el.matches('label.fld');
 const clave = el => { const h = el.matches('h2,h3') ? el : el.querySelector('h2,h3,b'); return h ? h.textContent.trim().toLowerCase() : ''; };
 function aplanar(wrap) { /* saca las tarjetas de las columnas 3/2 y de las pilas para poder repartirlas */
   let pasa = true;
-  while (pasa) { pasa = false; [...wrap.children].forEach(c => { if (c.matches('.cols.c32,.stack')) { c.replaceWith(...c.children); pasa = true; } }); }
+  while (pasa) { pasa = false; [...wrap.children].forEach(c => { if (c.matches('.cols.c32,.stack,.un-panel')) { c.replaceWith(...c.children); pasa = true; } }); }
 }
 function compactar(root) {
   const wrap = root.querySelector('.wrap'); if (!wrap || !wide()) return;
@@ -49,7 +51,8 @@ function compactar(root) {
   all.forEach((t, i) => { const pn = document.createElement('div'); pn.className = 'cp-panel' + (t.o ? ' cp-' + t.o : ''); pn.dataset.cp = i; if (i !== act) pn.hidden = true; t.els.forEach(e => pn.appendChild(e)); wrap.appendChild(pn); });
 }
 function ajustar() {
-  document.querySelectorAll('#main .cp-panel:not([hidden])').forEach(pn => { pn.style.maxHeight = ''; const t = pn.getBoundingClientRect().top; pn.style.maxHeight = Math.max(160, window.innerHeight - t - 16) + 'px'; });
+  if (!wide()) { document.querySelectorAll('#main .un-panel').forEach(pn => { pn.style.maxHeight = ''; }); return; }
+  document.querySelectorAll('#main .cp-panel:not([hidden]), #main .un-panel').forEach(pn => { pn.style.maxHeight = ''; const t = pn.getBoundingClientRect().top; pn.style.maxHeight = Math.max(160, window.innerHeight - t - 16) + 'px'; });
 }
 window.cpCompactar = function (root) { try { compactar(root); ajustar(); requestAnimationFrame(ajustar); setTimeout(ajustar, 250); } catch (e) { console.error(e); } };
 document.addEventListener('click', ev => {

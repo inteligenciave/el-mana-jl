@@ -4,35 +4,53 @@
 "use strict";
 /* grupos: [nombre, [[clave de pantalla, nombre corto], ...]] */
 const PANT = [
-  {k: 'ger', t: 'Gerencia', ic: 'chart', roles: [], lead: 'Resumen del negocio', grupos: [['Resumen', [['gerencia', 'Resumen'], ['gestion', 'Control de gestión'], ['mapa', 'Mapa de procesos'], ['p-aprobar', 'Precios por aprobar'], ['g-extras', 'Funciones extra']]]]},
+  {k: 'ger', t: 'Gerencia', ic: 'chart', roles: [], lead: 'Resumen del negocio', grupos: [['Resumen', [['gerencia', 'Resumen'], ['gestion', 'Control de gestión'], ['mapa', 'Mapa de procesos', 'h'], ['p-aprobar', 'Precios por aprobar'], ['g-extras', 'Funciones extra'], ['g-solic', 'Solicitudes']]]]},
   {k: 'adm', t: 'Administración', ic: 'wallet', roles: ['adm', 'custodio', 'rrhh', 'cobranza'], lead: 'Compras, pagos, cobros y personal', grupos: [
     ['Resumen', [['adm-resumen', 'Resumen']]],
+    ['En planta', [['rh-planta', 'En planta hoy'], ['rh-turnos', 'Turnos'], ['turnos', 'Turnos'], ['rh-pagar', 'Pagar nómina'], ['rh-params', 'Parámetros de turnos y bonos']]],
     ['Compras', [['c-pedido', 'Hacer una compra'], ['compras-mp', 'Papa e insumos'], ['compras-gen', 'Otras compras'], ['analisis', 'Comparar compras'], ['catalogos', 'Proveedores'], ['inventario-adm', 'Existencias']]],
     ['Pagar', [['cxp', 'Por pagar'], ['caja', 'Caja chica'], ['prestamos', 'Préstamos'], ['politicas', 'Reglas']]],
-    ['Cobrar', [['v-cobro', 'Registrar cobro'], ['v-pagos', 'Cobros hechos'], ['v-deuda', 'Quién debe'], ['c-pagos', 'Pagos por revisar'], ['e-plazos', 'Plazos y reclamos'], ['v-reportes', 'Comisiones y asientos'], ['v-importar', 'Traer del Excel']]],
+    ['Cobrar', [['v-cobro', 'Registrar cobro'], ['v-pagos', 'Cobros hechos'], ['v-deuda', 'Quién debe'], ['c-pagos', 'Pagos por revisar'], ['e-plazos', 'Plazos y reclamos'], ['v-reportes', 'Comisiones y asientos'], ['v-importar', 'Traer del Excel'], ['c-ficha', 'Enlace del portal']]],
     ['Precios', [['p-precios', 'Precios por lista'], ['p-clientes', 'Precios por cliente'], ['e-ajustes', 'Descuentos y mora'], ['p-estado', 'Mis cambios']]],
     ['Bancos', [['p-bancos', 'Bancos de la empresa']]],
-    ['Flota', [['fl-flota', 'Vehículos']]],
+    ['Flota', [['fl-flota', 'Vehículos'], ['catprod', 'Anterior (solo consulta)']]],
     ['Personal', [['personal', 'Personas'], ['asistencia', 'Asistencia'], ['nomina', 'Nómina']]],
-    ['Sistema', [['manual', 'Manual'], ['roles', 'Quién ve qué'], ['datos', 'Datos']]]]},
+    ['Sistema', [['manual', 'Manual', 'h'], ['roles', 'Quién ve qué'], ['datos', 'Datos'], ['mis-solic', 'Mis solicitudes', 'h']]]]},
   {k: 'prod', t: 'Producción', ic: 'flame', roles: ['recep', 'jefeprod', 'empaque', 'produccion'], lead: 'Recibir, producir y empacar', grupos: [
     ['Zonas', [['pr-zonas', 'Pedidos por zona'], ['pr-turno', 'Turno'], ['pr-dif', 'Diferencias'], ['pr-mot', 'Motivos de merma'], ['pr-aj', 'Ajustes']]],
-    ['Planta', [['planta', 'Resumen'], ['recepcion', 'Recibir'], ['produccion', 'Producir'], ['empaque', 'Empacar'], ['mermas', 'Mermas'], ['cotejo', 'Comparar']]],
+    ['Planta', [['planta', 'Resumen'], ['recepcion', 'Recibir'], ['produccion', 'Producir'], ['empaque', 'Empacar'], ['mermas', 'Mermas'], ['cotejo', 'Comparar'], ['turnos', 'Turnos']]],
     ['Existencias', [['alm-mp', 'Materia prima'], ['pr-proc', 'En proceso (kilos)'], ['alm-proceso', 'En proceso'], ['alm-pt', 'Producto terminado'], ['pr-inv', 'Inventario terminado'], ['inventario', 'Inventario']]],
-    ['Más', [['catprod', 'Equipo'], ['manual', 'Manual']]]]},
-  {k: 'vent', t: 'Ventas', ic: 'cart', roles: ['ventas'], lead: 'Vender, clientes y catálogo', grupos: [['Ventas', [['v-pedido', 'Hacer una venta'], ['v-clientes', 'Clientes y catálogo'], ['v-deuda', 'Quién debe'], ['v-pagos', 'Cobros hechos'], ['ventas', 'Registro de ventas'], ['pr-invv', 'Inventario disponible'], ['clientes', 'Lista de clientes'], ['c-pedidos', 'Pedidos de clientes']]]]},
-  {k: 'logi', t: 'Logística', ic: 'tag', roles: [], lead: 'En desarrollo', grupos: [['Logística', [['alm-logistica', 'Bultos y etiquetas'], ['log-dev', 'Próximamente']]]]},
-  {k: 'desp', t: 'Despacho', ic: 'truck', roles: ['empaque', 'jefeprod'], lead: 'Despachos y entregas', grupos: [['Despacho', [['despachos', 'Despachos'], ['fl-desp', 'Vehículos'], ['e-entregas', 'Entregas con foto'], ['alm-logistica', 'Bultos y etiquetas']]]]},
-  {k: 'cli', t: 'Cliente', ic: 'users', roles: [], lead: 'Fichas y portal del cliente', grupos: [['Cliente', [['c-ficha', 'Fichas y enlaces'], ['cli-portal', 'Portal del cliente']]]]}
+    ['Más', [['catprod', 'Equipo'], ['manual', 'Manual', 'h'], ['mis-solic', 'Mis solicitudes', 'h']]]]},
+  {k: 'vent', t: 'Ventas', ic: 'cart', roles: ['ventas'], lead: 'Vender, clientes y catálogo', grupos: [['Ventas', [['v-pedido', 'Hacer una venta'], ['v-clientes', 'Clientes y catálogo'], ['v-deuda', 'Quién debe'], ['v-pagos', 'Cobros hechos'], ['ventas', 'Registro de ventas'], ['pr-invv', 'Inventario disponible'], ['clientes', 'Lista de clientes'], ['c-ficha', 'Enlace del portal'], ['c-pedidos', 'Pedidos de clientes'], ['mis-solic', 'Mis solicitudes', 'h']]]]},
+  {k: 'desp', t: 'Despacho', ic: 'truck', roles: ['empaque', 'jefeprod'], lead: 'Despachos y entregas', grupos: [['Despacho', [['em-tablero', 'Zonas'], ['despachos', 'Despachos'], ['fl-desp', 'Vehículos'], ['catprod', 'Anterior (solo consulta)'], ['e-entregas', 'Entregas con foto'], ['alm-logistica', 'Bultos y etiquetas'], ['mis-solic', 'Mis solicitudes', 'h']]]]}
 ];
-const ORDEN_DUENO = ['ger', 'vent', 'adm', 'prod', 'desp', 'logi', 'cli'];
+const ORDEN_DUENO = ['ger', 'vent', 'adm', 'prod', 'desp'];
 const EXT = {rol: null, map: {}, sel: null, busy: false};
-/* Funciones extra de un puesto: las que asignó el Dueño Y que el puesto ya puede ver según «Quién ve qué» (el panel nunca concede permisos) */
-const extrasDe = r => { if (r === 'dueno') return []; const own = new Set(visibles(r).flatMap(p => planas(p, r))); return ((EXT.map || {})[r] || []).filter(k => SCREENS[k] && !own.has(k) && lvlOf(r, k) >= 1); };
+/* Funciones extra de un puesto: las que asignó el Gerente Y que el puesto ya puede ver según «Quién ve qué» (el panel nunca concede permisos) */
+const extrasDe = r => { if (r === 'dueno') return []; const own = new Set(visibles(r).flatMap(p => planas(p, r))); return [...((EXT.map || {})[r] || []), ...(r === 'adm' ? (EXT.map || {}).cobranza || [] : [])].filter(k => SCREENS[k] && !own.has(k) && lvlOf(r, k) >= 1); };
 const pantDe = k => PANT.find(p => p.k === k);
-const tabsDe = (p, r) => p.grupos.map(([g, ts]) => [g, ts.filter(([k]) => SCREENS[k] && lvlOf(r, k) >= 1)]).filter(([, ts]) => ts.length);
+/* Cobranza: «Cobrar» va primero y «Quién debe» es su primer botón (los demás puestos conservan el orden de siempre) */
+const SOLO_GER = ['pr-aj', 'pr-mot', 'g-extras', 'g-solic', 'p-aprobar']; /* pantallas que solo Gerencia ve, sin importar lo que diga la matriz */
+const tabsRaw = (p, r) => { const gs = p.grupos.map(([g, ts]) => [g, ts.filter(([k]) => SCREENS[k] && lvlOf(r, k) >= 1 && !(k === 'mis-solic' && r === 'dueno') && !(SOLO_GER.includes(k) && r !== 'dueno'))]).filter(([, ts]) => ts.length);
+  if (r !== 'cobranza' || p.k !== 'adm') return gs;
+  const c = gs.find(([g]) => g === 'Cobrar'); if (!c) return gs;
+  return [[c[0], [...c[1].filter(t => t[0] === 'v-deuda'), ...c[1].filter(t => t[0] !== 'v-deuda')]], ...gs.filter(x => x !== c)]; };
+/* ---------- Uniones: varias claves viejas pasan a UNA opción del menú con pestañas por dentro. Cada clave vieja sigue existiendo (permisos, enlaces #clave, avisos). ----------
+   m: [clave, nombre de la pestaña, [claves que son la misma pantalla]] */
+const UNI = [];
+const ukeys = u => u.m.flatMap(m => [m[0], ...(m[2] || [])]);
+const uniDe = (pk, k) => UNI.find(u => (!pk || u.p === pk) && ukeys(u).includes(k));
+const tabsDe = (p, r) => { const raw = tabsRaw(p, r), vistas = new Set();
+  return raw.map(([g, ts]) => [g, ts.map(t => {
+    if (t[2] === 'h' || (r === 'dueno' && p.k === 'prod' && t[0] === 'turnos')) return null; /* Turnos: una sola vez (para Gerencia vive en Personal) */
+    const u = UNI.find(x => x.p === p.k && ukeys(x).includes(t[0])); if (!u) return t;
+    if (vistas.has(u)) return null; vistas.add(u);
+    const acc = ukeys(u).find(k => raw.some(([, xs]) => xs.some(y => y[0] === k && y[2] !== 'h')));
+    const hay = u.m.filter(m => [m[0], ...(m[2] || [])].some(k => raw.some(([, xs]) => xs.some(y => y[0] === k && y[2] !== 'h')))).length;
+    return [acc || t[0], u.siempre || hay >= 2 ? u.n : t[1]];
+  }).filter(Boolean)]).filter(([, ts]) => ts.length); };
 const visibles = r => (r === 'dueno' ? ORDEN_DUENO.map(pantDe) : PANT.filter(p => p.roles.includes(r))).filter(p => r === 'dueno' || tabsDe(p, r).length);
-const planas = (p, r) => tabsDe(p, r).flatMap(([, ts]) => ts.map(t => t[0]));
+const planas = (p, r) => tabsRaw(p, r).flatMap(([, ts]) => ts.map(t => t[0]));
 function pantActual() {
   const vis = visibles(S.rol), r = S.route;
   const cur = vis.find(p => p.k === S.pant && planas(p, S.rol).includes(r)) || vis.find(p => planas(p, S.rol).includes(r)) || null;
@@ -42,9 +60,11 @@ function pantActual() {
 window.pantNombre = () => { const p = pantActual(); return p ? p.t : 'Inicio'; };
 /* Producción: «Recibir» y «Producir» son las dos pantallas principales (las que tenga permiso el puesto) */
 const PRIN_PROD = [['recepcion', 'Recibir', 'truck'], ['produccion', 'Producir', 'flame']];
-const prinDe = p => p.k === 'prod' ? PRIN_PROD.filter(([k]) => planas(p, S.rol).includes(k)) : [];
+/* Despacho: «Zonas» (tarjetas por zona) es la pantalla principal de Empaque y despacho */
+const PRIN_DESP = [['em-tablero', 'Zonas', 'truck']];
+const prinDe = p => (p.k === 'prod' ? PRIN_PROD : p.k === 'desp' ? PRIN_DESP : []).filter(([k]) => planas(p, S.rol).includes(k));
 const destino = p => { const l = (S.lastPant || {})[p.k], fl = planas(p, S.rol), pr = prinDe(p);
-  if (pr.length) return S.rol === 'recep' && pr.some(x => x[0] === 'recepcion') ? 'recepcion' : (pr.find(x => x[0] === 'produccion') || pr[0])[0]; return l && fl.includes(l) ? l : (fl[0] || 'pant-vacia'); };
+  if (pr.length) return S.rol === 'recep' && pr.some(x => x[0] === 'recepcion') ? 'recepcion' : (pr.find(x => x[0] === 'produccion') || pr[0])[0]; return l && fl.includes(l) ? l : (tabsDe(p, S.rol).flatMap(([, ts]) => ts.map(t => t[0]))[0] || 'pant-vacia'); };
 
 Object.assign(SCREENS, {
   'gerencia':   {mod: 'adm', g: 'Gerencia', t: 'Resumen del negocio', s: 'Resumen', ic: 'chart', r: scrGerencia},
@@ -52,10 +72,12 @@ Object.assign(SCREENS, {
   'log-dev':    {mod: 'home', libre: true, g: 'Logística', t: 'Logística', s: 'Próximamente', ic: 'tag', r: () => `<div class="card"><div class="card-b">${emptyState('Esta pantalla está en desarrollo', 'Todavía no hay nada que hacer aquí. Cuando esté lista aparecerá en esta pestaña. Mientras tanto usa «Bultos y etiquetas».')}</div></div>`},
   'cli-portal': {mod: 'home', libre: true, g: 'Cliente', t: 'Portal del cliente', s: 'Portal', ic: 'users', r: scrPortalCli},
   'g-extras':   {mod: 'adm', g: 'Gerencia', t: 'Funciones extra por puesto', s: 'Funciones extra', ic: 'lock', r: scrExtras},
-  'pant-vacia': {mod: 'home', libre: true, g: 'Inicio', t: 'Sin pantalla', s: 'Inicio', ic: 'map', r: () => `<div class="card"><div class="card-b">${emptyState('Tu puesto todavía no tiene pantalla', 'Pide al Dueño que te asigne una. Mientras tanto no hay nada que hacer aquí.')}</div></div>`}
+  'g-solic':    {mod: 'adm', g: 'Gerencia', t: 'Solicitudes de los puestos', s: 'Solicitudes', ic: 'shield', r: scrSolic},
+  'mis-solic':  {mod: 'home', libre: true, g: 'Solicitudes', t: 'Mis solicitudes', s: 'Mis solicitudes', ic: 'shield', r: scrMisSolic},
+  'pant-vacia': {mod: 'home', libre: true, g: 'Inicio', t: 'Sin pantalla', s: 'Inicio', ic: 'map', r: () => `<div class="card"><div class="card-b">${emptyState('Tu puesto todavía no tiene pantalla', 'Pide al Gerente que te asigne una. Mientras tanto no hay nada que hacer aquí.')}</div></div>`}
 });
-Object.assign(PERM_DEF, {gerencia: '', 'g-extras': '', 'adm-resumen': 'adm:1'});
-ROLE_HOME.adm = 'adm-resumen';
+Object.assign(PERM_DEF, {gerencia: '', 'g-extras': '', 'g-solic': '', 'adm-resumen': 'adm:1'});
+ROLE_HOME.adm = 'adm-resumen'; ROLE_HOME.cobranza = 'v-deuda'; ROLE_HOME.empaque = 'em-tablero';
 S.perm = permInit();
 
 /* ---------- Gerencia: resumen del mes en 5 bloques (solo cifras reales; si no hay dato: «Sin datos») ---------- */
@@ -71,7 +93,9 @@ async function gerCargar() {
   const pide = async (k, ruta) => { try { GER[k] = await gerApi(ruta); } catch (e) { GER[k] = null; } };
   const tab = async () => { try { GER.tab = window.prApi && (S.rol === 'dueno' || lvlOf(S.rol, 'pr-zonas') >= 1) ? await window.prApi('GET', '/tablero') : null; } catch (e) { GER.tab = null; } };
   const flota = async () => { try { const r = await fetch('/api/f/vehiculos?todos=1', {headers: {'x-rol': S.rol}}); GER.veh = r.ok ? (await r.json()).vehiculos : null; } catch (e) { GER.veh = null; } };
-  await Promise.all([pide('doc', '/documentos?desde=' + M.d + '&hasta=' + M.h), pide('ent', '/entregas/'), pide('deuda', '/deuda'), pide('prec', '/precios/pendientes'), pide('ped', '/portal/pedidos?estado=POR_CONFIRMAR'), pide('pag', '/portal/pagos?estado=POR_VERIFICAR'), pide('disp', '/entregas/disputas'), tab(), flota()]);
+  const solic = async () => { try { GER.sol = S.rol === 'dueno' ? (await window.solApi('GET', '/conteo')).pendientes : null; } catch (e) { GER.sol = null; } };
+  const planta = async () => { try { const r = await fetch('/api/h/conteo', {headers: {'x-rol': S.rol}}); GER.pl = r.ok ? await r.json() : null; } catch (e) { GER.pl = null; } };
+  await Promise.all([solic(), planta(), pide('doc', '/documentos?desde=' + M.d + '&hasta=' + M.h), pide('ent', '/entregas/'), pide('deuda', '/deuda'), pide('prec', '/precios/pendientes'), pide('ped', '/portal/pedidos?estado=POR_CONFIRMAR'), pide('pag', '/portal/pagos?estado=POR_VERIFICAR'), pide('disp', '/entregas/disputas'), tab(), flota()]);
   GER.est = 'ok'; GER.busy = false; GER.ts = Date.now(); try { render(); } catch (e) { /* sin pantalla */ }
 }
 const gUsd = x => '$ ' + N2.format(x);
@@ -143,6 +167,7 @@ const GR_ICO = '<svg class="gr-ico" viewBox="0 0 24 24" aria-hidden="true"><path
 function gAlertas() {
   const c = (x, k) => Array.isArray(x) ? x.length : (x && x[k] != null ? +x[k] : null);
   let L = [[GER.prec ? +GER.prec.pendientes || 0 : null, 'Precios por aprobar', 'p-aprobar'], [c(GER.pag), 'Pagos por verificar', 'c-pagos'], [c(GER.ped), 'Pedidos del portal por confirmar', 'c-pedidos'], [Array.isArray(GER.disp) ? GER.disp.filter(x => x.estado === 'ABIERTA').length : null, 'Reclamos de entrega abiertos', 'e-plazos'], [typeof mrNuevas === 'function' ? mrNuevas().length : null, 'Mermas nuevas (24 h)', 'mermas']];
+  if (S.rol === 'dueno') L.push([GER.sol == null ? null : GER.sol, 'Solicitudes por responder', 'g-solic']);
   if (S.rol !== 'dueno') L = L.filter(x => x[0] != null && (gVa(x[2]) || x[2] === 'mermas')); /* sin pantalla propia, las mermas nuevas se muestran sin enlace */
   const todo0 = L.every(x => x[0] === 0);
   return '<section class="card gr-al"><h3>Requiere atención</h3>' + (todo0 ? '<p class="gr-ok">Sin pendientes</p>' : '<div class="gr-alg" style="--n:' + L.length + '">' + L.map(x => '<' + (gVa(x[2]) ? 'a href="#' + x[2] + '"' : 'div') + ' class="' + (x[0] ? 'on' : '') + '"><b>' + (x[0] > 0 ? GR_ICO : '') + (x[0] == null ? 'Sin datos' : x[0]) + '</b><span>' + x[1] + '</span></' + (gVa(x[2]) ? 'a' : 'div') + '>').join('') + '</div>') + '</section>';
@@ -152,6 +177,12 @@ function gZonas() {
   const meta = +T.meta_kg || 0, kg = x => N0.format(x) + ' kg', z = T.activas;
   const filas = z.slice(0, 4).map(a => '<div class="gr-z"><p><span>' + esc(a.zona) + '</span><b>' + kg(a.kilos) + '</b></p><i><u style="width:' + (meta > 0 ? Math.min(100, a.kilos / meta * 100) : 0) + '%"></u></i></div>').join('');
   return '<section class="card gr-zn"><div class="gr-trh"><h3>Zonas' + (meta > 0 ? ' · meta ' + N0.format(meta / 1000) + ' t' : '') + '</h3>' + (z.length > 4 ? '<a class="lnk" href="#pr-zonas">Ver todas</a>' : '') + '</div>' + (z.length ? '<div class="gr-zg">' + filas + '</div>' : '<p class="gr-ok">Sin pedidos por despachar</p>') + '</section>';
+}
+/* En planta hoy: solo el conteo (total y por turno), de solo lectura; el enlace solo si el puesto tiene la pantalla */
+function gPlanta() {
+  const P = GER.pl, ok = P && typeof P.total === 'number', pt = (P && P.por_turno) || {}, v = ok ? P.total : (GER.est === 'ok' ? 'Sin datos' : '…');
+  const cuerpo = '<span>En planta hoy:</span> <b class="' + (ok ? '' : 'muted') + '">' + v + '</b>' + (ok ? '<small>Mañana ' + (pt['Mañana'] || 0) + ' · Tarde ' + (pt['Tarde'] || 0) + '</small>' : '');
+  return gVa('rh-planta') ? '<a class="gr-pl" href="#rh-planta">' + cuerpo + '</a>' : '<div class="gr-pl">' + cuerpo + '</div>';
 }
 function scrGerencia(modo) {
   const adm = modo === 'adm';
@@ -177,7 +208,7 @@ function scrGerencia(modo) {
   const n = (x, u1, u2) => x == null ? (cargando ? '…' : SD) : x + ' ' + (x === 1 ? u1 : u2), nf = x => N0.format(x), u = x => x == null ? SD : gUsd(x);
   const zonasOk = !adm || !!(GER.tab && Array.isArray(GER.tab.activas));
   return `<h1 class="sr">${adm ? 'Administración' : 'Gerencia'}</h1>
-  <p class="gr-per">Resumen del mes: ${M.t}</p>
+  <div class="gr-top"><p class="gr-per">Resumen del mes: ${M.t}</p>${gPlanta()}</div>
   <div class="gr-grid${adm ? ' gr-adm' : ''}">
     ${gBloque('Ventas', [{v: vv != null ? gUsd(vv) : (cargando ? '…' : SD), l: 'Total vendido del mes'}], adm ? gPrim(['ventas', 'v-pagos', 'v-pedido']) : 'v-pedido', adm ? '' : gMedidor('ventas', vv, gUsd), 'ventas', [['Por cobrar', GER.deuda ? gUsd(GER.deuda.total || 0) : (cargando ? '…' : SD)]])}
     ${gBloque('Administración', [{v: cv != null ? gUsd(cv) : SD, l: 'Compras del mes'}], 'analisis', adm ? '' : gMedidor('compras', cv, gUsd), 'compras', [['Por pagar a proveedores', u(porPagar)], ['Caja chica', u(caja)]])}
@@ -205,15 +236,87 @@ function scrPortalCli() {
     <div class="btnrow"><a class="btn pri" href="/cliente.html" target="_blank" rel="noopener">Abrir el portal del cliente</a></div></div></div>`;
 }
 
+/* ---------- Solicitudes de autorización: un puesto pide al Gerente permiso para cambiar algo; el Gerente aprueba o rechaza (aprobar solo marca: el cambio lo hace él en su pantalla) ---------- */
+const SOL = {rol: null, mias: null, todas: null, asuntos: ['Una meta o su ajuste', 'Una regla de pago de nómina', 'Un porcentaje o una tasa', 'Un permiso de mi puesto', 'Una política o ajuste del sistema', 'Otro cambio'], busy: false, err: '', ver: 'PENDIENTE'};
+async function solApi(m, ruta, cuerpo) {
+  const r = await fetch('/api/s' + ruta, {method: m, headers: {'content-type': 'application/json', 'x-rol': S.rol}, body: cuerpo ? JSON.stringify(cuerpo) : undefined});
+  let j = {}; try { j = await r.json(); } catch (e) { /* sin cuerpo */ }
+  if (!r.ok) { const e = new Error(j.error || 'No se pudo completar la operación.'); e.status = r.status; throw e; }
+  return j;
+}
+const solFecha = ts => { if (!ts) return ''; const d = new Date(ts - 4 * 3600e3), p = n => String(n).padStart(2, '0'); return p(d.getUTCDate()) + '/' + p(d.getUTCMonth() + 1) + '/' + d.getUTCFullYear(); };
+const solChip = x => chip(esc(x.estado_txt), x.estado === 'APROBADA' ? 'ok' : x.estado === 'RECHAZADA' ? 'crit' : 'warn');
+function solCargar() {
+  if (SOL.rol !== S.rol) { SOL.rol = S.rol; SOL.mias = null; SOL.todas = null; SOL.err = ''; }
+  const dueno = S.rol === 'dueno', k = dueno ? 'todas' : 'mias';
+  if (SOL[k] || SOL.busy) return; SOL.busy = true;
+  solApi('GET', dueno ? '/todas' : '/propias').then(d => { SOL[k] = d; if (d.asuntos) SOL.asuntos = d.asuntos; SOL.err = ''; }).catch(e => { SOL.err = e.message; SOL[k] = {solicitudes: [], pendientes: 0}; })
+    .finally(() => { SOL.busy = false; if (S.route === 'g-solic' || S.route === 'mis-solic') render(); });
+}
+const solRefrescar = () => { SOL.mias = null; SOL.todas = null; GER.est = null; render(); };
+/* Ventana corta: qué quiere cambiar (lista o texto breve) y el motivo (obligatorio) */
+function solPedirAbrir(asunto) {
+  const op = SOL.asuntos.map(a => `<option ${a === asunto ? 'selected' : ''}>${esc(a)}</option>`).join('');
+  modal('Pedir autorización', `<div class="form"><p>Tu solicitud le llega al Gerente. Cuando la responda, verás la respuesta en «Mis solicitudes».</p>
+    <label class="fld">¿Qué quieres cambiar?<select id="so-as">${op}</select></label>
+    <label class="fld">O escríbelo con tus palabras (opcional)<input type="text" id="so-tx" maxlength="80" autocomplete="off"></label>
+    <label class="fld">Motivo (obligatorio)<textarea id="so-mo" rows="3" maxlength="500"></textarea></label>
+    <p class="err" id="so-e" role="alert" hidden></p>
+    <div class="btnrow"><button type="button" class="btn pri" data-act="solEnviar" data-p="${esc(S.route)}">Enviar solicitud</button><button type="button" class="btn" data-act="closeModal">Cancelar</button></div></div>`);
+}
+async function solEnviar(el) {
+  const e = $('#so-e'); e.hidden = true; if (SOL.busy) return;
+  const asunto = ($('#so-tx').value.trim() || $('#so-as').value), motivo = $('#so-mo').value.trim();
+  if (!motivo) { e.textContent = 'Escribe el motivo: es obligatorio.'; e.hidden = false; return; }
+  SOL.busy = true;
+  try { await solApi('POST', '/', {asunto, motivo, pantalla: el.dataset.p || ''}); closeModal(); toast('Solicitud enviada al Gerente.'); SOL.busy = false; solRefrescar(); }
+  catch (er) { e.textContent = er.message; e.hidden = false; } finally { SOL.busy = false; }
+}
+const solBtn = (asunto, cls) => `<button type="button" class="btn ${cls || ''}" data-act="solPedir" data-a="${esc(asunto || '')}">${ic('shield', 16)}Pedir autorización</button>`;
+/* Mis solicitudes (todos los puestos menos Gerencia) */
+function scrMisSolic() {
+  solCargar();
+  const D = SOL.mias, L = D ? D.solicitudes : [];
+  return `${ph('', 'Mis solicitudes', '', solBtn('', 'pri'))}
+  ${card('Mis solicitudes', !D ? '<p class="hint">Cargando…</p>' : L.length ? table([{h: 'Fecha', f: x => solFecha(x.creado_ts)}, {h: 'Qué quiero cambiar', f: x => `<b>${esc(x.asunto)}</b><br><span class="muted">${esc(x.motivo)}</span>`}, {h: 'Estado', f: x => solChip(x)}, {h: 'Respuesta del Gerente', f: x => x.respuesta ? esc(x.respuesta) : '<span class="muted">Todavía sin respuesta</span>'}], L) : emptyState('Todavía no has pedido nada', 'Si necesitas que el Gerente cambie algo, usa «Pedir autorización».'), {sub: 'Lo que pediste y lo que respondió el Gerente'})}
+  ${SOL.err ? `<p class="err" role="alert">${esc(SOL.err)}</p>` : ''}`;
+}
+/* Solicitudes (solo Gerencia) */
+function scrSolic() {
+  solCargar();
+  const D = SOL.todas, L = D ? D.solicitudes : [], ver = SOL.ver, F = L.filter(x => ver === 'TODAS' || x.estado === ver);
+  const tab = (k, t) => `<button type="button" class="btn sm ${ver === k ? 'pri' : ''}" data-act="solVer" data-v="${k}">${t}</button>`;
+  return `${ph('', 'Solicitudes', '', `<div class="btnrow">${tab('PENDIENTE', 'Por responder' + (D && D.pendientes ? ' (' + D.pendientes + ')' : ''))}${tab('TODAS', 'Todas')}</div>`)}
+  ${card('Solicitudes de los puestos', !D ? '<p class="hint">Cargando…</p>' : F.length ? table([{h: 'Fecha', f: x => solFecha(x.creado_ts)}, {h: 'Puesto', f: x => esc(x.rol_txt)}, {h: 'Quiere cambiar', f: x => `<b>${esc(x.asunto)}</b><br><span class="muted">${esc(x.motivo)}</span>`}, {h: 'Estado', f: x => solChip(x)},
+    {h: '', f: x => x.estado === 'PENDIENTE' ? `<div class="btnrow"><button type="button" class="btn sm pri" data-act="solResp" data-id="${x.id}" data-a="APROBAR">Aprobar</button><button type="button" class="btn sm" data-act="solResp" data-id="${x.id}" data-a="RECHAZAR">Rechazar</button></div>` : esc(x.respuesta || '')}], F) : emptyState(ver === 'PENDIENTE' ? 'No hay solicitudes por responder' : 'Todavía no hay solicitudes', 'Cuando un puesto pida autorización, aparecerá aquí.'), {sub: 'Aprobar solo marca la solicitud: el cambio lo haces tú después, en su pantalla.'})}
+  ${SOL.err ? `<p class="err" role="alert">${esc(SOL.err)}</p>` : ''}`;
+}
+function solRespAbrir(id, a) {
+  const apr = a === 'APROBAR';
+  modal(apr ? 'Aprobar solicitud' : 'Rechazar solicitud', `<div class="form"><p>${apr ? 'Se marcará como aprobada. El cambio lo haces tú luego en su pantalla.' : 'Se marcará como rechazada y el puesto verá tu comentario.'}</p>
+    <label class="fld">Comentario${apr ? ' (opcional)' : ' (obligatorio)'}<textarea id="so-r" rows="3" maxlength="300"></textarea></label>
+    <p class="err" id="so-e" role="alert" hidden></p>
+    <div class="btnrow"><button type="button" class="btn pri" data-act="solResOk" data-id="${id}" data-a="${a}">${apr ? 'Aprobar' : 'Rechazar'}</button><button type="button" class="btn" data-act="closeModal">Cancelar</button></div></div>`);
+}
+async function solResOk(el) {
+  const e = $('#so-e'); e.hidden = true; if (SOL.busy) return; const respuesta = $('#so-r').value.trim();
+  if (el.dataset.a === 'RECHAZAR' && !respuesta) { e.textContent = 'Escribe por qué la rechazas.'; e.hidden = false; return; }
+  SOL.busy = true;
+  try { await solApi('POST', '/' + el.dataset.id + '/resolver', {accion: el.dataset.a, respuesta}); closeModal(); toast(el.dataset.a === 'APROBAR' ? 'Solicitud aprobada.' : 'Solicitud rechazada.'); SOL.busy = false; solRefrescar(); }
+  catch (er) { e.textContent = er.message; e.hidden = false; } finally { SOL.busy = false; }
+}
+Object.assign(ACT, {solPedir: el => solPedirAbrir(el.dataset.a), solEnviar, solResp: el => solRespAbrir(el.dataset.id, el.dataset.a), solResOk, solVer: el => { SOL.ver = el.dataset.v; render(); }});
+window.solBtn = solBtn; window.solApi = solApi; window.solApi = solApi;
+
 /* ---------- Entrada: elegir puesto ---------- */
 function scrRoles7() {
   const nombres = r => visibles(r).map(p => p.t).join(', ') || 'Ninguna por ahora';
   return `${phFull('El Maná JL', '¿Quién eres?', 'Elige tu puesto. Verás solo la pantalla de tu trabajo.')}
-  <div class="pm-grid">${Object.keys(ROLES).map(r => `<article class="card rolecard"><div class="card-b"><h2 style="font-size:17px">${ROLES[r]}</h2><p class="hint" style="margin:4px 0 8px">${ROLE_DESC[r]}</p><p class="hint" title="${esc(r === 'dueno' ? 'Gerencia y las otras 6 pantallas' : nombres(r))}"><b>Ve:</b> ${r === 'dueno' ? 'Gerencia y las otras 6 pantallas' : nombres(r)}</p>
+  <div class="pm-grid">${Object.keys(ROLES).filter(r => r !== 'cobranza').map(r => `<article class="card rolecard"><div class="card-b"><h2 style="font-size:17px">${ROLES[r]}</h2><p class="hint" style="margin:4px 0 8px">${ROLE_DESC[r]}</p><p class="hint" title="${esc(r === 'dueno' ? 'Gerencia y las otras 6 pantallas' : nombres(r))}"><b>Ve:</b> ${r === 'dueno' ? 'Gerencia y las otras 6 pantallas' : nombres(r)}</p>
     <button type="button" class="btn pri" style="margin-top:12px" data-act="elegirRol" data-v="${r}">Entrar</button></div></article>`).join('')}</div>${NOTICE()}`;
 }
 scrPuertas = scrRoles7; scrElegirRol = scrRoles7;
-['elegirRol', 'setRol'].forEach(n => { const f = ACT[n]; if (f) ACT[n] = el => { S.pant = null; S.lastPant = {}; f(el); }; });
+['elegirRol', 'setRol'].forEach(n => { const f = ACT[n]; if (f) ACT[n] = el => { S.pant = null; S.lastPant = {}; if (el.dataset && el.dataset.v === 'cobranza') el.dataset.v = 'adm'; f(el); }; });
 
 /* ---------- Menú: una entrada por pantalla ---------- */
 function insignia(p) { const B = badges(); let n = 0, tono = ''; planas(p, S.rol).forEach(k => { if (B[k] && B[k][0]) { n += B[k][0]; tono = tono || B[k][1]; } }); return n ? `<span class="badge ${tono}">${n}</span>` : ''; }
@@ -233,26 +336,27 @@ homeRoute = function () {
   const act = vis.find(p => p.k === S.pant);
   if (act) return destino(act);
   if (S.rol === 'dueno') return destino(vis[0]);
-  const rh = prinDe(vis.find(p => p.k === 'prod') || {}).length && vis.some(p => p.k === 'prod' && S.rol !== 'dueno') ? destino(vis.find(p => p.k === 'prod')) : ROLE_HOME[S.rol], prim = vis.find(p => rh && planas(p, S.rol).includes(rh)) || vis[0];
+  const rh = ROLE_HOME[S.rol] === 'em-tablero' && vis.some(p => p.k === 'desp' && planas(p, S.rol).includes('em-tablero')) ? 'em-tablero' : prinDe(vis.find(p => p.k === 'prod') || {}).length && vis.some(p => p.k === 'prod' && S.rol !== 'dueno') ? destino(vis.find(p => p.k === 'prod')) : ROLE_HOME[S.rol], prim = vis.find(p => rh && planas(p, S.rol).includes(rh)) || vis[0];
   return planas(prim, S.rol).includes(rh) ? rh : destino(prim);
 };
 
 /* ---------- Lanzador «Opciones»: un botón de cuadrícula que abre iconos grandes con TODAS las opciones de la pantalla ---------- */
-const IC_OP = {gerencia: 'chart', 'adm-resumen': 'chart', gestion: 'gauge', mapa: 'map', 'p-aprobar': 'check', 'g-extras': 'lock', 'c-pedido': 'cart', 'compras-mp': 'potato', 'compras-gen': 'cart', analisis: 'compare', catalogos: 'book', 'inventario-adm': 'warehouse',
+const IC_OP = {gerencia: 'chart', 'adm-resumen': 'chart', gestion: 'gauge', mapa: 'map', 'p-aprobar': 'check', 'g-extras': 'lock', 'g-solic': 'shield', 'mis-solic': 'shield', 'c-pedido': 'cart', 'compras-mp': 'potato', 'compras-gen': 'cart', analisis: 'compare', catalogos: 'book', 'inventario-adm': 'warehouse',
   cxp: 'receipt', caja: 'coins', prestamos: 'wallet', politicas: 'shield', 'v-cobro': 'coins', 'v-pagos': 'check', 'v-deuda': 'alert', 'c-pagos': 'receipt', 'e-plazos': 'calendar', 'v-reportes': 'chart', 'v-importar': 'file',
-  'p-precios': 'tag', 'p-clientes': 'users', 'e-ajustes': 'sliders', 'p-estado': 'clip', 'p-bancos': 'wallet', 'fl-flota': 'truck', 'fl-desp': 'truck', personal: 'users', asistencia: 'calendar', nomina: 'coins', manual: 'book', roles: 'shield', datos: 'layers',
+  'p-precios': 'tag', 'p-clientes': 'users', 'e-ajustes': 'sliders', 'p-estado': 'clip', 'p-bancos': 'wallet', 'fl-flota': 'truck', 'fl-desp': 'truck', 'rh-planta': 'users', 'rh-pagar': 'coins', 'rh-turnos': 'calendar', 'rh-params': 'sliders', turnos: 'calendar', personal: 'users', asistencia: 'calendar', nomina: 'coins', manual: 'book', roles: 'shield', datos: 'layers',
   planta: 'gauge', recepcion: 'truck', produccion: 'flame', empaque: 'pack', mermas: 'drop', cotejo: 'compare', 'alm-mp': 'potato', 'alm-proceso': 'layers', 'alm-pt': 'box', inventario: 'warehouse', catprod: 'users',
-  'v-pedido': 'cart', 'v-clientes': 'users', ventas: 'receipt', clientes: 'users', 'c-pedidos': 'clip', 'alm-logistica': 'tag', 'log-dev': 'tag', despachos: 'truck', 'e-entregas': 'box', 'c-ficha': 'users', 'cli-portal': 'users', 'pr-zonas': 'truck', 'pr-turno': 'flame', 'pr-dif': 'alert', 'pr-mot': 'sliders', 'pr-aj': 'sliders', 'pr-proc': 'flame', 'pr-inv': 'box'};
+  'v-pedido': 'cart', 'v-clientes': 'users', ventas: 'receipt', clientes: 'users', 'c-pedidos': 'clip', 'alm-logistica': 'tag', 'log-dev': 'tag', despachos: 'truck', 'e-entregas': 'box', 'c-ficha': 'users', 'cli-portal': 'users', 'pr-zonas': 'truck', 'em-tablero': 'truck', 'pr-turno': 'flame', 'pr-dif': 'alert', 'pr-mot': 'sliders', 'pr-aj': 'sliders', 'pr-proc': 'flame', 'pr-inv': 'box'};
 const icGrid = n => '<svg class="ic" width="' + n + '" height="' + n + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/></svg>';
 const nombreGlobal = k => { for (const p of PANT) for (const [, ts] of p.grupos) { const x = ts.find(([c]) => c === k); if (x) return x[1]; } const s = SCREENS[k]; return s ? s.s || s.t : k; };
-const nombreOp = (p, k) => { for (const [, ts] of tabsDe(p, S.rol).concat([['', extrasDe(S.rol).map(c => [c, nombreGlobal(c)])]])) { const x = ts.find(([c]) => c === k); if (x) return x[1]; } const s = SCREENS[k]; return s ? s.s || s.t : ''; };
+const nombreOp = (p, k) => { const un = uniDe(p.k, k); if (un) return un.n; for (const [, ts] of tabsDe(p, S.rol).concat([['', extrasDe(S.rol).map(c => [c, nombreGlobal(c)])]])) { const x = ts.find(([c]) => c === k); if (x) return x[1]; } const s = SCREENS[k]; return s ? s.s || s.t : ''; };
 function launcherHTML(p) {
   const B = badges(), gs = tabsDe(p, S.rol), ex = extrasDe(S.rol);
-  const tile = ([k, n]) => '<a class="pt-op" role="menuitem" data-k="' + k + '" href="#' + k + '"' + (k === S.route ? ' aria-current="page"' : '') + '>' + ic(IC_OP[k] || 'file', 30) + '<span class="pt-opn">' + n + '</span>' + (B[k] && B[k][0] ? '<span class="badge ' + B[k][1] + '">' + B[k][0] + '</span>' : '') + '</a>';
+  const tile = ([k, n]) => { const un = uniDe(p.k, k), ks = un ? ukeys(un) : [k]; let nb = 0, tb = ''; ks.forEach(x => { if (B[x] && B[x][0]) { nb = un && un.maximo ? Math.max(nb, B[x][0]) : nb + B[x][0]; tb = tb || B[x][1]; } });
+    return '<a class="pt-op" role="menuitem" data-k="' + k + '" href="#' + k + '"' + (ks.includes(S.route) ? ' aria-current="page"' : '') + '>' + ic(IC_OP[k] || 'file', 30) + '<span class="pt-opn">' + n + '</span>' + (nb ? '<span class="badge ' + tb + '">' + nb + '</span>' : '') + '</a>'; };
   const sec = (g, ts, extra) => '<section class="pt-sec' + (extra ? ' pt-mas' : '') + '">' + (g ? '<h2 class="pt-sech">' + g + '</h2>' : '') + '<div class="pt-ops">' + ts.map(tile).join('') + '</div></section>';
   let cuerpo = gs.map(([g, ts]) => sec(gs.length > 1 ? g : '', ts)).join('') + (ex.length ? sec('Más opciones', ex.map(k => [k, nombreGlobal(k)]), 1) : '');
-  if (!cuerpo) cuerpo = '<p class="pt-vacio">Esta pantalla no tiene opciones disponibles para tu puesto. Pide al Dueño que te asigne alguna.</p>';
-  const nBad = Object.entries(B).filter(([k]) => gs.some(([, ts]) => ts.some(([c]) => c === k)) || ex.includes(k)).reduce((a, [, v]) => a + (v[0] || 0), 0);
+  if (!cuerpo) cuerpo = '<p class="pt-vacio">Esta pantalla no tiene opciones disponibles para tu puesto. Pide al Gerente que te asigne alguna.</p>';
+  const nBad = Object.entries(B).filter(([k]) => planas(p, S.rol).includes(k) || ex.includes(k)).reduce((a, [, v]) => a + (v[0] || 0), 0);
   const actual = nombreOp(p, S.route), ab = S.ptOpen ? ' aria-expanded="true"' : ' aria-expanded="false"';
   const pr = prinDe(p), enPr = pr.some(x => x[0] === S.route);
   const grandes = pr.length ? '<div class="pt-prin">' + pr.map(([k, n, i]) => '<a class="pt-main" data-k="' + k + '" href="#' + k + '"' + (k === S.route ? ' aria-current="page"' : '') + '>' + ic(i, 26) + '<span>' + n + '</span>' + (B[k] && B[k][0] ? '<span class="badge ' + B[k][1] + '">' + B[k][0] + '</span>' : '') + '</a>').join('') + '</div>' : '';
@@ -294,15 +398,15 @@ if (!window.__ptListeners) {
   /* Cerrar solo por: clic fuera, Esc o elegir una tarjeta. Ya no se cierra por cambios de foco (los repintados lo movían). */
 }
 
-/* ---------- Funciones extra por puesto (solo el Dueño asigna; el servidor guarda y audita) ---------- */
+/* ---------- Funciones extra por puesto (solo el Gerente asigna; el servidor guarda y audita) ---------- */
 async function extrasCargar() {
   if (EXT.busy) return; EXT.busy = true; const r = S.rol;
   try { const x = await fetch('/api/v/pantallas/extras', {headers: {'x-rol': r}}); EXT.map = x.ok ? ((await x.json()).extras || {}) : {}; } catch (e) { EXT.map = {}; }
   EXT.rol = r; EXT.busy = false; try { render(); } catch (e) { /* sin pantalla */ }
 }
-const candidatas = r => { const own = new Set(visibles(r).flatMap(p => planas(p, r))); return PANT.filter(p => p.k !== 'ger').map(p => [p, tabsDe(p, 'dueno').flatMap(([, ts]) => ts).filter(([k]) => !own.has(k))]).filter(([, l]) => l.length); };
+const candidatas = r => { const own = new Set(visibles(r).flatMap(p => planas(p, r))); const vis = new Set(); return PANT.filter(p => p.k !== 'ger').map(p => [p, tabsRaw(p, 'dueno').flatMap(([, ts]) => ts).filter(t => t[2] !== 'h').filter(([k]) => !own.has(k) && !vis.has(k) && vis.add(k))]).filter(([, l]) => l.length); };
 function scrExtras() {
-  const roles = Object.keys(ROLES).filter(r => r !== 'dueno'); if (!EXT.sel || !roles.includes(EXT.sel)) EXT.sel = roles[0];
+  const roles = Object.keys(ROLES).filter(r => r !== 'dueno' && r !== 'cobranza'); if (!EXT.sel || !roles.includes(EXT.sel)) EXT.sel = roles[0];
   const r = EXT.sel, marc = new Set((EXT.map || {})[r] || []);
   const grupos = candidatas(r).map(([p, l]) => '<fieldset class="pt-fs"><legend>' + p.t + '</legend><div class="pt-chk">' + l.map(([k, n]) => {
     const ok = lvlOf(r, k) >= 1;
@@ -335,9 +439,67 @@ renderMain = function () {
   _rm();
   if (S.entry !== 'in' || Boot.state !== 'ready') return;
   const p = pantActual(), w = document.querySelector('#main .wrap'); if (!p || !w) return;
-  const L = (S.lastPant ||= {}); L[p.k] = S.route;
+  const L = (S.lastPant ||= {}); if (!tabsRaw(p, S.rol).some(([, ts]) => ts.some(t => t[0] === S.route && t[2] === 'h'))) L[p.k] = S.route;
   w.insertAdjacentHTML('afterbegin', launcherHTML(p));
   if (S.ptOpen) { const np = document.getElementById('ptPan'); if (np) { np.scrollTop = vTop; if (vFoco) { const f = np.querySelector('[data-k="' + vFoco + '"]'); if (f) f.focus({preventScroll: true}); } } }
   if (typeof vAjustar === 'function') vAjustar();
 };
+
+/* ---------- Pestañas por dentro de una opción unida ---------- */
+UNI.push(
+  {p: 'vent', n: 'Clientes', siempre: true, m: [['v-clientes', 'Clientes y catálogo', ['clientes']], ['c-ficha', 'Enlace del portal']]}
+);
+/* Existencias: 8 pantallas viejas en una. Cada pestaña muestra de qué sistema vienen sus cifras y no las mezcla. */
+const EXI = ['Existencias', true, [
+  ['alm-mp', 'Materia prima'],
+  ['pr-proc', 'En proceso', ['alm-proceso'], [['pr-proc', 'Sistema nuevo · kilos por etapa'], ['alm-proceso', 'Sistema anterior · lotes abiertos']]],
+  ['alm-pt', 'Terminado', ['pr-inv', 'pr-invv'], [['alm-pt', 'Sistema anterior · bultos y existencias'], ['pr-inv', 'Sistema nuevo · bultos cerrados por turno'], ['pr-invv', 'Sistema nuevo · bultos cerrados por turno']]],
+  ['inventario', 'Movimientos y límites', ['inventario-adm']]]];
+['prod', 'adm', 'vent'].forEach(pk => UNI.push({p: pk, n: EXI[0], siempre: true, maximo: EXI[1], m: EXI[2]}));
+/* Cobranza: Administración y Cobranza son la misma persona; todo lo de cobrar queda en una sola opción, «Quién debe» primero */
+UNI.push({p: 'adm', n: 'Cobranza', siempre: true, m: [['v-deuda', 'Quién debe'], ['v-cobro', 'Registrar cobro'], ['v-pagos', 'Cobros hechos'], ['c-pagos', 'Pagos del portal'], ['e-plazos', 'Plazos y reclamos'], ['v-reportes', 'Reportes y auditoría'], ['c-ficha', 'Enlace del portal']]});
+/* Personal: personas, asistencia, turnos, nómina y préstamos en una sola opción (cada pestaña conserva el permiso de su clave vieja) */
+UNI.push({p: 'adm', n: 'Personal', cab: k => (window.hpCabUni ? window.hpCabUni(k) : ''), m: [['rh-planta', 'En planta hoy'], ['personal', 'Personas'], ['asistencia', 'Asistencia'], ['rh-turnos', 'Turnos y bonos', ['turnos']], ['rh-params', 'Parámetros'],
+  ['rh-pagar', 'Pagar nómina'], ['prestamos', 'Préstamos'], ['nomina', 'Nómina anterior (solo consulta)']]});
+/* Vehículos: la lista nueva (alta y cambios en Administración, ubicación en Despacho) y la lista vieja de Equipo solo para consultar */
+UNI.push({p: 'adm', n: 'Vehículos', siempre: true, m: [['fl-flota', 'Vehículos'], ['catprod', 'Anterior (solo consulta)', [], () => '<span class="un-et">Sistema anterior</span>' + flotaAnteriorCard()]]},
+         {p: 'desp', n: 'Vehículos', siempre: true, m: [['fl-desp', 'Vehículos'], ['catprod', 'Anterior (solo consulta)', [], () => '<span class="un-et">Sistema anterior</span>' + flotaAnteriorCard()]]});
+/* una pestaña solo aparece si el puesto la veía antes en esa misma pantalla (o por Funciones extra) */
+const uniVe = c => { if (!can(c)) return false; const p = pantActual(); return !p || planas(p, S.rol).includes(c) || extrasDe(S.rol).includes(c); };
+const uniActual = k => { const p = pantActual(); return p ? uniDe(p.k, k) || null : uniDe('', k) || null; };
+function uniBarra(k) {
+  const u = uniActual(k); if (!u) return '';
+  const ps = u.m.map(m => { const ks = [m[0], ...(m[2] || [])], ir = ks.find(uniVe); return ir ? {n: m[1], ir, ks} : null; }).filter(Boolean);
+  if (ps.length < 2) return '';
+  return '<nav class="v-tabs un-tabs" aria-label="' + esc(u.n) + '">' + ps.map(x => '<a class="v-tab" href="#' + x.ir + '"' + (x.ks.includes(k) ? ' aria-current="page"' : '') + '>' + esc(x.n) + '</a>').join('') + '</nav>';
+}
+const uniEnvuelta = new Set(), uniOrig = {};
+function uniPartes(k, lista) { const vistas = new Set(); return lista.filter(([c]) => uniVe(c) && uniOrig[c] && !vistas.has(uniOrig[c]) && vistas.add(uniOrig[c])).map(([c, e]) => '<section class="un-parte"><p class="un-et">' + esc(e) + '</p>' + uniOrig[c]() + '</section>').join(''); }
+function uniEnvolver() {
+  UNI.forEach(u => ukeys(u).forEach(k => { const sc = SCREENS[k]; if (!sc || uniEnvuelta.has(k)) return; uniEnvuelta.add(k); uniOrig[k] = sc.r; }));
+  uniEnvuelta.forEach(k => { const sc = SCREENS[k], f = uniOrig[k];
+    sc.r = function () { const u = uniActual(k), pes = u && u.m.find(m => [m[0], ...(m[2] || [])].includes(k)), b = uniBarra(k), c = pes && pes[3] ? (typeof pes[3] === 'function' ? pes[3]() : uniPartes(k, pes[3])) : f.apply(this, arguments); const cab = u && u.cab ? u.cab(k) : ''; return cab + (b ? b + '<div class="un-panel">' + c + '</div>' : c); }; });
+}
+uniEnvolver();
+
+/* ---------- Direcciones viejas que ya no son pantalla propia ---------- */
+const REDIR = {'log-dev': 'alm-logistica', 'cli-portal': 'c-ficha'};
+{ const _go = go; go = function (route) { if (S.rol === 'cobranza') { S.rol = 'adm'; try { savePref(); } catch (e) { /* sin preferencia */ } } if (REDIR[route]) { route = REDIR[route]; try { history.replaceState(null, '', '#' + route); } catch (e) { /* sin historial */ } } return _go(route); }; }
+
+/* ---------- Botones fijos de arriba: Ayuda y Autorización ---------- */
+const veOpc = k => { const r = S.rol; return visibles(r).some(p => planas(p, r).includes(k)) || extrasDe(r).includes(k); };
+const _rt = renderTop;
+renderTop = function () {
+  _rt();
+  if (!(S.entry === 'in' && Boot.state === 'ready')) return;
+  const w = document.querySelector('#top .who'); if (!w) return;
+  const ay = veOpc('manual') || veOpc('mapa'), dueno = S.rol === 'dueno';
+  w.insertAdjacentHTML('beforeend', '<span class="top-fijos">' + (ay ? '<button type="button" class="btn sm ghost" data-act="ayuda">' + ic('book', 16) + '<span>Ayuda</span></button>' : '') +
+    (dueno ? '<a class="btn sm ghost" href="#g-solic">' + ic('shield', 16) + '<span>Solicitudes</span></a>' : '<button type="button" class="btn sm ghost" data-act="autorizar">' + ic('shield', 16) + '<span>Autorización</span></button>') + '</span>');
+};
+Object.assign(ACT, {
+  irA: el => { closeModal(); location.hash = '#' + el.dataset.r; },
+  ayuda: () => modal('Ayuda', '<div class="form">' + (veOpc('manual') ? '<button type="button" class="btn pri" data-act="irA" data-r="manual">' + ic('book', 16) + 'Manual de procedimientos</button>' : '') + (veOpc('mapa') ? '<button type="button" class="btn" data-act="irA" data-r="mapa">' + ic('map', 16) + 'Mapa de procesos</button>' : '') + '<button type="button" class="btn" data-act="closeModal">Cerrar</button></div>'),
+  autorizar: () => modal('Autorización', '<div class="form"><button type="button" class="btn pri" data-act="solPedir" data-a="">' + ic('shield', 16) + 'Pedir autorización</button><button type="button" class="btn" data-act="irA" data-r="mis-solic">Mis solicitudes</button><button type="button" class="btn" data-act="closeModal">Cerrar</button></div>')
+});
 })();

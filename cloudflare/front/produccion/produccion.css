@@ -131,3 +131,18 @@ tr.lm-fila{cursor:pointer}tr.lm-fila:hover td{background:#FFF6DD}
  .pe-lote{grid-template-columns:1fr auto;grid-template-areas:"a c" "b b";row-gap:8px}
  .pe-l1{grid-area:a}.pe-l3{grid-area:c}.pe-bar{grid-area:b}.pe-chev{display:none}
 }
+/* Empaque y despacho: tarjetas por zona (inicio) */
+.em-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:0}
+.em-card{background:var(--card,#fff);border:1px solid var(--line,#e3e3e3);border-left:5px solid #ccc;border-radius:10px;overflow:hidden;min-width:0}
+.em-card.ok{border-left-color:#1E8E3E}.em-card.warn{border-left-color:#F2B72E}
+.em-b{all:unset;display:block;box-sizing:border-box;width:100%;padding:10px 12px;cursor:pointer;min-height:44px}
+.em-b:focus-visible{outline:3px solid #F2B72E;outline-offset:-3px}
+.em-b h3{margin:0 0 2px;font-size:17px}
+.em-big{margin:0;font-size:24px;font-weight:800;line-height:1.1}.em-big small{font-size:13px;font-weight:600;color:var(--muted,#666)}
+.em-sub{margin:0;font-size:12.5px;color:var(--muted,#666)}
+.em-card .pr-bar{margin:4px 0 2px}
+.em-est{margin:4px 0}
+.em-ped{margin:0;font-size:13px}
+.em-cli{margin:2px 0 0;font-size:12px;color:var(--muted,#666);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media (max-width:1100px){.em-grid{grid-template-columns:repeat(3,1fr)}}
+@media (max-width:640px){.em-grid{grid-template-columns:repeat(2,1fr);gap:8px}.em-b{padding:8px 10px}.em-big{font-size:21px}}
