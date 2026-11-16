@@ -10,7 +10,7 @@ export const rolDe = req => { const r = (req.headers.get('x-rol') || '').trim();
 const REGLAS = {
   empleados:         {r: ['dueno', 'rrhh'], w: ['dueno', 'rrhh']},                       // cédula, teléfono, tarifa: los demás reciben solo nombre/área
   asistencia:        {r: ['dueno', 'rrhh'], w: ['dueno']},                               // se llena sola con las marcas (src/rrhh); a mano ya no se anota
-  prestamos:         {r: ['dueno', 'rrhh', 'adm'], w: ['dueno', 'adm']},                 // Administración entrega los préstamos; Nómina los ve y los descuenta
+  prestamos:         {r: ['dueno', 'rrhh', 'adm'], w: ['dueno', 'adm']},                 // Administración entrega los préstamos; Recursos humanos los ve y los descuenta
   caja_gastos:       {r: ['dueno', 'adm'], w: ['dueno', 'adm']},
   caja_reposiciones: {r: ['dueno', 'adm'], w: ['dueno', 'adm']},
   caja_arqueos:      {r: ['dueno', 'adm'], w: ['dueno', 'adm']},
@@ -55,17 +55,17 @@ export const FLOTA_GESTIONA = ['dueno', 'adm'];
 /* Ubicación de los vehículos (dónde están y qué cargan): la anotan Gerencia, Administración y Logística; los demás puestos solo ven. */
 export const FLOTA_UBICA = ['dueno', 'adm', 'empaque'];
 
-/* Marcas de entrada y salida del personal (pantalla «En planta hoy»): marcan y ven quién está Gerencia y Nómina; el conteo (solo cifras) también lo lee Administración. */
+/* Marcas de entrada y salida del personal (pantalla «En planta hoy»): marcan y ven quién está Gerencia y Recursos humanos; el conteo (solo cifras) también lo lee Administración. */
 export const RRHH_MARCA = ['dueno', 'rrhh'];
 export const RRHH_VE = ['dueno', 'rrhh'];
 export const RRHH_CONTEO = ['dueno', 'rrhh', 'adm'];
 
-/* Pagar nómina (montos de sueldo, descuentos de préstamo y recibos): solo Gerencia y Nómina. */
+/* Pagar nómina (montos de sueldo, descuentos de préstamo y recibos): solo Gerencia y Recursos humanos. */
 export const NOMINA_PAGA = ['dueno', 'rrhh'];
 
 /* Turnos, horarios, horas extra y bonos de producción:
-   ven la pantalla «Turnos» Gerencia, Producción, Nómina y Administración (sin sueldos ni tarifas para Producción y Administración);
-   los parámetros (horarios, valor de la hora, recargo, bonos y su cumplimiento) los ven Gerencia, Administración y Nómina y los MODIFICA SOLO Gerencia;
+   ven la pantalla «Turnos» Gerencia, Producción, Recursos humanos y Administración (sin sueldos ni tarifas para Producción y Administración);
+   los parámetros (horarios, valor de la hora, recargo, bonos y su cumplimiento) los ven Gerencia, Administración y Recursos humanos y los MODIFICA SOLO Gerencia;
    aplican un bono (al turno o por persona) Gerencia y Administración. */
 export const TURNOS_VE = ['dueno', 'produccion', 'rrhh', 'adm'];
 export const TURNOS_DINERO = ['dueno', 'rrhh'];

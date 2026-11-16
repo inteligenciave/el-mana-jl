@@ -1,4 +1,4 @@
-/* Pagar nómina · casos de uso (sin HTTP). Todos los montos se calculan aquí; la pantalla solo muestra y pide. Solo Gerencia y Nómina. */
+/* Pagar nómina · casos de uso (sin HTTP). Todos los montos se calculan aquí; la pantalla solo muestra y pide. Solo Gerencia y Recursos humanos. */
 import * as N from './nomina.js';
 import * as D from './dominio.js';
 import * as R from './repo.js';
@@ -60,7 +60,7 @@ export async function pagar(ctx, b) {
   return recibo(nuevo, e);
 }
 
-/* Franja de resumen de Nómina (siempre visible arriba): quién está en planta, total y pendientes del período y préstamos activos */
+/* Franja de resumen de Recursos humanos (siempre visible arriba): quién está en planta, total y pendientes del período y préstamos activos */
 export async function resumen(ctx, tipo, ref) {
   exigir(ctx); const hoy = hoyVE(), p = elegirPeriodo(tipo, ref, hoy), C = await cargar(ctx.db, p);
   const porE = new Map(C.emps.map(e => [e.id, e])), abiertas = (await R.delDia(ctx.db, hoy)).filter(m => !m.salida_ts && D.cuentaEnPlanta(porE.get(m.empleado_id))), pt = Object.fromEntries(D.TURNOS.map(t => [t, abiertas.filter(m => m.turno === t).length]));

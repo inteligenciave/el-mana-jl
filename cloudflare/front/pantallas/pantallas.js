@@ -1,4 +1,4 @@
-/* Las 6 pantallas principales, una por puesto: Gerencia, Administración, Producción, Logística, Ventas y Nómina.
+/* Las 6 pantallas principales, una por puesto: Gerencia, Administración, Producción, Logística, Ventas y Recursos humanos.
    Cada pantalla agrupa con pestañas las funciones que ya existían (no se borra nada). Cada persona ve solo la pantalla de su rol. */
 (function () {
 "use strict";
@@ -27,7 +27,7 @@ const PANT = [
     ['Empaque', [['lg-empacar', 'Empacar por turno'], ['empaque', 'Empaque y stock'], ['alm-logistica', 'Bultos y etiquetas'], ['pr-dif', 'Diferencias']]],
     ['Existencias', [['alm-pt', 'Producto terminado'], ['pr-inv', 'Inventario terminado'], ['inventario', 'Inventario'], ['mermas', 'Mermas']]],
     ['Más', [['manual', 'Manual', 'h'], ['mis-solic', 'Mis solicitudes', 'h'], ['ayuda', 'Ayuda', 'h']]]]},
-  {k: 'nom', t: 'Nómina', ic: 'coins', roles: ['rrhh'], lead: 'Pagar, personal y préstamos', grupos: [
+  {k: 'nom', t: 'Recursos humanos', ic: 'coins', roles: ['rrhh'], lead: 'Pagar, personal y préstamos', grupos: [
     ['En planta', [['rh-planta', 'En planta hoy'], ['rh-turnos', 'Turnos y bonos'], ['turnos', 'Turnos'], ['rh-params', 'Parámetros de turnos y bonos']]],
     ['Personal', [['personal', 'Personas'], ['asistencia', 'Asistencia'], ['rh-pagar', 'Pagar nómina'], ['prestamos', 'Préstamos'], ['nomina', 'Nómina anterior (solo consulta)']]],
     ['Más', [['manual', 'Manual', 'h'], ['mis-solic', 'Mis solicitudes', 'h'], ['ayuda', 'Ayuda', 'h']]]]}

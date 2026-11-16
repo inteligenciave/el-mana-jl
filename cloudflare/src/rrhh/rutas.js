@@ -4,7 +4,7 @@
    POST /entrada {empleado_id} · POST /salida {empleado_id}   (Gerencia y RRHH)
    GET /nomina?periodo=semana|quincena|mes&ref=AAAA-MM-DD   montos por persona del período · GET /pagos/:id recibo · POST /pagos registrar el pago (Gerencia y RRHH)
    GET /horas?desde=&hasta=     horas marcadas por persona y día, para la nómina (Gerencia y RRHH)
-   GET /turno?fecha=&turno=     quién estuvo y qué se hizo en el turno (Gerencia, Producción, Nómina y Administración; sin dinero de personas para Producción y Administración)
+   GET /turno?fecha=&turno=     quién estuvo y qué se hizo en el turno (Gerencia, Producción, Recursos humanos y Administración; sin dinero de personas para Producción y Administración)
    GET /parametros · PUT /parametros   horarios, jornada, recargo, bonos: ven Gerencia, Administración y RRHH; solo Gerencia cambia
    POST /bonos {fecha, turno, modo: turno|persona, montos?} aplicar el bono (Gerencia y Administración) · POST /bonos/deshacer (Gerencia)
    GET /asistencia?q=AAAA-MM-1|2  asistencia de la quincena llenada con las marcas (Gerencia y RRHH) */

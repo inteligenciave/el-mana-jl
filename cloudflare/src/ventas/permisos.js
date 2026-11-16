@@ -11,8 +11,8 @@ export const PERM_VENTAS = {
   'v-importar': 'adm:2'
 };
 export const MODS_ADM = ['adm', 'ventas', 'rrhh']; // puestos con el módulo Administración por defecto
-/* Los 6 puestos. Las claves internas «empaque» (se ve Logística) y «rrhh» (se ve Nómina) se conservan. */
-export const ROL_TXT = {dueno: 'Gerencia', adm: 'Administración', produccion: 'Producción', empaque: 'Logística', ventas: 'Ventas', rrhh: 'Nómina'};
+/* Los 6 puestos. Las claves internas «empaque» (se ve Logística) y «rrhh» (se ve Recursos humanos) se conservan. */
+export const ROL_TXT = {dueno: 'Gerencia', adm: 'Administración', produccion: 'Producción', empaque: 'Logística', ventas: 'Ventas', rrhh: 'Recursos humanos'};
 /* Claves de puestos que desaparecieron → el puesto que las absorbió. ÚNICO lugar donde se traducen (el servidor lo aplica a x-rol). */
 export const ROL_ALIAS = {recep: 'produccion', jefeprod: 'produccion', custodio: 'adm', cobranza: 'adm', despacho: 'empaque'};
 /* Cómo se lee en el historial un puesto que ya no existe */

@@ -1,5 +1,5 @@
 /* Turnos, asistencia automática, parámetros y bonos de producción · casos de uso (sin HTTP).
-   Todos los montos se calculan aquí. Sueldos y tarifas solo para Gerencia y Nómina; Producción y Administración ven horas y kilos, no dinero de personas. */
+   Todos los montos se calculan aquí. Sueldos y tarifas solo para Gerencia y Recursos humanos; Producción y Administración ven horas y kilos, no dinero de personas. */
 import * as T from './turnos.js';
 import * as R from './repo.js';
 import * as D from './dominio.js';

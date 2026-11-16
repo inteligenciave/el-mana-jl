@@ -3,7 +3,7 @@
    neto = base + extra + bonos − ley − préstamo. Todo en bolívares. */
 import {NOMINA_PAGA} from '../acceso.js';
 export const puedePagar = rol => NOMINA_PAGA.includes(rol);
-export const MSG_SIN_NOMINA = 'Solo Gerencia y Nómina ven y pagan la nómina.';
+export const MSG_SIN_NOMINA = 'Solo Gerencia y Recursos humanos ven y pagan la nómina.';
 export const PERIODOS = {semana: 'Semana', quincena: 'Quincena', mes: 'Mes'};
 export const FORMAS = ['Efectivo', 'Transferencia', 'Pago móvil'];
 /* Cuotas de préstamo que se descuentan por período (por defecto): la semana no descuenta (se descuenta en la quincena) */

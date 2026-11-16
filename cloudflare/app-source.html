@@ -2775,7 +2775,7 @@ function scrAsistencia() {
 
 /* ---------- Nómina calculada ---------- */
 function nomPolCard() {
-  if (S.rol !== 'dueno' && S.rol !== 'rrhh') return ''; /* las reglas de pago las edita solo Gerencia; Nómina las ve en solo lectura */
+  if (S.rol !== 'dueno' && S.rol !== 'rrhh') return ''; /* las reglas de pago las edita solo Gerencia; Recursos humanos las ve en solo lectura */
   const ed = lvl('nomina') >= 3, F = S.nomPolF || (S.nomPolF = {nomRecargo: S.pol.nomRecargo, nomLey: S.pol.nomLey, nomJornada: S.pol.nomJornada});
   const inp = (k, l, h, st) => `<label class="fld">${l}<input type="number" inputmode="decimal" min="0" step="${st}" data-k="nomPolF.${k}" value="${F[k] ?? 0}" ${ed ? '' : 'disabled'}><small>${h}</small></label>`;
   return card('Reglas de pago (las confirma el Gerente)', `<div class="form"><div class="row3">${inp('nomJornada', 'Jornada completa (horas)', 'Convierte el pago por día en pago por hora', 0.5)}${inp('nomRecargo', 'Recargo de horas extra (%)', 'En 0 hasta que el Gerente lo confirme: la hora extra vale la hora normal', 1)}${inp('nomLey', 'Deducciones de ley (%)', 'En 0 hasta que el Gerente confirme los porcentajes; el sistema no inventa porcentajes legales', 0.1)}</div>
@@ -3297,14 +3297,14 @@ const SCREENS = {
 const BOTTOM = {prod:['recepcion', 'alm-mp', 'produccion', 'despachos'], adm:['gestion', 'cxp', 'caja', 'analisis']};
 const HOME = {prod:['planta'], adm:['gestion']};
 /* ---------- Roles, módulos visibles y permisos (0 sin acceso · 1 ver · 2 registrar · 3 aprobar) ---------- */
-const ROLES = {dueno:'Gerencia', adm:'Administración', produccion:'Producción', empaque:'Logística', ventas:'Ventas', rrhh:'Nómina'};
+const ROLES = {dueno:'Gerencia', adm:'Administración', produccion:'Producción', empaque:'Logística', ventas:'Ventas', rrhh:'Recursos humanos'};
 const ROLE_DESC = {
   dueno:'Visión de toda la operación, aprobaciones y ajustes de puestos y permisos.',
   adm:'Compras, pagos, caja chica, cobranza y préstamos. Ve las ventas y los clientes.',
   produccion:'Recepción, turno, kilos por etapa, mermas y cierre del turno.',
   empaque:'Empaque por turno, pedidos por zona, salidas y despacho. Sin precios.',
   ventas:'Pedidos, clientes y seguimiento de ventas.',
-  rrhh:'Nómina, personal, asistencia, bonos y préstamos.'
+  rrhh:'Personal, asistencia, turnos, nómina, bonos y préstamos.'
 };
 /* Módulos visibles por rol (propuesta pendiente de confirmar; el Gerente la edita y se guarda con la matriz) */
 const MODS_DEF = {dueno:['prod', 'adm'], adm:['adm'], produccion:['prod'], empaque:['prod'], ventas:['adm'], rrhh:['adm']};
