@@ -14,7 +14,7 @@ import * as Sentry from '@sentry/cloudflare';
 import {rutasSolicitudes} from './solicitudes/rutas.js';
 import {rutasPantallas} from './pantallas/rutas.js';
 import * as Tasa from './tasa/servicio.js';
-import {ROL_TXT} from './ventas/permisos.js';
+import {ROL_TXT, ROL_ALIAS} from './ventas/permisos.js';
 import {rolDe, puedeLeer, puedeEscribir, filtrarDoc, cambiaCamposDueno} from './acceso.js';
 const COLS = new Set(['ajustes', 'meta', 'proveedores', 'productos', 'partidas', 'recepciones', 'compras', 'cxp', 'pagos', 'movimientos', 'lotes', 'salsas_lotes',
   'empaques', 'reposiciones', 'bultos', 'despachos', 'flota', 'empleados', 'caja_gastos', 'caja_reposiciones', 'caja_arqueos', 'prestamos', 'gestion', 'mermas', 'asistencia', 'clientes', 'auditoria', 'solicitudes_compra']);
@@ -129,7 +129,15 @@ async function allDocs(db, rol, conAnulados) {
   return {ver: v ? v.v : 0, cols};
 }
 
+/* Puestos viejos → nuevos. ÚNICO punto del servidor donde se traduce x-rol (una pestaña abierta con «jefeprod» sigue funcionando como Producción). */
+function conAlias(req) {
+  const r = (req.headers.get('x-rol') || '').trim();
+  if (!ROL_ALIAS[r] || ROL_TXT[r]) return req;
+  const h = new Headers(req.headers); h.set('x-rol', ROL_ALIAS[r]);
+  return new Request(req, {headers: h});
+}
 async function handle(req, env, url) {
+  req = conAlias(req);
   const db = env.DB, p = url.pathname, m = req.method;
   const ip = req.headers.get('cf-connecting-ip') || 'local', write = m !== 'GET';
   if (await limitedBy(env, ip, write ? 'write' : 'read')) return json({error: 'Demasiadas peticiones. Espera un minuto.'}, 429, {'retry-after': '30'});

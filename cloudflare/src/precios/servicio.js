@@ -4,11 +4,11 @@
 import * as P from './dominio.js';
 import * as R from './repo.js';
 import * as E from '../entregas/dominio.js';
-import {ROL_TXT} from '../ventas/permisos.js';
+import {ROL_TXT, nomRol} from '../ventas/permisos.js';
 import * as VD from '../ventas/dominio.js';
 
 export const err = (status, message, extra = {}) => Object.assign(new Error(message), {status, message, extra});
-const rolTxt = ctx => ROL_TXT[ctx.rol] || ctx.rol;
+const rolTxt = ctx => nomRol(ctx.rol);
 const txt = (v, max = 200) => (v == null ? '' : String(v)).trim().slice(0, max);
 const audit = (ctx, ent, ref, nom, accion, detalle) => R.stAuditoria(ctx.db, {rol: ctx.rol, rolTxt: rolTxt(ctx), ent, ref, nom, accion, detalle});
 const nomProd = p => `${p.nombre} ${p.gramaje || ''}`.trim();

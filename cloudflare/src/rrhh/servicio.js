@@ -1,12 +1,12 @@
 /* Marcas de entrada y salida · casos de uso. No conoce HTTP. Sin sueldo, cédula ni tarifa en ninguna respuesta. */
 import * as D from './dominio.js';
 import * as R from './repo.js';
-import {ROL_TXT} from '../ventas/permisos.js';
+import {ROL_TXT, nomRol} from '../ventas/permisos.js';
 import {hoyVE} from '../ventas/dominio.js';
 import {sincronizarAsistencia, quincenaDe} from './turnos-servicio.js';
 
 export const err = (status, message, extra = {}) => Object.assign(new Error(message), {status, message, extra});
-const audit = (ctx, ref, nom, accion, detalle) => R.stAuditoria(ctx.db, {rol: ctx.rol, rolTxt: ROL_TXT[ctx.rol] || ctx.rol, ent: 'marca', ref, nom, accion, detalle});
+const audit = (ctx, ref, nom, accion, detalle) => R.stAuditoria(ctx.db, {rol: ctx.rol, rolTxt: nomRol(ctx.rol), ent: 'marca', ref, nom, accion, detalle});
 const exigirMarca = ctx => { if (!D.puedeMarcar(ctx.rol)) throw err(403, D.MSG_SIN_MARCAR); };
 const persona = (e, m) => ({empleado_id: e ? e.id : m.empleado_id, nombre: e ? e.n || e.id : m.empleado_id, cargo: e ? e.cargo || '' : '', area: e ? e.area || '' : ''});
 const cuenta = presentes => ({total: presentes.length, por_turno: Object.fromEntries(D.TURNOS.map(t => [t, presentes.filter(p => p.turno === t).length]))});

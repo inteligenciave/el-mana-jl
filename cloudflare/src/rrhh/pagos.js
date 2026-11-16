@@ -1,14 +1,14 @@
-/* Pagar nómina · casos de uso (sin HTTP). Todos los montos se calculan aquí; la pantalla solo muestra y pide. Solo Gerencia y Nómina y RRHH. */
+/* Pagar nómina · casos de uso (sin HTTP). Todos los montos se calculan aquí; la pantalla solo muestra y pide. Solo Gerencia y Nómina. */
 import * as N from './nomina.js';
 import * as D from './dominio.js';
 import * as R from './repo.js';
-import {ROL_TXT} from '../ventas/permisos.js';
+import {ROL_TXT, nomRol} from '../ventas/permisos.js';
 import {hoyVE} from '../ventas/dominio.js';
 import * as T from './turnos.js';
 import {err} from './servicio.js';
 
 const exigir = ctx => { if (!N.puedePagar(ctx.rol)) throw err(403, N.MSG_SIN_NOMINA); };
-const audit = (ctx, ref, nom, accion, detalle) => R.stAuditoria(ctx.db, {rol: ctx.rol, rolTxt: ROL_TXT[ctx.rol] || ctx.rol, ent: 'nomina', ref, nom, accion, detalle});
+const audit = (ctx, ref, nom, accion, detalle) => R.stAuditoria(ctx.db, {rol: ctx.rol, rolTxt: nomRol(ctx.rol), ent: 'nomina', ref, nom, accion, detalle});
 const POL0 = {nomJornada: 8, nomRecargo: 0, nomLey: 0};
 function elegirPeriodo(tipo, ref, hoy) { const p = N.periodo(tipo, ref || hoy); if (!p) throw err(400, 'Elige semana, quincena o mes y una fecha válida.'); return p; }
 /* Datos de todo el período, leídos una sola vez */
@@ -37,7 +37,7 @@ export async function nomina(ctx, tipo, ref) {
     totales: {personas: filas.length, pagadas: filas.filter(f => f.pagado).length, base: tot('base'), extra: tot('extra'), bonos: tot('bonos'), horas_extra: tot('horas_extra'), ley: tot('ley'), descuento_sugerido: tot('descuento_sugerido'), neto_sugerido: tot('neto_sugerido')}};
 }
 const recibo = (x, e) => ({id: x.id, empleado_id: x.empleado_id, nombre: e ? e.n || e.id : x.empleado_id, cedula: e ? e.cedula || '' : '', cargo: e ? e.cargo || '' : '', area: e ? e.area || '' : '', periodo: x.periodo, periodo_txt: N.periodo(x.periodo, x.desde).etiqueta, desde: x.desde, hasta: x.hasta,
-  base: x.base, extra: x.extra, bonos: x.bonos, ley: x.ley, descuento_prestamo: x.descuento_prestamo, neto: x.neto, prestamos: JSON.parse(x.prestamos || '[]'), detalle: JSON.parse(x.detalle || '{}'), fecha: x.fecha, forma: x.forma, nota: x.nota || '', quien: ROL_TXT[x.quien] || x.quien, ts: x.ts});
+  base: x.base, extra: x.extra, bonos: x.bonos, ley: x.ley, descuento_prestamo: x.descuento_prestamo, neto: x.neto, prestamos: JSON.parse(x.prestamos || '[]'), detalle: JSON.parse(x.detalle || '{}'), fecha: x.fecha, forma: x.forma, nota: x.nota || '', quien: nomRol(x.quien), ts: x.ts});
 export async function reciboDe(ctx, id) {
   exigir(ctx); const x = await R.pagoDe(ctx.db, id); if (!x) throw err(404, 'No se encontró ese pago.');
   return recibo(x, await R.empleado(ctx.db, x.empleado_id));
@@ -60,7 +60,7 @@ export async function pagar(ctx, b) {
   return recibo(nuevo, e);
 }
 
-/* Franja de resumen de Nómina y RRHH (siempre visible arriba): quién está en planta, total y pendientes del período y préstamos activos */
+/* Franja de resumen de Nómina (siempre visible arriba): quién está en planta, total y pendientes del período y préstamos activos */
 export async function resumen(ctx, tipo, ref) {
   exigir(ctx); const hoy = hoyVE(), p = elegirPeriodo(tipo, ref, hoy), C = await cargar(ctx.db, p);
   const abiertas = (await R.delDia(ctx.db, hoy)).filter(m => !m.salida_ts), pt = Object.fromEntries(D.TURNOS.map(t => [t, abiertas.filter(m => m.turno === t).length]));

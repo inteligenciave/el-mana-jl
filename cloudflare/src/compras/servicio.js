@@ -4,18 +4,18 @@ import * as C from './dominio.js';
 import * as R from './repo.js';
 import * as T from '../tasa/servicio.js';
 import * as Bancos from '../bancos/servicio.js';
-import {ROL_TXT} from '../ventas/permisos.js';
+import {ROL_TXT, nomRol} from '../ventas/permisos.js';
 
 export const err = (status, message, extra = {}) => Object.assign(new Error(message), {status, message, extra});
 const exigir = ctx => { if (!C.puedeComprar(ctx.rol)) throw err(403, C.MSG_SIN_PERMISO); };
 const fila = (p, ls) => ({id: p.id, nro: p.nro, proveedor_id: p.proveedor_id, proveedor: p.proveedor_nombre, fecha: p.fecha, factura: p.factura, condicion: p.condicion, plazo_dias: p.plazo_dias, banco: p.banco_nombre,
-  tasa: p.tasa, total_usd: p.total_usd_cents / 100, total_bs: p.total_bs_cents / 100, estado: p.estado, pide: ROL_TXT[p.rol] || p.rol, creado_ts: p.creado_ts,
+  tasa: p.tasa, total_usd: p.total_usd_cents / 100, total_bs: p.total_bs_cents / 100, estado: p.estado, pide: nomRol(p.rol), creado_ts: p.creado_ts,
   lineas: ls.filter(l => l.pedido_id === p.id).map(l => ({producto_id: l.producto_id, producto: l.producto_nombre, unidad: l.unidad, cantidad: l.cantidad, precio_usd: l.precio_usd, subtotal_usd: l.subtotal_cents / 100}))});
 
-/* Lista: Administración y Gerente ven todo; Recepción y Jefe de producción solo lo pendiente de recibir (sin precios ni banco). */
+/* Lista: Administración y Gerente ven todo; Producción solo lo pendiente de recibir (sin precios ni banco). */
 export async function listar(ctx, estado) {
   const adm = C.puedeComprar(ctx.rol);
-  if (!adm && ctx.rol !== 'recep' && ctx.rol !== 'jefeprod') throw err(403, C.MSG_SIN_PERMISO);
+  if (!adm && ctx.rol !== 'produccion') throw err(403, C.MSG_SIN_PERMISO);
   const est = adm ? (['PEDIDA', 'RECIBIDA', 'ANULADA'].includes(estado) ? estado : null) : 'PEDIDA';
   const ps = await R.listar(ctx.db, est), ls = await R.lineasDe(ctx.db, ps.map(p => p.id));
   const out = ps.map(p => fila(p, ls));
@@ -46,7 +46,7 @@ export async function crear(ctx, cuerpo) {
     id_banco: banco ? banco.id : null, banco_nombre: banco ? banco.nombre : null, tasa: t.valor, total_usd_cents, total_bs_cents: C.aBsCents(total_usd_cents, t.valor), rol: ctx.rol};
   try {
     await R.lote(ctx.db, [R.stPedido(ctx.db, ped), ...lineas.map(l => R.stLinea(ctx.db, nro, l)),
-      ...R.stAuditoria(ctx.db, {rol: ctx.rol, rolTxt: ROL_TXT[ctx.rol] || ctx.rol, ent: 'compra', ref: nro, nom: prov.nombre, accion: 'hizo un pedido de compra al proveedor', detalle: {factura: d.factura, condicion: d.condicion, plazo_dias: d.plazo_dias, banco: ped.banco_nombre, total_usd: total_usd_cents / 100, productos: lineas.length}})]);
+      ...R.stAuditoria(ctx.db, {rol: ctx.rol, rolTxt: nomRol(ctx.rol), ent: 'compra', ref: nro, nom: prov.nombre, accion: 'hizo un pedido de compra al proveedor', detalle: {factura: d.factura, condicion: d.condicion, plazo_dias: d.plazo_dias, banco: ped.banco_nombre, total_usd: total_usd_cents / 100, productos: lineas.length}})]);
   } catch (e) {
     if (/UNIQUE/i.test(String((e && e.message) || e))) throw err(409, 'Ya hay una compra con la factura ' + d.factura + ' de ' + prov.nombre + '. Revisa el número.', {codigo: 'FACTURA_REPETIDA'});
     throw e;

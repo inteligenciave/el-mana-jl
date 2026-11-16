@@ -1,7 +1,7 @@
 /* Flota · rutas HTTP (/api/f/*), rol en x-rol.
    GET /vehiculos?todos=1   activos (Gerencia, Administración y Empaque con ?todos=1 ven también taller y fuera de servicio)
    GET /choferes            personas de nómina que manejan
-   POST /vehiculos/:id/ubicacion {donde: PLANTA|RUTA|TALLER|FUERA_SERVICIO, destino, carga_kg}   (Gerencia, Administración y Empaque y despacho)
+   POST /vehiculos/:id/ubicacion {donde: PLANTA|RUTA|TALLER|FUERA_SERVICIO, destino, carga_kg}   (Gerencia, Administración y Logística)
    POST /vehiculos · PUT /vehiculos/:id · POST /vehiculos/:id/estado {estado}   (solo Gerente y Administración) */
 import * as S from './servicio.js';
 import {ROL_TXT} from '../ventas/permisos.js';

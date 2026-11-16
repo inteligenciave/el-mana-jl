@@ -2,10 +2,10 @@
    solo el Gerente ve todas y responde. Aprobar solo marca la solicitud: el cambio lo hace el Gerente en su pantalla. */
 import * as D from './dominio.js';
 import * as R from './repo.js';
-import {ROL_TXT} from '../ventas/permisos.js';
+import {ROL_TXT, nomRol} from '../ventas/permisos.js';
 
 export const err = (status, message, extra = {}) => Object.assign(new Error(message), {status, message, extra});
-const fila = x => ({id: x.id, rol: x.rol, rol_txt: ROL_TXT[x.rol] || x.rol, pantalla: x.pantalla, asunto: x.asunto, motivo: x.motivo, estado: x.estado, estado_txt: D.ESTADOS[x.estado] || x.estado, respuesta: x.respuesta, creado_ts: x.creado_ts, resuelto_ts: x.resuelto_ts});
+const fila = x => ({id: x.id, rol: x.rol, rol_txt: nomRol(x.rol), pantalla: x.pantalla, asunto: x.asunto, motivo: x.motivo, estado: x.estado, estado_txt: D.ESTADOS[x.estado] || x.estado, respuesta: x.respuesta, creado_ts: x.creado_ts, resuelto_ts: x.resuelto_ts});
 export async function crear(ctx, b) {
   const v = D.validarSolicitud(b); if (v.error) throw err(400, v.error);
   const pend = (await R.propias(ctx.db, ctx.rol)).filter(x => x.estado === 'PENDIENTE').length;

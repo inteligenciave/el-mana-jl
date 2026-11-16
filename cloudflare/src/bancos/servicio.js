@@ -2,10 +2,10 @@
    solo el Gerente y Administración ven los datos de cuenta y los desactivados, y solo ellos agregan, editan o desactivan. */
 import * as B from './dominio.js';
 import * as R from './repo.js';
-import {ROL_TXT} from '../ventas/permisos.js';
+import {ROL_TXT, nomRol} from '../ventas/permisos.js';
 
 export const err = (status, message, extra = {}) => Object.assign(new Error(message), {status, message, extra});
-const audit = (ctx, ref, nom, accion, detalle) => R.stAuditoria(ctx.db, {rol: ctx.rol, rolTxt: ROL_TXT[ctx.rol] || ctx.rol, ent: 'banco', ref, nom, accion, detalle});
+const audit = (ctx, ref, nom, accion, detalle) => R.stAuditoria(ctx.db, {rol: ctx.rol, rolTxt: nomRol(ctx.rol), ent: 'banco', ref, nom, accion, detalle});
 const exigir = ctx => { if (!B.puedeGestionar(ctx.rol)) throw err(403, B.MSG_SIN_PERMISO); };
 const completo = b => ({id: b.id, nombre: b.nombre, moneda: b.moneda, moneda_txt: B.MONEDAS[b.moneda], cuenta_numero: b.cuenta_numero, cuenta_titular: b.cuenta_titular, activo: !!b.activo});
 const basico = b => ({id: b.id, nombre: b.nombre, moneda: b.moneda, moneda_txt: B.MONEDAS[b.moneda]});

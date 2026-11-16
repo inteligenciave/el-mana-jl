@@ -4,7 +4,7 @@ import * as D from '../ventas/dominio.js';
 import * as VR from '../ventas/repo.js';
 import * as VS from '../ventas/servicio.js';
 import * as PRD from '../produccion/repo.js';
-import {puede, ROL_TXT} from '../ventas/permisos.js';
+import {puede, ROL_TXT, nomRol} from '../ventas/permisos.js';
 import * as T from '../tasa/servicio.js';
 import * as BS from '../bancos/servicio.js';
 import * as C from './dominio.js';
@@ -31,7 +31,7 @@ export async function autenticar(db, codigo, ip) {
   return {db, cliente, enlace: e};
 }
 const auditP = (ctx, ref, accion, detalle) => VR.stAuditoria(ctx.db, {rol: 'portal', rolTxt: 'Portal del cliente', ent: 'portal', ref, nom: ctx.cliente.razon_social, accion, detalle});
-const auditE = (ctx, ent, ref, nom, accion, detalle) => VR.stAuditoria(ctx.db, {rol: ctx.rol, rolTxt: ROL_TXT[ctx.rol] || ctx.rol, ent, ref, nom, accion, detalle});
+const auditE = (ctx, ent, ref, nom, accion, detalle) => VR.stAuditoria(ctx.db, {rol: ctx.rol, rolTxt: nomRol(ctx.rol), ent, ref, nom, accion, detalle});
 const exigir = (ctx, accion, msg) => { if (!puede(ctx.rol, accion, ctx.matriz)) throw err(403, msg || 'Tu rol no puede hacer esto.'); };
 
 /* ================= Lo que ve el cliente ================= */
@@ -185,14 +185,14 @@ export async function generarEnlace(ctx, id, dias) {
   let vence = null;
   if (dias != null && dias !== '') { const n = Number(dias); if (!Number.isInteger(n) || n < 1 || n > 3650) throw err(400, 'Los días de vigencia deben ser un entero entre 1 y 3650, o vacío para que no venza.'); vence = Date.now() + n * 864e5; }
   const codigo = C.nuevoCodigo();
-  await R.lote(ctx.db, [R.stRevocarActivos(ctx.db, id, ROL_TXT[ctx.rol] || ctx.rol), R.stNuevoEnlace(ctx.db, {id_cliente: id, token_hash: await C.huella(codigo), token_fin: codigo.slice(-4), creado_rol: ROL_TXT[ctx.rol] || ctx.rol, vence_ts: vence}),
+  await R.lote(ctx.db, [R.stRevocarActivos(ctx.db, id, nomRol(ctx.rol)), R.stNuevoEnlace(ctx.db, {id_cliente: id, token_hash: await C.huella(codigo), token_fin: codigo.slice(-4), creado_rol: nomRol(ctx.rol), vence_ts: vence}),
     ...auditE(ctx, 'portal', c.razon_social, c.razon_social, 'generó un enlace del portal', {vence: vence ? new Date(vence).toISOString().slice(0, 10) : 'no vence'})]);
   return {codigo, ruta: '/cliente.html#' + codigo, termina_en: codigo.slice(-4), vence_ts: vence, aviso: 'Este código se muestra solo ahora. Guárdalo o envíalo ya: después no se puede volver a ver (solo generar uno nuevo).'};
 }
 export async function revocarEnlace(ctx, id) {
   exigir(ctx, 'editarCliente', 'Tu rol no revoca enlaces de clientes.');
   const c = await VR.getCliente(ctx.db, id); if (!c) throw err(404, 'Cliente no encontrado.');
-  await R.lote(ctx.db, [R.stRevocarActivos(ctx.db, id, ROL_TXT[ctx.rol] || ctx.rol), ...auditE(ctx, 'portal', c.razon_social, c.razon_social, 'revocó el enlace del portal', {})]);
+  await R.lote(ctx.db, [R.stRevocarActivos(ctx.db, id, nomRol(ctx.rol)), ...auditE(ctx, 'portal', c.razon_social, c.razon_social, 'revocó el enlace del portal', {})]);
   return {ok: true};
 }
 
@@ -213,7 +213,7 @@ export async function aprobarPedido(ctx, id, b = {}) {
   let v;
   try { v = await VS.vender(ctx, {id_cliente: p.id_cliente, tipo, lineas, metodo_pago: txt(b.metodo_pago, 40) || undefined, observaciones: 'Pedido del portal ' + C.codigoPedido(id) + (p.nota ? ' · ' + p.nota : '')}); }
   catch (e) { await R.moverPedido(ctx.db, id, 'APROBANDO', 'POR_CONFIRMAR'); throw e; }   // sigue por confirmar: el equipo ve el motivo y decide
-  await R.moverPedido(ctx.db, id, 'APROBANDO', 'APROBADO', {ts: Date.now(), rol: ROL_TXT[ctx.rol] || ctx.rol, id_documento: v.id_documento});
+  await R.moverPedido(ctx.db, id, 'APROBANDO', 'APROBADO', {ts: Date.now(), rol: nomRol(ctx.rol), id_documento: v.id_documento});
   await VR.lote(ctx.db, auditE(ctx, 'portal', C.codigoPedido(id), p.razon_social, 'aprobó el pedido del portal', {documento: v.nro_control_interno, total_usd: v.totales && v.totales.total}));
   return {ok: true, documento: v.nro_control_interno, tipo, totales: v.totales};
 }
@@ -221,7 +221,7 @@ export async function rechazarPedido(ctx, id, motivo) {
   exigir(ctx, 'vender', 'Tu rol no puede rechazar pedidos.');
   const m = txt(motivo, 200); if (m.length < 3) throw err(400, 'Escribe el motivo (el cliente lo va a ver).');
   const p = await R.getPedido(ctx.db, id); if (!p) throw err(404, 'Pedido no encontrado.');
-  if (!await R.moverPedido(ctx.db, id, 'POR_CONFIRMAR', 'RECHAZADO', {ts: Date.now(), rol: ROL_TXT[ctx.rol] || ctx.rol, motivo: m})) throw err(409, 'Este pedido ya fue atendido por otra persona.');
+  if (!await R.moverPedido(ctx.db, id, 'POR_CONFIRMAR', 'RECHAZADO', {ts: Date.now(), rol: nomRol(ctx.rol), motivo: m})) throw err(409, 'Este pedido ya fue atendido por otra persona.');
   await VR.lote(ctx.db, auditE(ctx, 'portal', C.codigoPedido(id), p.razon_social, 'rechazó el pedido del portal', {motivo: m}));
   return {ok: true};
 }
@@ -248,7 +248,7 @@ export async function confirmarPago(ctx, id, b = {}) {
     const rep = D.repartirAntiguoPrimero(usdC, pre.documentos.filter(d => !d.error && d.restante_cents > 0).map(d => ({id_documento: d.id_documento, fecha_emision: d.fecha_emision, pendiente_cents: d.restante_cents})));
     const c = await VS.cobrar(ctx, {id_cliente: r.id_cliente, fecha_pago: r.fecha_pago, monto_bs: r.monto_bs_cents / 100, banco: r.banco, id_banco: (r.id_banco && (await BS.elegido(ctx.db, r.id_banco).catch(() => null))) ? r.id_banco : null, referencia: r.referencia, pin: b.pin, observacion: 'Pago reportado por el cliente en el portal ' + C.codigoReporte(id),
       aplicaciones: rep.aplicaciones.map(a => ({id_documento: a.id_documento, usd: a.usd_cents / 100}))});
-    await R.moverPagoReportado(ctx.db, id, 'VERIFICANDO', 'CONFIRMADO', {ts: Date.now(), rol: ROL_TXT[ctx.rol] || ctx.rol, id_pago: c.id_pago});
+    await R.moverPagoReportado(ctx.db, id, 'VERIFICANDO', 'CONFIRMADO', {ts: Date.now(), rol: nomRol(ctx.rol), id_pago: c.id_pago});
     await VR.lote(ctx.db, auditE(ctx, 'portal', C.codigoReporte(id), r.razon_social, 'confirmó el pago reportado', {recibo: c.recibo, usd: c.usd}));
     return {ok: true, recibo: c.recibo, usd: c.usd, aplicado: c.aplicado, sin_aplicar: c.sin_aplicar, liquidaciones: c.liquidaciones, avisos: c.avisos};
   } catch (e) { await R.moverPagoReportado(ctx.db, id, 'VERIFICANDO', 'POR_VERIFICAR'); throw e; }   // sigue por verificar
@@ -257,7 +257,7 @@ export async function rechazarPago(ctx, id, motivo) {
   exigir(ctx, 'cobrar', 'Tu rol no registra pagos.');
   const m = txt(motivo, 200); if (m.length < 3) throw err(400, 'Escribe el motivo (el cliente lo va a ver).');
   const r = await R.getPagoReportado(ctx.db, id); if (!r) throw err(404, 'Pago reportado no encontrado.');
-  if (!await R.moverPagoReportado(ctx.db, id, 'POR_VERIFICAR', 'RECHAZADO', {ts: Date.now(), rol: ROL_TXT[ctx.rol] || ctx.rol, motivo: m})) throw err(409, 'Este pago ya fue atendido por otra persona.');
+  if (!await R.moverPagoReportado(ctx.db, id, 'POR_VERIFICAR', 'RECHAZADO', {ts: Date.now(), rol: nomRol(ctx.rol), motivo: m})) throw err(409, 'Este pago ya fue atendido por otra persona.');
   await VR.lote(ctx.db, auditE(ctx, 'portal', C.codigoReporte(id), r.razon_social, 'rechazó el pago reportado', {motivo: m}));
   return {ok: true};
 }

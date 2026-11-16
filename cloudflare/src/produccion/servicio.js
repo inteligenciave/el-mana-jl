@@ -2,11 +2,11 @@
    Usa el dominio (reglas), el repo (datos) y, para emitir notas o facturas, el servicio de Ventas. No conoce HTTP. */
 import * as D from './dominio.js';
 import * as R from './repo.js';
-import {puede} from './permisos.js';
+import {puede, nomRol} from './permisos.js';
 import * as VS from '../ventas/servicio.js';
 import * as VD from '../ventas/dominio.js';
 import * as VR from '../ventas/repo.js';
-import {ROL_TXT} from '../ventas/permisos.js';
+import {ROL_TXT, nomRol, rolCanon} from '../ventas/permisos.js';
 import * as FL from '../flota/servicio.js';
 
 export const err = VS.err;
@@ -58,24 +58,24 @@ export async function zonaDetalle(db, zona) {
 
 /* ---------- Pausar zona ---------- */
 export async function pausar(ctx, zona, motivo) {
-  exigir(ctx, 'mover', 'Solo el Gerente y el Jefe de producción pausan una zona.');
+  exigir(ctx, 'mover', 'Solo Logística y el Gerente pausan una zona.');
   const m = txt(motivo, 200); if (m.length < 3) throw err(400, 'Escribe el motivo de la pausa.');
   const z = txt(zona, 60); if (!z) throw err(400, 'Falta la zona.');
   if ((await R.pausasActivas(ctx.db)).some(p => p.zona === z)) throw err(409, 'Esa zona ya está pausada.');
-  await VS.enLote(ctx.db, [R.stPausar(ctx.db, z, m, ROL_TXT[ctx.rol] || ctx.rol), ...auditar(ctx, z, 'Zona ' + z, 'pausó la zona', {motivo: m})]);
+  await VS.enLote(ctx.db, [R.stPausar(ctx.db, z, m, nomRol(ctx.rol)), ...auditar(ctx, z, 'Zona ' + z, 'pausó la zona', {motivo: m})]);
   return {ok: true};
 }
 export async function reanudar(ctx, zona) {
-  exigir(ctx, 'mover', 'Solo el Gerente y el Jefe de producción reanudan una zona.');
+  exigir(ctx, 'mover', 'Solo Logística y el Gerente reanudan una zona.');
   const z = txt(zona, 60);
   if (!(await R.pausasActivas(ctx.db)).some(p => p.zona === z)) throw err(409, 'Esa zona no está pausada.');
-  await VS.enLote(ctx.db, [R.stReanudar(ctx.db, z, ROL_TXT[ctx.rol] || ctx.rol), ...auditar(ctx, z, 'Zona ' + z, 'reanudó la zona', {})]);
+  await VS.enLote(ctx.db, [R.stReanudar(ctx.db, z, nomRol(ctx.rol)), ...auditar(ctx, z, 'Zona ' + z, 'reanudó la zona', {})]);
   return {ok: true};
 }
 
 /* ---------- Salidas ---------- */
 export async function armarSalida(ctx, b) {
-  exigir(ctx, 'mover', 'Solo el Gerente y el Jefe de producción arman salidas.');
+  exigir(ctx, 'mover', 'Solo Logística y el Gerente arman salidas.');
   const {db} = ctx, zona = txt(b.zona, 60); if (!zona) throw err(400, 'Falta la zona.');
   if (!Array.isArray(b.lineas) || !b.lineas.length) throw err(400, 'Elige qué pedidos salen.');
   if ((await R.pausasActivas(db)).some(p => p.zona === zona)) throw err(409, 'Esa zona está pausada: reanúdala para armar una salida.');
@@ -98,12 +98,12 @@ export async function armarSalida(ctx, b) {
   const rg = D.reglasSalida({rol: ctx.rol, kilosSalida, kilosZona, meta: aj.meta, motivo: b.motivo, divide});
   if (!rg.ok) throw err(rg.status, rg.msg, {codigo: rg.codigo});
   const id = await VR.siguiente(db, 'salida'), nro = 'SAL-' + String(id).padStart(5, '0'), motivo = txt(b.motivo, 200) || null;
-  await VS.enLote(db, [R.stInsertarSalida(db, {id_salida: id, nro, zona, kilos: kilosSalida, meta_kg: aj.meta, motivo, creado_rol: ROL_TXT[ctx.rol] || ctx.rol}), ...elegidas.map(l => R.stInsertarSalidaLinea(db, id, l)),
+  await VS.enLote(db, [R.stInsertarSalida(db, {id_salida: id, nro, zona, kilos: kilosSalida, meta_kg: aj.meta, motivo, creado_rol: nomRol(ctx.rol)}), ...elegidas.map(l => R.stInsertarSalidaLinea(db, id, l)),
     ...auditar(ctx, nro, 'Zona ' + zona, divide ? 'armó salida dividiendo pedidos' : 'armó salida', {kilos: kilosSalida, meta_kg: aj.meta, motivo, bajo_la_meta: aj.meta > 0 && kilosSalida < aj.meta, divide})]);
   return {id_salida: id, nro, kilos: kilosSalida, divide, bajo_la_meta: aj.meta > 0 && kilosSalida < aj.meta};
 }
 export async function anularSalida(ctx, id) {
-  exigir(ctx, 'mover', 'Solo el Gerente y el Jefe de producción anulan salidas.');
+  exigir(ctx, 'mover', 'Solo Logística y el Gerente anulan salidas.');
   const s = await R.getSalida(ctx.db, id); if (!s) throw err(404, 'Salida no encontrada.');
   if (s.estado !== 'ARMANDO') throw err(409, 'Esa salida ya no se puede anular.');
   await VS.enLote(ctx.db, [R.stSalidaAnulada(ctx.db, id), ...auditar(ctx, s.nro, 'Zona ' + s.zona, 'anuló la salida', {kilos: s.kilos})]);
@@ -118,10 +118,10 @@ export const listaSalidas = (db, estado) => R.listarSalidas(db, {estado});
 
 /* Cargar el camión: se cuenta lo que realmente subió. No puede ser más de lo armado; si es menos, motivo, y lo que faltó queda pendiente en el pedido. */
 export async function cargarSalida(ctx, id, b = {}) {
-  exigir(ctx, 'cargar', 'Solo Empaque y despacho, el Jefe de producción y el Gerente cuentan la carga.');
+  exigir(ctx, 'cargar', 'Solo Logística y el Gerente cuentan la carga.');
   const {db} = ctx, s = await R.getSalida(db, id); if (!s) throw err(404, 'Salida no encontrada.');
   if (s.estado !== 'ARMANDO') throw err(409, 'Esa salida ya fue despachada o anulada.');
-  if (s.cargada_ts) throw err(409, 'Esa carga ya se contó. Si hubo un error, el Jefe de producción la rechaza y se cuenta de nuevo.');
+  if (s.cargada_ts) throw err(409, 'Esa carga ya se contó. Si hubo un error, el Gerente la rechaza y se cuenta de nuevo.');
   if (!Array.isArray(b.lineas) || !b.lineas.length) throw err(400, 'Cuenta los bultos de cada línea.');
   const lineas = await R.lineasDeSalida(db, id), porId = new Map(lineas.map(l => [l.id_linea, l])), cargados = new Map();
   for (const x of b.lineas) {
@@ -149,7 +149,7 @@ export async function cargarSalida(ctx, id, b = {}) {
 
 /* Despachar: emite la nota o factura de lo que sale, baja apartado y existencias, y cierra la salida, todo en un solo lote. */
 export async function despachar(ctx, id, b = {}) {
-  exigir(ctx, 'mover', 'Solo el Gerente y el Jefe de producción despachan.');
+  exigir(ctx, 'mover', 'Solo Logística y el Gerente despachan.');
   const {db} = ctx, s = await R.getSalida(db, id); if (!s) throw err(404, 'Salida no encontrada.');
   if (s.estado !== 'ARMANDO') throw err(409, 'Esa salida ya fue despachada o anulada.');
   if ((await R.pausasActivas(db)).some(p => p.zona === s.zona)) throw err(409, 'Esa zona está pausada: reanúdala para despachar.');
@@ -178,11 +178,11 @@ export async function despachar(ctx, id, b = {}) {
     const d = await VS.documentoDeDespacho(ctx, ped, lineasDoc, id, fecha);
     docs.push({...d, id_pedido: idPedido, ped}); st.push(...d.st, R.stDocumentoDeSalida(db, id, idPedido, d.id_documento), ...ls.map(l => R.stDespacharLinea(db, l.id_linea, l.bultos)), R.stRecalcularPedido(db, idPedido));
   }
-  st.push(R.stSalidaDespachada(db, id, vehTxt, choTxt, motivo, ROL_TXT[ctx.rol] || ctx.rol, el.vehiculo_id, el.chofer_id),
+  st.push(R.stSalidaDespachada(db, id, vehTxt, choTxt, motivo, nomRol(ctx.rol), el.vehiculo_id, el.chofer_id),
     ...auditar(ctx, s.nro, 'Zona ' + s.zona, 'despachó la salida', {kilos: s.kilos, vehiculo: vehTxt || null, chofer: choTxt || null, documentos: docs.map(d => d.nro), motivo: motivo || null, bajo_la_meta: aj.meta > 0 && s.kilos < aj.meta}));
   await VS.enLote(db, st);
   for (const d of docs) if (d.ped.pago_json) {   // «Pagó ahora»: se cobra con el primer documento del pedido
-    const pg = JSON.parse(d.ped.pago_json), ctxV = {...ctx, rol: d.ped.creado_rol_cod || 'dueno'};
+    const pg = JSON.parse(d.ped.pago_json), ctxV = {...ctx, rol: rolCanon(d.ped.creado_rol_cod) || 'dueno'};
     const c = await VS.cobrarContado(ctxV, d.ped.id_cliente, d.id_documento, d.nro, pg);
     if (c.ok) await R.run(db, 'UPDATE pedidos_venta SET pago_json = NULL WHERE id_pedido = ?1', [d.id_pedido]);
     cobros.push({pedido: d.ped.nro, ...c});
@@ -228,7 +228,7 @@ export async function turnoActual(db) {
 export async function abrirTurno(ctx, b = {}) {
   exigir(ctx, 'turno', 'Solo Producción y el Gerente llevan el turno.');
   if (await R.turnoAbierto(ctx.db)) throw err(409, 'Ya hay un turno abierto. Ciérralo antes de abrir otro.');
-  try { await VS.enLote(ctx.db, [R.stAbrirTurno(ctx.db, hoy(), ROL_TXT[ctx.rol] || ctx.rol, txt(b.observaciones, 200)), ...auditar(ctx, 'turno', 'Turno ' + hoy(), 'abrió el turno', {})]); }
+  try { await VS.enLote(ctx.db, [R.stAbrirTurno(ctx.db, hoy(), nomRol(ctx.rol), txt(b.observaciones, 200)), ...auditar(ctx, 'turno', 'Turno ' + hoy(), 'abrió el turno', {})]); }
   catch (e) { if (/UNIQUE/i.test(String(e.message))) throw err(409, 'Ya hay un turno abierto.'); throw e; }
   return turnoActual(ctx.db);
 }
@@ -240,7 +240,7 @@ async function entradasPorEtapa(db, idTurno) {
   return m;
 }
 async function turnoAbiertoOError(db) { const t = await R.turnoAbierto(db); if (!t) throw err(409, 'No hay un turno abierto. Ábrelo primero.'); return t; }
-const quien = ctx => ROL_TXT[ctx.rol] || ctx.rol;
+const quien = ctx => nomRol(ctx.rol);
 /* Motivo y tipo de una diferencia (obligatorios): devuelve {motivo, tipo} o lanza 400 con el mensaje */
 function motivoDe(b, msg, {exceso = false} = {}) {
   const motivo = txt(b && b.motivo, 200);
@@ -270,7 +270,7 @@ export async function registrarMovimiento(ctx, b) {
     await VS.enLote(db, [R.stDiferencia(db, {etapa: b.etapa, origen_tipo: 'turno', origen_id: t.id_turno, unidad: 'kg', heredado, usado: k.valor, diferencia: r3(k.valor - heredado), tipo, motivo, estado: 'PENDIENTE', retiene: true, creado_rol: ctx.rol}),
       R.stMovProceso(db, t.id_turno, b.etapa, b.sentido, k.valor, txt(b.nota, 100), quien(ctx), {enEspera: true}),
       ...auditar(ctx, 'turno', 'Turno ' + t.fecha, 'anotó kilos de más (en espera)', {etapa: b.etapa, sentido: b.sentido, kilos: k.valor, heredado, motivo, tipo})]);
-    return {...(await turnoActual(db)), en_espera: true, diferencia: await R.ultimaDiferencia(db), mensaje: 'Quedó en espera: lo aprueba el Jefe de producción.'};
+    return {...(await turnoActual(db)), en_espera: true, diferencia: await R.ultimaDiferencia(db), mensaje: 'Quedó en espera: lo aprueba el Gerente.'};
   }
   /* Llegan menos kilos de los que salieron de la etapa anterior: la diferencia se calcula y hay que resolverla (salvo que sea solo una parte del lote: parcial) */
   if (b.sentido === 'ENTRA' && heredado != null && heredado - k.valor > 0.0004 && !flag(b.parcial)) {
@@ -287,7 +287,7 @@ export async function registrarMovimiento(ctx, b) {
   return turnoActual(db);
 }
 export async function registrarEmpaque(ctx, b) {
-  exigir(ctx, 'turno', 'Solo Producción y el Gerente llevan el turno.');
+  exigir(ctx, 'empacar', 'Solo Logística y el Gerente anotan lo empacado.');
   const {db} = ctx, t = await turnoAbiertoOError(db);
   const n = D.validarBultos(b.bultos); if (!n.ok) throw err(400, n.msg);
   const p = await VR.getProducto(db, +b.id_producto); if (!p) throw err(404, 'Producto no encontrado.');
@@ -302,7 +302,7 @@ export async function registrarEmpaque(ctx, b) {
     await VS.enLote(db, [R.stDiferencia(db, {etapa: 'empacado', origen_tipo: 'turno', origen_id: t.id_turno, id_producto: p.id_producto, unidad: 'kg', heredado: libre, usado: kgNuevo, diferencia: r3(kgNuevo - libre), tipo, motivo, estado: 'PENDIENTE', retiene: true, creado_rol: ctx.rol}),
       R.stEmpaque(db, t.id_turno, p.id_producto, n.valor, quien(ctx), {enEspera: true}),
       ...auditar(ctx, 'turno', 'Turno ' + t.fecha, 'anotó bultos de más (en espera)', {producto: p.codigo_sku, bultos: n.valor, kg_libres: libre, motivo, tipo})]);
-    return {...(await turnoActual(db)), en_espera: true, diferencia: await R.ultimaDiferencia(db), mensaje: 'Quedó en espera: lo aprueba el Jefe de producción.'};
+    return {...(await turnoActual(db)), en_espera: true, diferencia: await R.ultimaDiferencia(db), mensaje: 'Quedó en espera: lo aprueba el Gerente.'};
   }
   await VS.enLote(db, [R.stEmpaque(db, t.id_turno, p.id_producto, n.valor, quien(ctx))]);
   return turnoActual(db);
@@ -394,7 +394,7 @@ export async function cerrarTurno(ctx, b = {}) {
   for (const [id, n] of Object.entries(decB)) if (n > 0 && !(regB[id] > 0)) throw err(400, 'Hay bultos que no se anotaron en el turno. Anótalos primero con sus kilos.');
   /* Lo que sigue en espera frena el cierre */
   const ret = await R.retenidasDeTurno(db, t.id_turno);
-  if (ret.length) throw err(409, 'Hay diferencias esperando al Jefe de producción. Cuando las apruebe o las rechace, podrás cerrar el turno.', {codigo: 'EN_ESPERA', pendientes: ret.length});
+  if (ret.length) throw err(409, 'Hay diferencias esperando al Gerente. Cuando las apruebe o las rechace, podrás cerrar el turno.', {codigo: 'EN_ESPERA', pendientes: ret.length});
   /* Bultos: declarar más de lo anotado no se acepta; declarar menos pide motivo */
   const prodsTodos = new Map((await VR.productosPorIds(db, [...new Set([...Object.keys(regB), ...Object.keys(decB)].map(Number))])).map(p => [p.id_producto, p]));
   const nombreProd = id => { const p = prodsTodos.get(+id); return p ? `${p.nombre} ${p.gramaje || ''}`.trim() : 'Producto ' + id; };
@@ -438,7 +438,7 @@ export async function cerrarTurno(ctx, b = {}) {
     {codigo: 'FALTAN_MOTIVOS', faltan, ...(await opcionesFaltante(db)), tipos: D.TIPOS_DIF});
   if (exceso.length) {   // sobran kilos con motivo: queda en espera y el turno sigue abierto hasta que el Jefe lo apruebe
     await VS.enLote(db, [...exceso.map(d => R.stDiferencia(db, d)), ...auditar(ctx, 'turno', 'Turno ' + t.fecha, 'declaró kilos de más al cerrar (en espera)', {etapas: exceso.map(d => ({[d.etapa]: d.diferencia}))})]);
-    throw err(409, 'Declaraste kilos de más. Quedó en espera: cuando el Jefe de producción lo apruebe podrás cerrar el turno.', {codigo: 'EN_ESPERA', pendientes: exceso.length});
+    throw err(409, 'Declaraste kilos de más. Quedó en espera: cuando el Gerente lo apruebe podrás cerrar el turno.', {codigo: 'EN_ESPERA', pendientes: exceso.length});
   }
   const cmp = D.compararCierre({registradoEtapas: regE, declaradoEtapas: decE, registradoBultos: regB, declaradoBultos: decB, tolerancia: aj.tolerancia});
   const entradas = Object.entries(decB).filter(([, n]) => n > 0), prods = prodsTodos;
@@ -477,7 +477,7 @@ export async function guardarMotivo(ctx, id, b = {}) {
 }
 /* GET /kpi-merma?desde=&hasta= (ms; sin «desde» = desde que rige la regla): merma real, calculada, por etapa y motivo. Sin metas. % = merma / (kilos que entraron a la etapa + merma entre etapas). */
 export async function kpiMerma(ctx, {desde, hasta} = {}) {
-  exigir(ctx, 'verDif', 'Solo el Gerente y el Jefe de producción ven la merma.');
+  exigir(ctx, 'verDif', 'Solo el Gerente, Producción y Logística ven la merma.');
   const aj = await R.leerAjustes(ctx.db), d = desde != null && desde !== '' && Number.isFinite(+desde) ? +desde : aj.herenciaDesde, h = hasta != null && hasta !== '' && Number.isFinite(+hasta) ? +hasta : 9e15, db = ctx.db;
   const [pm, otras, sigue, ent, trans] = await Promise.all([R.mermasPorMotivo(db, d, h), R.mermasOtras(db, d, h), R.siguenPorEtapa(db, d, h), R.entradasPeriodo(db, d, h), R.mermasTransPeriodo(db, d, h)]);
   const kgDe = (arr, k) => r3((arr.find(x => x.etapa === k) || {kg: 0}).kg);
@@ -495,22 +495,21 @@ export async function kpiMerma(ctx, {desde, hasta} = {}) {
 }
 
 /* ---------- Diferencias: aprobar y rechazar ---------- */
-const difVista = d => ({...d, retiene: !!d.retiene, esperada: !!d.esperada, tipo_texto: (D.TIPOS_DIF.find(t => t.k === d.tipo) || {t: d.tipo}).t, etapa_texto: d.etapa === 'cierre' ? 'Cierre (bultos)' : d.etapa === 'carga' ? 'Carga del camión' : D.nombreEtapa(d.etapa), creado_por: ROL_TXT[d.creado_rol] || d.creado_rol, decidido_por: ROL_TXT[d.decidido_rol] || d.decidido_rol || null});
+const difVista = d => ({...d, retiene: !!d.retiene, esperada: !!d.esperada, tipo_texto: (D.TIPOS_DIF.find(t => t.k === d.tipo) || {t: d.tipo}).t, etapa_texto: d.etapa === 'cierre' ? 'Cierre (bultos)' : d.etapa === 'carga' ? 'Carga del camión' : D.nombreEtapa(d.etapa), creado_por: nomRol(d.creado_rol), decidido_por: nomRol(d.decidido_rol) || null});
 export async function listaDiferencias(ctx, f = {}) {
-  exigir(ctx, 'verDif', 'Solo el Gerente y el Jefe de producción ven las diferencias.');
+  exigir(ctx, 'verDif', 'Solo el Gerente, Producción y Logística ven las diferencias.');
   if (f.estado && !['PENDIENTE', 'APROBADA', 'RECHAZADA', 'AUTOMATICA'].includes(f.estado)) throw err(400, 'Estado no válido.');
   return (await R.listarDiferencias(ctx.db, f)).map(difVista);
 }
 export async function contadorDiferencias(ctx) {
-  exigir(ctx, 'verDif', 'Solo el Gerente y el Jefe de producción ven las diferencias.');
+  exigir(ctx, 'verDif', 'Solo el Gerente, Producción y Logística ven las diferencias.');
   const c = await R.contadorDiferencias(ctx.db);
   return {pendientes: c.n, mas_vieja_horas: c.n ? Math.floor((Date.now() - c.mas_vieja_ts) / 3600000) : null};
 }
 export async function decidirDiferencia(ctx, id, accion, nota) {
-  exigir(ctx, 'aprobar', 'Solo el Jefe de producción y el Gerente aprueban o rechazan diferencias.');
+  exigir(ctx, 'aprobar', 'Solo el Gerente aprueba o rechaza diferencias.');
   const {db} = ctx, d = await R.getDiferencia(db, id); if (!d) throw err(404, 'No encontré esa diferencia.');
   const n = txt(nota, 200), aprobar = accion === 'aprobar';
-  if (d.creado_rol === 'jefeprod' && ctx.rol !== 'dueno') throw err(403, 'La anotó el Jefe de producción: la aprueba o la rechaza el Gerente.');
   if (!aprobar && n.length < 3) throw err(400, 'Escribe por qué la rechazas.');
   if (d.estado !== 'PENDIENTE') throw err(409, 'Esa diferencia ya fue decidida.');
   const st = [R.stDecidirDiferencia(db, id, aprobar ? 'APROBADA' : 'RECHAZADA', ctx.rol, n)];

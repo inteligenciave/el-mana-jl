@@ -1,5 +1,5 @@
 /* Compras · rutas HTTP (/api/v/compras/*), rol en x-rol.
-   GET /pedidos?estado=PEDIDA   lista (Administración y Gerente: todo; Recepción y Jefe de producción: solo lo pendiente de recibir, sin precios)
+   GET /pedidos?estado=PEDIDA   lista (Administración y Gerente: todo; Producción: solo lo pendiente de recibir, sin precios)
    POST /pedidos                hacer una compra (solo Administración y Gerente) */
 import * as S from './servicio.js';
 import {ROL_TXT} from '../ventas/permisos.js';

@@ -1,7 +1,7 @@
 /* Casos de uso del módulo de Ventas y Liquidación Dual. Usa el dominio (reglas) y el repo (datos). No conoce HTTP. */
 import * as D from './dominio.js';
 import * as R from './repo.js';
-import {puede, puedePesoBulto, puedeInventario, MSG_SIN_INVENTARIO, ROL_TXT} from './permisos.js';
+import {puede, puedePesoBulto, puedeInventario, MSG_SIN_INVENTARIO, ROL_TXT, nomRol} from './permisos.js';
 import * as T from '../tasa/servicio.js';
 import * as PR from '../precios/repo.js';
 import * as PD from '../precios/dominio.js';
@@ -15,7 +15,7 @@ const numOrNull = v => (v === '' || v == null) ? null : (Number.isFinite(+v) ? +
 const pctOk = v => v == null || (Number.isFinite(v) && v >= 0 && v <= 100);
 const centsOrNull = v => { const n = numOrNull(v); return n == null ? null : (Number.isNaN(n) || n < 0 ? NaN : D.aCents(n)); };
 const exigir = (ctx, accion, msg) => { if (!puede(ctx.rol, accion, ctx.matriz)) throw err(403, msg || 'Tu rol no puede hacer esto.'); };
-export const audit = (ctx, ent, ref, nom, accion, detalle) => R.stAuditoria(ctx.db, {rol: ctx.rol, rolTxt: ROL_TXT[ctx.rol] || ctx.rol, ent, ref, nom, accion, detalle});
+export const audit = (ctx, ent, ref, nom, accion, detalle) => R.stAuditoria(ctx.db, {rol: ctx.rol, rolTxt: nomRol(ctx.rol), ent, ref, nom, accion, detalle});
 export const enLote = async (db, stmts) => {
   try { return await R.lote(db, stmts); }
   catch (e) {
@@ -52,7 +52,7 @@ export async function guardarProducto(ctx, id, b) {
     const prev = await R.getProducto(ctx.db, id); if (!prev) throw err(404, 'Producto no encontrado.');
     c.precio_ref_cents = prev.precio_ref_cents ?? null;
     const borraImg = D.esImagenInterna(prev.imagen_blanca_url) && !D.esImagenInterna(c.imagen_blanca_url);
-    await enLote(ctx.db, [R.stActualizarProducto(ctx.db, id, c), ...(borraImg ? [R.stBorrarImagen(ctx.db, id)] : []), PR.stCerrarPendiente(ctx.db, PD.claveProducto(id), ROL_TXT[ctx.rol] || ctx.rol, 'El Gerente fijó el precio directamente.'), ...audit(ctx, 'producto', c.codigo_sku, c.nombre, 'modificó', {antes: {precio: dol(prev.precio_ref_cents), iva: prev.alicuota_iva}, despues: {precio: dol(c.precio_ref_cents), iva: c.alicuota_iva}})]);
+    await enLote(ctx.db, [R.stActualizarProducto(ctx.db, id, c), ...(borraImg ? [R.stBorrarImagen(ctx.db, id)] : []), PR.stCerrarPendiente(ctx.db, PD.claveProducto(id), nomRol(ctx.rol), 'El Gerente fijó el precio directamente.'), ...audit(ctx, 'producto', c.codigo_sku, c.nombre, 'modificó', {antes: {precio: dol(prev.precio_ref_cents), iva: prev.alicuota_iva}, despues: {precio: dol(c.precio_ref_cents), iva: c.alicuota_iva}})]);
     return R.getProducto(ctx.db, id);
   }
   const rs = await enLote(ctx.db, [R.stInsertarProducto(ctx.db, {...c, orden: 99}), ...audit(ctx, 'producto', c.codigo_sku, c.nombre, 'agregó', {})]);
@@ -188,7 +188,7 @@ export async function crearVenta(ctx, b, o = {}) {
   const fiscal = esNE ? null : (cfg.fiscal_prefijo_factura || '') + pad(await R.siguiente(db, 'factura_fiscal'), 8);
   const doc = {id_documento: id, nro_control_interno: ctl, nro_factura_fiscal: fiscal, tipo_origen: b.tipo, estado: 'PENDIENTE', fecha_emision: fecha, fecha_vencimiento: cli.dias_credito_normal != null ? D.sumarDias(fecha, cli.dias_credito_normal) : null,
     id_cliente: cli.id_cliente, id_vendedor: cli.id_vendedor, subtotal_base_cents: tot.subtotal, descuento_pct: cli.descuento_fijo_pct, descuento_cents: tot.descuento, iva_cents: tot.iva, total_cents: tot.total,
-    metodo_pago: txt(b.metodo_pago, 40) || null, observaciones: txt(b.observaciones, 300) || null, envio_zona: envio.zona, envio_direccion: envio.direccion, lista_precios: cx.lista, afecta_inventario: 1, origen: 'manual', creado_rol: ROL_TXT[ctx.rol] || ctx.rol, ejemplo: ej};
+    metodo_pago: txt(b.metodo_pago, 40) || null, observaciones: txt(b.observaciones, 300) || null, envio_zona: envio.zona, envio_direccion: envio.direccion, lista_precios: cx.lista, afecta_inventario: 1, origen: 'manual', creado_rol: nomRol(ctx.rol), ejemplo: ej};
   const asi = esNE ? D.asientoEmisionNE({total: tot.total}) : D.asientoEmisionFactura(tot);
   const st = [R.stInsertarDocumento(db, doc), ...lineas.map(l => R.stInsertarLinea(db, id, l, ej)),
     ...lineas.flatMap(l => [R.stStock(db, l.id_producto, -l.cantidad), R.stMovimiento(db, {id_producto: l.id_producto, cantidad: -l.cantidad, tipo: esNE ? 'SALIDA_NOTA_ENTREGA' : 'SALIDA_FACTURA', id_documento: id, fecha, ejemplo: ej})]),
@@ -256,7 +256,7 @@ export async function crearPedido(ctx, b, o = {}) {
   const fecha = o.fecha || D.hoyVE(), ej = cli.ejemplo ? 1 : 0, zona = D.zonaDeEstado(cli.zona) || 'Sin zona';
   const id = await R.siguiente(db, 'pedido_venta'), nro = 'PED-' + pad(id);
   const kilos = Math.round(lineas.reduce((a, l) => a + l.cantidad * l.kg_por_bulto, 0) * 1000) / 1000;
-  const st = [PRD.stInsertarPedido(db, {id_pedido: id, nro, id_cliente: cli.id_cliente, estado_ve: D.estadoReal(cli.zona), zona, tipo: b.tipo, fecha, creado_rol: ROL_TXT[ctx.rol] || ctx.rol, creado_rol_cod: ctx.rol, id_vendedor: cli.id_vendedor, descuento_pct: cli.descuento_fijo_pct, metodo_pago: txt(b.metodo_pago, 40) || null, observaciones: txt(b.observaciones, 300) || null, lista_precios: cx.lista, pago_json: o.pago ? JSON.stringify(o.pago) : null, ejemplo: ej}),
+  const st = [PRD.stInsertarPedido(db, {id_pedido: id, nro, id_cliente: cli.id_cliente, estado_ve: D.estadoReal(cli.zona), zona, tipo: b.tipo, fecha, creado_rol: nomRol(ctx.rol), creado_rol_cod: ctx.rol, id_vendedor: cli.id_vendedor, descuento_pct: cli.descuento_fijo_pct, metodo_pago: txt(b.metodo_pago, 40) || null, observaciones: txt(b.observaciones, 300) || null, lista_precios: cx.lista, pago_json: o.pago ? JSON.stringify(o.pago) : null, ejemplo: ej}),
     ...lineas.map(l => PRD.stInsertarPedidoLinea(db, id, l)), ...lineas.map(l => PRD.stApartado(db, l.id_producto, l.cantidad)),
     ...audit(ctx, 'venta', nro, cli.razon_social, 'registró pedido', {total_usd: dol(tot.total), bultos: lineas.reduce((a, l) => a + l.cantidad, 0), kilos, zona})];
   await enLote(db, st);
@@ -434,7 +434,7 @@ export async function cobrar(ctx, b, o = {}) {
     else if (liq.ruta === 'A') {
       const idF = await R.siguiente(db, 'documento'), ctlF = 'FA-' + pad(await R.siguiente(db, 'factura_ctl')), fisF = (cfg.fiscal_prefijo_factura || '') + pad(await R.siguiente(db, 'factura_fiscal'), 8), f = liq.final;
       st.push(R.stInsertarDocumento(db, {id_documento: idF, nro_control_interno: ctlF, nro_factura_fiscal: fisF, tipo_origen: 'FACTURA', estado: 'PAGADO', fecha_emision: fecha, id_cliente: cli.id_cliente, id_vendedor: d.id_vendedor, subtotal_base_cents: f.subtotal, descuento_pct: d.descuento_pct, descuento_cents: f.descuento, iva_cents: f.iva, total_cents: f.total,
-        afecta_inventario: 0, id_ne_origen: d.id_documento, envio_zona: d.envio_zona, envio_direccion: d.envio_direccion, lista_precios: d.lista_precios, caso_liquidacion: liq.caso, fecha_liquidacion: fecha, observaciones: 'Factura definitiva de la nota de entrega ' + d.nro_control_interno + (liq.exonerado ? ' (recargo por mora exonerado con PIN)' : ''), metodo_pago: d.metodo_pago, origen: 'manual', creado_rol: ROL_TXT[ctx.rol] || ctx.rol, ejemplo: ej}));
+        afecta_inventario: 0, id_ne_origen: d.id_documento, envio_zona: d.envio_zona, envio_direccion: d.envio_direccion, lista_precios: d.lista_precios, caso_liquidacion: liq.caso, fecha_liquidacion: fecha, observaciones: 'Factura definitiva de la nota de entrega ' + d.nro_control_interno + (liq.exonerado ? ' (recargo por mora exonerado con PIN)' : ''), metodo_pago: d.metodo_pago, origen: 'manual', creado_rol: nomRol(ctx.rol), ejemplo: ej}));
       for (const l of lineas) { const p = l[CAMPO_CASO[liq.caso === 3 && liq.exonerado ? 2 : liq.caso]]; st.push(R.stInsertarLinea(db, idF, {...l, precio_base_cents: p, precio_pp_cents: p, precio_mora_cents: p}, ej)); }
       st.push(R.stEstadoDocumento(db, d.id_documento, 'FACTURADO_DESDE_NE', liq.caso, fecha));
       const asi = D.asientoConversionNE({total: d.total_cents}, f); st.push(R.stAsiento(db, {fecha, id_documento: idF, id_pago: idPago, concepto: asi.concepto, lineas: asi.lineas, ejemplo: ej}));
@@ -457,7 +457,7 @@ export async function cobrar(ctx, b, o = {}) {
   }
   const asC = D.asientoCobro(usdC);
   const pago = {id_pago: idPago, fecha_pago: fecha, id_cliente: cli.id_cliente, id_vendedor: vendedorPago, monto_bs_cents: bsC, tasa, usd_cents: usdC, banco, id_banco: bcoLista ? bcoLista.id : null, referencia: String(b.referencia).trim().slice(0, 40), ref_norm: refN, dup_key: D.dupKey(banco, refN, bsC, max), observacion: txt(b.observacion, 300) || null,
-    retroactivo: retro, exonera_mora: exonera, origen: o.origen || 'manual', creado_rol: ROL_TXT[ctx.rol] || ctx.rol, ejemplo: ej};
+    retroactivo: retro, exonera_mora: exonera, origen: o.origen || 'manual', creado_rol: nomRol(ctx.rol), ejemplo: ej};
   const todo = [R.stInsertarPago(db, pago), ...st, R.stAsiento(db, {fecha, id_pago: idPago, concepto: asC.concepto, lineas: asC.lineas, ejemplo: ej}), R.stSaldoCliente(db, cli.id_cliente),
     ...audit(ctx, 'pago', 'RC-' + pad(idPago, 5), cli.razon_social, 'registró el pago', {usd: dol(usdC), bs: bs, tasa, banco, referencia: refN, fecha_pago: fecha, retroactivo: retro ? 'autorizado con PIN de gerencia' : false, exonera_mora: exonera ? 'autorizada con PIN de gerencia' : false, liquidaciones: liquidaciones.map(l => l.nro + ' (' + l.caso_texto + ')')})];
   await enLote(db, todo);
@@ -469,7 +469,7 @@ export async function anularPago(ctx, id, motivo) {
   const m = txt(motivo, 200); if (m.length < 3) throw err(400, 'Escribe el motivo de la anulación.');
   const p = await R.getPago(ctx.db, id); if (!p) throw err(404, 'Pago no encontrado.'); if (p.estado !== 'ACTIVO') throw err(409, 'El pago ya está anulado.');
   if ((await R.contarLiquidadosPor(ctx.db, id)).n > 0) throw err(409, 'Este pago liquidó un documento con detalle (emitió factura o nota). Anularlo exige una nota de crédito: por confirmar con el contador.', {codigo: 'LIQUIDO'});
-  const apls = await R.aplicacionesDe(ctx.db, id), st = [R.stAnularPago(ctx.db, id, m, ROL_TXT[ctx.rol] || ctx.rol)];
+  const apls = await R.aplicacionesDe(ctx.db, id), st = [R.stAnularPago(ctx.db, id, m, nomRol(ctx.rol))];
   for (const a of apls) if (a.liquido) st.push(R.stEstadoDocumento(ctx.db, a.id_documento, 'PENDIENTE', null, null));
   const as = {concepto: 'Anulación de cobro ' + 'RC-' + pad(id, 5), lineas: [{cuenta: D.CTA.cxc, debe: p.usd_cents, haber: 0}, {cuenta: D.CTA.banco, debe: 0, haber: p.usd_cents}]};
   st.push(R.stAsiento(ctx.db, {fecha: D.hoyVE(), id_pago: id, concepto: as.concepto, lineas: as.lineas, ejemplo: p.ejemplo}), R.stSaldoCliente(ctx.db, p.id_cliente), ...audit(ctx, 'pago', 'RC-' + pad(id, 5), p.razon_social, 'anuló el pago', {motivo: m, usd: dol(p.usd_cents)}));
@@ -544,10 +544,10 @@ export async function importarLote(ctx, b) {
       if (key && (existentes.has(key) || vistas.has(key))) { res.pagosOmitidos.push({numero, referencia: p.ref, motivo: 'referencia repetida (banco + referencia)'}); ip++; continue; }
       if (key) vistas.add(key); if (!refN) res.sinReferencia++;
       const usdC = D.usdDeBs(bsC, tasa), idP = idsPago + ip++, aplic = Math.max(0, Math.min(usdC, totalC - pagado)); pagado += aplic;
-      st.push(R.stInsertarPago(db, {id_pago: idP, fecha_pago: p.fecha, id_cliente: cid, id_vendedor: vid, monto_bs_cents: bsC, tasa, usd_cents: usdC, banco: banco || null, referencia: txt(p.ref, 40) || null, ref_norm: refN || null, dup_key: key, origen: 'importado', creado_rol: ROL_TXT[ctx.rol] || ctx.rol, ejemplo: ej, observacion: 'Importado del Excel de cobranza' + (refN ? '' : ' (sin referencia)')}));
+      st.push(R.stInsertarPago(db, {id_pago: idP, fecha_pago: p.fecha, id_cliente: cid, id_vendedor: vid, monto_bs_cents: bsC, tasa, usd_cents: usdC, banco: banco || null, referencia: txt(p.ref, 40) || null, ref_norm: refN || null, dup_key: key, origen: 'importado', creado_rol: nomRol(ctx.rol), ejemplo: ej, observacion: 'Importado del Excel de cobranza' + (refN ? '' : ' (sin referencia)')}));
       if (aplic > 0) aps.push({id_pago: idP, id_documento: id, usd_cents: aplic, liquido: pagado >= totalC, ejemplo: ej}); res.pagos++;
     }
-    st.unshift(R.stInsertarDocumento(db, {id_documento: id, nro_control_interno: 'NE-I' + pad(id), numero_externo: numero, tipo_origen: 'NOTA_ENTREGA', estado: pagado >= totalC ? 'PAGADO' : 'PENDIENTE', fecha_emision: n.fecha, id_cliente: cid, id_vendedor: vid, subtotal_base_cents: totalC, iva_cents: 0, total_cents: totalC, sin_lineas: 1, afecta_inventario: 0, origen: 'importado', creado_rol: ROL_TXT[ctx.rol] || ctx.rol, ejemplo: ej, observacion: null}));
+    st.unshift(R.stInsertarDocumento(db, {id_documento: id, nro_control_interno: 'NE-I' + pad(id), numero_externo: numero, tipo_origen: 'NOTA_ENTREGA', estado: pagado >= totalC ? 'PAGADO' : 'PENDIENTE', fecha_emision: n.fecha, id_cliente: cid, id_vendedor: vid, subtotal_base_cents: totalC, iva_cents: 0, total_cents: totalC, sin_lineas: 1, afecta_inventario: 0, origen: 'importado', creado_rol: nomRol(ctx.rol), ejemplo: ej, observacion: null}));
     st.push(...aps.map(a => R.stAplicacion(db, a))); res.notas++;
   }
   const idsCli = [...new Set(ccache.values())];

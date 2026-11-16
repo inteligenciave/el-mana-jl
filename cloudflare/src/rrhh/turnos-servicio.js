@@ -1,13 +1,13 @@
 /* Turnos, asistencia automática, parámetros y bonos de producción · casos de uso (sin HTTP).
-   Todos los montos se calculan aquí. Sueldos y tarifas solo para Gerencia y Nómina y RRHH; el Jefe de producción y Administración ven horas y kilos, no dinero de personas. */
+   Todos los montos se calculan aquí. Sueldos y tarifas solo para Gerencia y Nómina; Producción y Administración ven horas y kilos, no dinero de personas. */
 import * as T from './turnos.js';
 import * as R from './repo.js';
 import * as D from './dominio.js';
-import {ROL_TXT} from '../ventas/permisos.js';
+import {ROL_TXT, nomRol} from '../ventas/permisos.js';
 import {hoyVE} from '../ventas/dominio.js';
 
 export const err = (status, message, extra = {}) => Object.assign(new Error(message), {status, message, extra});
-const audit = (ctx, ref, nom, accion, detalle) => R.stAuditoria(ctx.db, {rol: ctx.rol, rolTxt: ROL_TXT[ctx.rol] || ctx.rol, ent: 'turno', ref, nom, accion, detalle});
+const audit = (ctx, ref, nom, accion, detalle) => R.stAuditoria(ctx.db, {rol: ctx.rol, rolTxt: nomRol(ctx.rol), ent: 'turno', ref, nom, accion, detalle});
 const fechaOk = s => typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s) && new Date(s + 'T00:00:00Z').toISOString().slice(0, 10) === s;
 const POL0 = {nomJornada: 8, nomRecargo: 0, nomLey: 0};
 export const cargarParam = async db => T.parametros(await R.parametrosDoc(db));
@@ -47,11 +47,11 @@ async function produccion(db, fecha, turno, par) {
     else if (l.fecha === fecha && !(l.ts > 0)) sinHora.lotes++;
     if (l.tsCierre > 0 && cae(l.tsCierre)) cerrados.push({id: l.id, granel_kg: +l.granel || 0, aceite_kg: +l.aceite || 0, quien: l.cerro || '—', hora: T.horaTxt(l.tsCierre)});
   }
-  const recepciones = [], mermas = [], empaques = [], salidas = sal.filter(x => cae(x.despachada_ts)).map(x => ({nro: x.nro, zona: x.zona, kilos: T.r3(x.kilos), quien: ROL_TXT[x.despachada_rol] || x.despachada_rol || '—', hora: T.horaTxt(x.despachada_ts)}));
+  const recepciones = [], mermas = [], empaques = [], salidas = sal.filter(x => cae(x.despachada_ts)).map(x => ({nro: x.nro, zona: x.zona, kilos: T.r3(x.kilos), quien: nomRol(x.despachada_rol) || '—', hora: T.horaTxt(x.despachada_ts)}));
   for (const r of recs) { if (r.ts > 0) { if (cae(r.ts)) recepciones.push({id: r.id, item: r.item || '', kg: +r.kgRec || 0, prov: r.prov || '', quien: r.recibe || '', hora: T.horaTxt(r.ts)}); } else sinHora.recepciones++; }
   for (const m of mer) { if (m.ts > 0) { if (cae(m.ts)) mermas.push({id: m.id, etapa: m.etapa || '', prod: m.prod || '', cant: +m.cant || 0, un: m.un || '', causa: m.causa || '', quien: m.quien || '', hora: T.horaTxt(m.ts)}); } else sinHora.mermas++; }
   for (const e of empq) { const mm = T.minDe(e.hora); if (mm === null) { sinHora.empaque++; continue; } if (T.turnoDeMin(par, mm) === turno) empaques.push({id: e.id, pres: e.pres || '', und: +e.und || 0, bultos: 0, kg: +e.kg || 0, hora: e.hora, quien: ''}); }
-  for (const x of emp.filter(y => cae(y.ts))) empaques.push({id: '', pres: x.nombre, und: 0, bultos: x.bultos, kg: 0, hora: T.horaTxt(x.ts), quien: ROL_TXT[x.rol] || x.rol || ''});
+  for (const x of emp.filter(y => cae(y.ts))) empaques.push({id: '', pres: x.nombre, und: 0, bultos: x.bultos, kg: 0, hora: T.horaTxt(x.ts), quien: nomRol(x.rol) || ''});
   return {kilos_por_etapa: kg, lotes_abiertos: abiertos, lotes_cerrados: cerrados, recepciones: topar(recepciones), mermas: {total_kg: T.r3(mermas.filter(m => String(m.un).toLowerCase() === 'kg').reduce((a, m) => a + m.cant, 0)), cantidad: mermas.length, items: topar(mermas)},
     empaques: topar(empaques), despachos: salidas, sin_hora: sinHora};
 }
@@ -79,7 +79,7 @@ export async function turno(ctx, fecha, turno) {
   if (verBono) {
     const calc = T.calcularBono(par, kgBono), ap = await R.bonoDe(db, fecha, turno);
     out.bono = {...calc, reparto_sugerido: T.repartirParejo(calc.monto, personas.map(p => p.empleado_id)).map(x => x.monto), etapa_nombre: (T.ETAPAS_KG.find(e => e.k === par.bono.etapa) || {}).t, modo_por_defecto: par.bono.reparto, puede_aplicar: T.puedeAplicarBono(ctx.rol), puede_deshacer: T.puedeEditarParam(ctx.rol),
-      aplicado: ap ? {id: ap.id, modo: ap.modo, total: ap.total, calculado: ap.calculado, quien: ROL_TXT[ap.quien] || ap.quien, ts: ap.ts, filas: (await R.bonoFilas(db, ap.id)).map(f => ({...f, nombre: (por.get(f.empleado_id) || {}).n || f.empleado_id}))} : null};
+      aplicado: ap ? {id: ap.id, modo: ap.modo, total: ap.total, calculado: ap.calculado, quien: nomRol(ap.quien), ts: ap.ts, filas: (await R.bonoFilas(db, ap.id)).map(f => ({...f, nombre: (por.get(f.empleado_id) || {}).n || f.empleado_id}))} : null};
   }
   return out;
 }

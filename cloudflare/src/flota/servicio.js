@@ -2,11 +2,11 @@
    solo el Gerente y Administración agregan, editan o cambian el estado, y solo ellos ven los que no están activos. */
 import * as F from './dominio.js';
 import * as R from './repo.js';
-import {ROL_TXT} from '../ventas/permisos.js';
+import {ROL_TXT, nomRol} from '../ventas/permisos.js';
 import {hoyVE} from '../ventas/dominio.js';
 
 export const err = (status, message, extra = {}) => Object.assign(new Error(message), {status, message, extra});
-const audit = (ctx, ref, nom, accion, detalle) => R.stAuditoria(ctx.db, {rol: ctx.rol, rolTxt: ROL_TXT[ctx.rol] || ctx.rol, ent: 'flota', ref, nom, accion, detalle});
+const audit = (ctx, ref, nom, accion, detalle) => R.stAuditoria(ctx.db, {rol: ctx.rol, rolTxt: nomRol(ctx.rol), ent: 'flota', ref, nom, accion, detalle});
 const exigir = ctx => { if (!F.puedeGestionar(ctx.rol)) throw err(403, F.MSG_SIN_PERMISO); };
 const exigirUbic = ctx => { if (!F.puedeUbicar(ctx.rol)) throw err(403, F.MSG_SIN_PERMISO_UBIC); };
 /* Dónde está y qué lleva. La carga sale de la salida de despacho vinculada (si sigue vigente) o de los kilos anotados a mano; no se inventa nada. */

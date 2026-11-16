@@ -5,7 +5,7 @@ import {diasEntre} from '../ventas/dominio.js';
 export const puedeGestionar = rol => FLOTA_GESTIONA.includes(rol);
 export const puedeUbicar = rol => FLOTA_UBICA.includes(rol);
 export const MSG_SIN_PERMISO = 'Solo Gerencia y Administración agregan o editan vehículos.';
-export const MSG_SIN_PERMISO_UBIC = 'Solo Gerencia, Administración y Empaque y despacho cambian la ubicación de los vehículos.';
+export const MSG_SIN_PERMISO_UBIC = 'Solo Gerencia, Administración y Logística cambian la ubicación de los vehículos.';
 export const TIPOS = {CAMION: 'Camión', FURGONETA: 'Furgoneta', MONTACARGAS: 'Montacargas', AUTOBUS: 'Autobús', OTRO: 'Otro'};
 export const ESTADOS = {ACTIVO: 'Activo', EN_TALLER: 'En taller', FUERA_SERVICIO: 'Fuera de servicio'};
 export const AVISO_DIAS = 30;

@@ -1,6 +1,6 @@
 /* Funciones extra por rol · reglas. Solo el Gerente asigna. Esto no concede permisos: solo decide qué aparece en «Más opciones». */
 import * as R from './repo.js';
-import {ROL_TXT} from '../ventas/permisos.js';
+import {ROL_TXT, nomRol} from '../ventas/permisos.js';
 export const err = (status, message) => Object.assign(new Error(message), {status, message});
 const CLAVE = /^[a-z0-9-]{2,40}$/;
 const agrupar = filas => { const o = {}; filas.forEach(f => (o[f.rol] ||= []).push(f.clave)); return o; };
@@ -10,7 +10,7 @@ export async function leer(ctx) {
 }
 export async function asignar(ctx, rol, claves) {
   if (ctx.rol !== 'dueno') throw err(403, 'Solo el Gerente puede asignar funciones extra.');
-  if (!ROL_TXT[rol] || rol === 'dueno') throw err(400, 'Ese puesto no admite funciones extra.');
+  if (!nomRol(rol) === 'dueno') throw err(400, 'Ese puesto no admite funciones extra.');
   if (!Array.isArray(claves) || claves.length > 80 || claves.some(c => typeof c !== 'string' || !CLAVE.test(c))) throw err(400, 'La lista de funciones no es válida.');
   const nuevas = [...new Set(claves)].sort();
   const antes = (await R.listarDe(ctx.db, rol)).map(f => f.clave);
