@@ -556,14 +556,15 @@ h1,h2,h3,.brand-t,.pm-bh{font-weight:400;letter-spacing:0}
 .pm-block.new .pm-bh,.pm-n{background:#F2B72E;color:#2B2100}
 .pm-ctrl{background:#C92121;border-top-color:#F2B72E} .pm-ctrl p{color:#FBDCDC} .pm-ctrl.off{border-top-color:#8E8E8E}
 .door:hover,.door:focus-visible{border-color:var(--band);box-shadow:0 6px 22px rgba(201,33,33,.15)}
-.pst-wrap{display:flex;flex-direction:column;align-items:center;gap:clamp(8px,2vh,18px);min-height:calc(100dvh - var(--toph,50px) - 24px);justify-content:center;padding:0}
+.pst-wrap{display:flex;flex-direction:column;align-items:center;gap:clamp(8px,2vh,18px);min-height:calc(100dvh - 24px);justify-content:center;padding:0}
 #main:has(.pst-wrap){padding-top:10px;padding-bottom:10px}
 .pst-h{display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center}
-.pst-logo{height:clamp(44px,9vh,84px);width:auto;display:block}
-.pst-h h1{font-size:clamp(22px,4.2vh,34px);margin:0;color:var(--fg)}
+.pst-logo{height:clamp(70px,15vh,130px);width:auto;display:block;background:none;border-radius:0;padding:0}
+body:has(.pst-wrap) .top{display:none}
+body:has(.pst-wrap) .shell{min-height:100dvh}
 .pst-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(8px,1.6vw,18px);width:min(900px,100%)}
 .pst{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:clamp(6px,1.2vh,12px);background:#fff;border:2px solid var(--line-2);border-radius:16px;cursor:pointer;font:inherit;color:var(--fg);min-width:0}
-.pst img{width:100%;height:auto;max-height:clamp(96px,24vh,210px);object-fit:contain;display:block}
+.pst img{width:100%;height:auto;max-height:clamp(96px,25vh,230px);object-fit:contain;display:block}
 .pst span{font-size:clamp(16px,2.6vh,22px);font-weight:700}
 .pst:hover,.pst:focus-visible{border-color:#C92121;box-shadow:0 6px 22px rgba(201,33,33,.18)}
 @media (max-width:700px){.pst-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.pst img{max-height:clamp(72px,15vh,170px)}.pst span{font-size:clamp(15px,2.2vh,19px)}}
@@ -3999,7 +4000,7 @@ function bootHTML() {
 const PUESTOS_ORDEN = [['dueno', 'gerencia'], ['adm', 'administracion'], ['produccion', 'produccion'], ['empaque', 'logistica'], ['ventas', 'ventas'], ['rrhh', 'nomina']];
 function scrPuertas() {
   const t = ([r, img]) => `<button type="button" class="pst" data-act="elegirRol" data-v="${r}" aria-label="Entrar como ${ROLES[r]}"><img src="/img/puestos/${img}.jpg" alt="" width="420" height="420" decoding="async"><span>${ROLES[r]}</span></button>`;
-  return `<div class="pst-wrap"><div class="pst-h"><h1>Elige tu puesto</h1></div><div class="pst-grid">${PUESTOS_ORDEN.map(t).join('')}</div></div>`;
+  return `<div class="pst-wrap"><div class="pst-h"><img class="pst-logo" src="${LOGO_SRC}" alt="El Maná JL"></div><div class="pst-grid">${PUESTOS_ORDEN.map(t).join('')}</div></div>`;
 }
 function levelsText(r, m) {
   const by = [[], [], [], []]; Object.keys(SCREENS).filter(k => k !== 'mapa' && (SCREENS[k].mod === m || k === 'manual')).forEach(k => by[lvlOf(r, k)].push(SCREENS[k].s));
