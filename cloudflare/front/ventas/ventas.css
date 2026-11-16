@@ -279,3 +279,9 @@ select.v-falta{outline:2px solid var(--red,#C92121);outline-offset:1px}
 .rv-tabla{max-height:46vh;overflow:auto}
 @media (max-width:640px){.rv-barra .btnrow{width:100%}.rv-barra .btnrow .btn{flex:1 1 140px}}
 .rv-periodo{margin:0 0 8px;font-size:1.02rem}
+/* Reportes de ventas: filas de presentaciones */
+.rv-exp{background:none;border:0;padding:0;font:inherit;color:inherit;cursor:pointer;text-align:left}
+.rv-main td{background:#fff}
+.rv-sub td{background:#FAFAFA;font-size:.92em;color:#4A4A4A}
+.rv-pres{padding-left:22px;display:inline-block}
+.rv-t th small{font-weight:400;color:#6B6B6B}

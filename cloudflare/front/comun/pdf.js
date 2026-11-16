@@ -200,8 +200,8 @@ const ElManaPDF = (() => {
       const limite = H - 60, pintarFila = (f, i, tot) => {
         const lns = f.map((v, k) => envolver(v, 9, tot, cols[k].w - 12)), n = Math.max(...lns.map(l => l.length)), h = n * 11 + 8;
         if (y + h > limite) { L.nueva(); franja(); y = 30; cab(); }
-        if (tot) L.rect(M, y, anchoT, h, [0.99, 0.93, 0.7]); else if (i % 2) L.rect(M, y, anchoT, h, [0.985, 0.985, 0.985]);
-        lns.forEach((ls, k) => ls.forEach((t, j) => L.texto(t, cols[k].x, y + 12 + j * 11, 9, {al: cols[k].al === 'r' ? 'r' : 'l', b: tot})));
+        if (tot) L.rect(M, y, anchoT, h, [0.99, 0.93, 0.7]); else if (!f.sub && i % 2) L.rect(M, y, anchoT, h, [0.985, 0.985, 0.985]);
+        lns.forEach((ls, k) => ls.forEach((t, j) => L.texto(t, cols[k].x + (f.sub && k === 0 ? 10 : 0), y + 12 + j * 11, f.sub ? 8.5 : 9, {al: cols[k].al === 'r' ? 'r' : 'l', b: tot || (d.agrupado && !f.sub && k === 0), color: f.sub ? GRY : undefined})));
         L.linea(M, y + h, W - M, y + h); y += h;
       };
       if (!d.filas.length) { L.texto('No hay ventas en este periodo.', M + 6, y + 16, 9.5, {color: GRY}); y += 28; }
