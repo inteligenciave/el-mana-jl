@@ -125,7 +125,7 @@ function gMedidor(k, val, fmt) { /* semicírculo: arco gris = meta, arco rojo = 
 /* ¿Este puesto puede abrir esa pantalla? (si no, la tarjeta no ofrece el enlace) */
 const gVa = k => k && (S.rol === 'dueno' || lvlOf(S.rol, k) >= 1);
 const gPrim = l => l.find(gVa) || l[0];
-const gSinCifra = v => v === 'Sin datos' || v === 'No calculable' || v === '…';
+const gSinCifra = v => v === 'Sin datos' || v === 'No calculable' || v === 'No calculado' || v === '…';
 function gBloque(titulo, cifras, enlace, extra, k, sec, cls) {
   return '<article class="card gr-card ' + (cls || 'gr-w3') + '"><div class="card-b"><h2>' + titulo + '</h2>' +
     (k && S.rol === 'dueno' ? '<button type="button" class="lnk gr-fijar" data-act="metaAbrir" data-k="' + k + '">' + (k === 'compras' ? 'Fijar límite' : 'Fijar meta') + '</button>' : '') +
@@ -154,10 +154,10 @@ function gTend(titulo, porDia, total, M, fmt) {
 /* Punto de equilibrio del mes = costos fijos / (1 - costos variables / ventas). Fijos y variables: los «Gastos fijos / variables del mes» que ya muestra Control de gestión. */
 function gEquilibrio(vv) {
   let F = null, Vr = null; try { F = DATA.gastosFijos.reduce((a, g) => a + (+g[1] || 0), 0); Vr = DATA.gastosVar.reduce((a, g) => a + (+g[1] || 0), 0); } catch (e) { /* sin dato */ }
-  const sd = m => ({v: 'Sin datos', m});
+  const sd = m => ({v: 'No calculado', m});
   if (vv == null) return sd('Faltan las ventas del mes');
   if (!(F > 0)) return sd('No hay gastos fijos cargados');
-  if (!(vv > 0)) return {v: 'No calculable', m: 'Todavía no hay ventas este mes'};
+  if (!(vv > 0)) return {v: 'No calculado', m: 'Todavía no hay ventas este mes'};
   const mg = 1 - Vr / vv;
   if (!(mg > 0)) return {v: 'No calculable', m: 'Los costos variables igualan o superan las ventas'};
   const pe = F / mg, pct = vv / pe * 100;
