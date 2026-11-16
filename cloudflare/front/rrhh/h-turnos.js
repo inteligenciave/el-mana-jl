@@ -108,13 +108,26 @@ function scrParams() {
   if (!HR.cargando && !HR.F) HR.F = hrDe(HR.p);
   const p = HR.p, F = HR.F, ed = p.puede_editar, dis = ed ? '' : 'disabled';
   const num = (id, l, v, st, mx) => `<label class="fld">${l}<input type="number" id="${id}" inputmode="decimal" min="0" ${mx ? 'max="' + mx + '"' : ''} step="${st}" value="${esc(v ?? '')}" ${dis}></label>`;
-  const hor = t => { const k = t === 'Mañana' ? 'm' : 't', h = p.horarios_calculados[t]; return `<div class="tn-hr"><b>${t}</b><label class="fld">Entra<input type="time" id="pm-h${k}-i" value="${esc(F.horarios[t].inicio)}" ${dis}></label><label class="fld">Sale<input type="time" id="pm-h${k}-f" value="${esc(F.horarios[t].fin)}" ${dis}></label><span class="chip c-info">${h.definido ? htH(h.horas) + ' h' : 'Sin horario'}</span></div>`; };
+  const hrHM = v => { const m = /^(\d{1,2}):(\d{2})$/.exec(v || ''); return m ? +m[1] * 60 + +m[2] : null; };
+  const hrTxt = v => { const m = hrHM(v); if (m === null) return ''; const h = Math.floor(m / 60), mi = m % 60; return (h % 12 || 12) + ':' + String(mi).padStart(2, '0') + (h < 12 ? ' a.m.' : ' p.m.'); };
+  const hrOps = (v, vacio, desde) => { const l = ['<option value=""' + (v ? '' : ' selected') + '>' + vacio + '</option>']; let hay = !v; for (let m = 0; m < 1440; m += 30) { if (desde !== undefined && desde !== null && m <= desde && String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0') !== v) continue; const x = String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0'); if (x === v) hay = true; l.push(`<option value="${x}" ${x === v ? 'selected' : ''}>${hrTxt(x)}</option>`); } if (!hay && hrHM(v) !== null) l.push(`<option value="${esc(v)}" selected>${hrTxt(v)}</option>`); return l.join(''); };
+  const HR_PRE = {'Mañana': [['06:00', '14:00'], ['07:00', '15:00'], ['08:00', '16:00']], 'Tarde': [['14:00', '22:00'], ['15:00', '23:00'], ['12:00', '20:00']]};
+  const hor = t => {
+    const k = t === 'Mañana' ? 'm' : 't', h = F.horarios[t], a = hrHM(h.inicio), b = hrHM(h.fin);
+    const pre = HR_PRE[t].map(([i, f]) => `<button type="button" class="btn tn-pre${h.inicio === i && h.fin === f ? ' on acc' : ' ghost'}" data-act="hrPreset" data-t="${t}" data-i="${i}" data-f="${f}" aria-pressed="${h.inicio === i && h.fin === f}" ${dis}>${hrTxt(i)} a ${hrTxt(f)}</button>`).join('');
+    let res;
+    if (a !== null && b !== null && b > a) { const d = b - a; res = `<b>${Math.floor(d / 60)} horas${d % 60 ? ' y ' + (d % 60) + ' minutos' : ''}</b> de trabajo`; }
+    else if (a !== null && b !== null) res = '<span class="tn-av">La hora de salida debe ser después de la de entrada. El turno no puede pasar de medianoche.</span>';
+    else if (a === null && b === null) res = `Sin horario: se cuenta una jornada de ${htH(+F.pagos.nomJornada || 8)} horas`;
+    else res = '<span class="tn-av">Falta elegir la hora de ' + (a === null ? 'entrada' : 'salida') + '.</span>';
+    return `<div class="tn-hr"><b class="tn-ht">Turno ${t === 'Mañana' ? 'de la mañana' : 'de la tarde'}</b><div class="tn-pres">${pre}</div><div class="tn-sel"><label class="fld">Entra<select id="pm-h${k}-i" ${dis}>${hrOps(h.inicio, 'Elegir hora')}</select></label><label class="fld">Sale<select id="pm-h${k}-f" ${dis}>${hrOps(h.fin, 'Elegir hora', a)}</select></label></div><p class="tn-res">${res}</p></div>`;
+  };
   const sel = (id, v, ops) => `<select id="${id}" ${dis}>${ops.map(([k, t]) => `<option value="${k}" ${v === k ? 'selected' : ''}>${t}</option>`).join('')}</select>`;
   const tr = F.bono.tramos.map((t, i) => `<div class="tn-tr"><label class="fld">Cumplimiento desde (%)<input type="number" id="pm-td-${i}" min="0" max="300" step="1" value="${esc(t.desde ?? '')}" ${dis}></label><label class="fld">Paga (% del bono)<input type="number" id="pm-tp-${i}" min="0" max="300" step="1" value="${esc(t.pct ?? '')}" ${dis}></label>${ed ? `<button type="button" class="btn sm" data-act="hrQuitar" data-i="${i}">Quitar</button>` : ''}</div>`).join('');
   const pedir = ed ? '' : `<div class="btnrow tn-ped"><p class="hint">${ic('lock', 16)} Solo Gerencia cambia estos parámetros.</p>${typeof solBtn === 'function' ? solBtn('Una regla de pago de nómina') : ''}</div>`;
   return `${HR.err ? `<p class="err" role="alert">${esc(HR.err)}</p>` : ''}${HR.ok ? `<p class="hint">${esc(HR.ok)}</p>` : ''}
   <div class="tn-panel"><div class="tn-pgrid">
-    ${card('Horario por turno', `<div class="form">${hor('Mañana')}${hor('Tarde')}</div>`)}
+    ${card('Horario por turno', `${ed ? '<p class="hint">Toca un horario típico o elige las horas en las listas.</p>' : ''}<div class="form">${hor('Mañana')}${hor('Tarde')}</div>`)}
     ${card('Reglas de pago de nómina', `<div class="form row3">${num('pm-jor', 'Jornada completa (horas)', F.pagos.nomJornada, 0.5, 24)}${num('pm-rec', 'Recargo de hora extra (%)', F.pagos.nomRecargo, 1)}${num('pm-ley', 'Deducciones de ley (%)', F.pagos.nomLey, 0.1, 100)}</div>`)}
     ${card('Bono de producción', `<div class="form"><div class="row3"><label class="fld">Se paga${sel('pm-tipo', F.bono.tipo, [['por_kilo', 'Por kilo'], ['fijo', 'Monto fijo']])}</label>${num('pm-val', F.bono.tipo === 'fijo' ? 'Monto (Bs)' : 'Valor por kilo (Bs)', F.bono.valor, 0.01)}<label class="fld">Kilos que cuentan${sel('pm-etapa', F.bono.etapa, p.etapas.map(e => [e.k, e.t]))}</label></div>
       <div class="row3">${num('pm-meta', 'Meta de kilos por turno', F.bono.meta_kg, 1)}${num('pm-min', 'Mínimo de kilos para ganar el bono', F.bono.minimo_kg, 1)}<label class="fld">Reparto habitual${sel('pm-rep', F.bono.reparto, [['turno', 'Turno completo'], ['persona', 'Empleado por empleado']])}</label></div>
@@ -153,11 +166,12 @@ Object.assign(ACT, {
   htTurno: el => { HT.turno = el.dataset.v; HT.modo = ''; HT.montos = {}; HT.err = ''; render(); }, htHoy: () => { HT.fecha = htHoy(); HT.modo = ''; HT.montos = {}; HT.err = ''; render(); },
   htModo: el => { HT.modo = el.dataset.v; const b = HT.d && HT.d.bono; HT.montos = {}; if (HT.modo === 'persona' && b) HT.d.personas.forEach((p, i) => { HT.montos[p.empleado_id] = b.reparto_sugerido[i]; }); render(); },
   htBonoAplicar: () => htBonoAplicar(), htBonoDeshacer: () => htBonoDeshacer(), hrGuardar: () => hrGuardar(),
+  hrPreset: el => { hrLeer(); HR.F.horarios[el.dataset.t] = {inicio: el.dataset.i, fin: el.dataset.f}; render(); },
   hrAgregar: () => { hrLeer(); HR.F.bono.tramos.push({desde: '', pct: ''}); render(); }, hrQuitar: el => { hrLeer(); HR.F.bono.tramos.splice(+el.dataset.i, 1); render(); }
 });
 if (!window.__htListeners) {
   window.__htListeners = true;
-  document.addEventListener('change', e => { const t = e.target; if (t && t.id === 'tn-fecha' && /^\d{4}-\d{2}-\d{2}$/.test(t.value)) { HT.fecha = t.value; HT.modo = ''; HT.montos = {}; HT.err = ''; render(); } });
+  document.addEventListener('change', e => { const t = e.target; if (t && /^pm-h[mt]-[if]$/.test(t.id || '')) { hrLeer(); render(); return; } if (t && t.id === 'tn-fecha' && /^\d{4}-\d{2}-\d{2}$/.test(t.value)) { HT.fecha = t.value; HT.modo = ''; HT.montos = {}; HT.err = ''; render(); } });
   document.addEventListener('input', e => {
     const t = e.target; if (!t || !t.dataset || t.dataset.bono === undefined) return;
     HT.montos[t.dataset.bono] = t.value; const s = document.getElementById('tn-sum'); if (s && HT.d && HT.d.bono) s.textContent = htSuma(HT.d.bono);

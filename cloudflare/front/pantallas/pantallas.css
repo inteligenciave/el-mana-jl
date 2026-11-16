@@ -190,3 +190,24 @@ a.gr-pl:hover{border-color:#C92121}
 .un-parte{margin:0 0 10px}
 .un-et{display:inline-block;margin:0 0 6px;padding:2px 10px;border-radius:999px;background:var(--y,#F2B72E);color:#1F1F1F;font-size:12px;font-weight:700}
 .un-panel .tn-panel,.un-panel .rh-panel{max-height:none;overflow:visible}
+
+/* ---------- Primeros pasos (Ayuda) ---------- */
+.pp{display:flex;flex-direction:column;gap:12px;padding-bottom:8px}
+.pp-cab{display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px}
+.pp-prog{flex:1 1 260px;display:flex;flex-direction:column;gap:6px}
+.pp-barra{height:12px;border-radius:6px;background:var(--track,#EEE);overflow:hidden}
+.pp-barra span{display:block;height:100%;background:var(--ok);border-radius:6px;transition:width .2s}
+.pp-sel{display:flex;align-items:center;gap:8px;font-weight:600}
+.pp-sel select{min-height:38px;padding:0 10px;border:1px solid var(--line-2);border-radius:8px;background:var(--surface);color:var(--fg)}
+.pp-aviso{margin:0;padding:10px 12px;border-radius:8px;background:var(--y-bg,#FFF3CC);color:var(--y-ink,#3A2F00)}
+.pp-sec h3{margin:6px 0 2px;color:var(--pri)}
+.pp-sub{margin:0 0 8px;color:var(--muted)}
+.pp-paso{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:start;padding:12px;margin-bottom:8px;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+.pp-paso.hecho{background:var(--ok-bg)}
+.pp-chk{display:grid;place-items:center;min-width:32px;min-height:32px}
+.pp-chk input{width:22px;height:22px;accent-color:var(--ok)}
+.pp-txt h4{margin:0 0 4px;font-size:15px}
+.pp-txt p{margin:0 0 4px}
+.pp-para{color:var(--muted)}
+.pp-ir{white-space:nowrap}
+@media (max-width:640px){.pp-paso{grid-template-columns:auto 1fr}.pp-ir{grid-column:1 / -1;width:100%}}

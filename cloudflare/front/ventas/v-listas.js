@@ -109,9 +109,11 @@ async function vRepCargar() {
   try { R.data = await vApi('GET', R.tab === 'comisiones' ? '/comisiones' + q : R.tab === 'asientos' ? '/asientos' + q : R.tab === 'inventario' ? '/movimientos' : '/auditoria'); } catch (e) { vErr(e); R.data = []; }
   render();
 }
-function scrReportes() {
+function scrReportes(solo) {
   return vPantalla(() => {
-    const R = V.rep, d = R.data; if (!d) vRepCargar();
+    const R = V.rep; if (solo === 'auditoria' && R.tab !== 'auditoria') { R.tab = 'auditoria'; R.data = null; R.csv = ''; }
+    if (!solo && R.tab === 'auditoria' && !(lvl('v-clientes') >= 3)) { R.tab = 'comisiones'; R.data = null; R.csv = ''; }
+    const d = R.data; if (!d) vRepCargar();
     const tabs = [['comisiones', 'Comisiones'], ['asientos', 'Asientos contables'], ['inventario', 'Movimientos de inventario'], ...(lvl('v-clientes') >= 3 ? [['auditoria', 'Auditoría']] : [])];
     let cuerpo = '<p class="hint">Cargando…</p>', csv = '';
     if (d && R.tab === 'comisiones') {
@@ -131,10 +133,12 @@ function scrReportes() {
     }
     const filtros = R.tab === 'comisiones' || R.tab === 'asientos' ? `<div class="row3"><label class="fld">Desde<input type="date" data-act-change="vRepFiltro" data-vf="desde" value="${esc(R.f.desde)}"></label><label class="fld">Hasta<input type="date" data-act-change="vRepFiltro" data-vf="hasta" value="${esc(R.f.hasta)}"></label>${R.tab === 'comisiones' ? vVendSel('vendedor', R.f.vendedor, 'vRepFiltro') : ''}</div>` : '';
     V.rep.csv = csv;
-    return `${vph('Ventas y liquidación', 'Comisiones, asientos e inventario', 'Lo que el sistema calcula solo al vender y cobrar.', csv ? `<button type="button" class="btn" data-act="vRepCSV">${ic('download', 16)}Descargar CSV</button>` : '')}
-    <div class="v-tabs" role="tablist">${tabs.map(([k, t]) => `<button type="button" role="tab" aria-selected="${R.tab === k}" class="v-tab" data-act="vRepTab" data-v="${k}">${t}</button>`).join('')}</div>${filtros ? card('Filtros', `<div class="form">${filtros}</div>`) : ''}${card('', '<div class="v-cuerpo-sc">' + cuerpo + '</div>')}`;
+    return `${solo ? vph('Gerencia', 'Auditoría', 'Todo lo que se registró o cambió en el sistema: quién, cuándo y qué. Solo se puede consultar.', csv ? `<button type="button" class="btn" data-act="vRepCSV">${ic('download', 16)}Descargar CSV</button>` : '') : vph('Ventas y liquidación', 'Comisiones, asientos e inventario', 'Lo que el sistema calcula solo al vender y cobrar.', csv ? `<button type="button" class="btn" data-act="vRepCSV">${ic('download', 16)}Descargar CSV</button>` : '')}
+    ${solo ? '' : `<div class="v-tabs" role="tablist">${tabs.map(([k, t]) => `<button type="button" role="tab" aria-selected="${R.tab === k}" class="v-tab" data-act="vRepTab" data-v="${k}">${t}</button>`).join('')}</div>`}${filtros ? card('Filtros', `<div class="form">${filtros}</div>`) : ''}${card('', '<div class="v-cuerpo-sc">' + cuerpo + '</div>')}`;
   });
 }
+
+window.vAuditoriaScr = () => scrReportes('auditoria');
 
 /* ---------- Registro de ventas: lo que de verdad se vendió (datos reales de la base) ---------- */
 async function vRegVCargar() {

@@ -131,3 +131,10 @@ legend{margin-bottom:4px}
 .as-b .as-btn{min-width:28px;min-height:30px;flex:1 1 0;padding:0 2px;font-size:14px}
 .as-b .as-v{flex:0 0 auto;min-width:34px;font-size:20px}
 }
+
+/* Una sola fila de pestañas: las de la opción (rojo) y, a su lado, las de dentro de la pantalla (amarillo) */
+.un-fila{display:flex;flex-wrap:wrap;align-items:center;gap:4px 14px;margin:0 0 8px}
+.un-fila>.un-tabs,.un-fila>.cp-tabs{margin:0}
+.un-fila>.cp-tabs{padding-left:14px;border-left:2px solid var(--line-2)}
+.un-fila>.cp-tabs .v-tab{min-height:30px;padding:0 11px;font-size:13px;border-radius:999px}
+.un-fila>.cp-tabs .v-tab[aria-selected="true"]{background:var(--yellow,#F2B72E);border-color:var(--yellow,#F2B72E);color:#1F1F1F}

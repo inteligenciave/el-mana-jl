@@ -5372,13 +5372,23 @@ tr.lm-fila{cursor:pointer}tr.lm-fila:hover td{background:#FFF6DD}
 .tn-tab td,.tn-tab th{vertical-align:middle}
 .tn-pgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:10px;align-items:start}
 .tn-pgrid>.card:nth-child(3){grid-column:2;grid-row:1 / span 2}
-.tn-hr{display:grid;grid-template-columns:90px minmax(0,1fr) minmax(0,1fr) auto;gap:8px;align-items:end;margin:0 0 8px}
+.tn-hr{display:grid;gap:6px;margin:0 0 10px;padding:0 0 10px;border-bottom:1px solid #eee}
+.tn-hr:last-child{border-bottom:0;margin:0;padding:0}
+.tn-ht{font-size:15px}
+.tn-pres{display:flex;flex-wrap:wrap;gap:6px}
+.btn.tn-pre{min-height:44px;padding:6px 12px;font-size:14px;background:#fff;border:2px solid #ccc;border-radius:10px;cursor:pointer}
+.btn.tn-pre.on{background:#F2B72E;border-color:#C92121;font-weight:700}
+.tn-pre:disabled{opacity:.85;cursor:default}
+.tn-sel{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px}
+.tn-sel select{min-height:44px;font-size:16px}
+.tn-res{margin:0;font-size:14px}
+.tn-av{color:#C92121;font-weight:600}
 .tn-trs{display:grid;gap:6px}
 .tn-tr{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;gap:8px;align-items:end}
 .tn-pie{grid-column:1 / -1;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .tn-ped{margin:0}
 @media (max-width:900px){.tn-grid,.tn-pgrid{grid-template-columns:minmax(0,1fr)}.tn-pgrid>.card:nth-child(3){grid-column:auto;grid-row:auto}.tn-par{margin-left:0}.tn-ap{margin-left:0}}
-@media (max-width:559px){.tn-t{min-width:0;flex:1 1 40%}.tn-hr{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.tn-hr b{grid-column:1 / -1}.tn-f{max-width:none;flex:1}}
+@media (max-width:559px){.tn-t{min-width:0;flex:1 1 40%}.btn.tn-pre{flex:1 1 100%}.tn-f{max-width:none;flex:1}}
 
 .tn-bono>*{min-width:0}.tn-panel,.tn-panel .card,.tn-panel .tw{min-width:0;max-width:100%}
 @media (max-width:559px){.tn-bono{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.tn-bono>.stat{grid-column:1 / -1;width:auto}.tn-bono>.tn-ap{grid-column:1 / -1}.tn-t{min-width:0}.tn-hor{flex:1 1 100%}.tn-tab{min-width:0!important;width:100%}.tn-tab thead{display:none}.tn-tab,.tn-tab tbody,.tn-tab tfoot,.tn-tab tr,.tn-tab td{display:block;width:100%;min-width:0;box-sizing:border-box}.tn-tab tr{border-top:1px solid #E3E1E1;padding:6px 0}.tn-tab td{display:flex;justify-content:space-between;align-items:baseline;gap:10px;text-align:right;border:0;padding:2px 4px}.tn-tab td::before{content:attr(data-l);font-weight:600;color:#5E5E5E;text-align:left;flex:0 0 auto}.tn-tab td:first-child{text-align:left;justify-content:flex-start}.tn-tab td:first-child::before,.tn-tab td:not([data-l])::before{content:none}.tn-tab tr.tsum td:empty{display:none}.tn-in{width:120px}}
@@ -5576,6 +5586,27 @@ a.gr-pl:hover{border-color:#C92121}
 .un-parte{margin:0 0 10px}
 .un-et{display:inline-block;margin:0 0 6px;padding:2px 10px;border-radius:999px;background:var(--y,#F2B72E);color:#1F1F1F;font-size:12px;font-weight:700}
 .un-panel .tn-panel,.un-panel .rh-panel{max-height:none;overflow:visible}
+
+/* ---------- Primeros pasos (Ayuda) ---------- */
+.pp{display:flex;flex-direction:column;gap:12px;padding-bottom:8px}
+.pp-cab{display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px}
+.pp-prog{flex:1 1 260px;display:flex;flex-direction:column;gap:6px}
+.pp-barra{height:12px;border-radius:6px;background:var(--track,#EEE);overflow:hidden}
+.pp-barra span{display:block;height:100%;background:var(--ok);border-radius:6px;transition:width .2s}
+.pp-sel{display:flex;align-items:center;gap:8px;font-weight:600}
+.pp-sel select{min-height:38px;padding:0 10px;border:1px solid var(--line-2);border-radius:8px;background:var(--surface);color:var(--fg)}
+.pp-aviso{margin:0;padding:10px 12px;border-radius:8px;background:var(--y-bg,#FFF3CC);color:var(--y-ink,#3A2F00)}
+.pp-sec h3{margin:6px 0 2px;color:var(--pri)}
+.pp-sub{margin:0 0 8px;color:var(--muted)}
+.pp-paso{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:start;padding:12px;margin-bottom:8px;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+.pp-paso.hecho{background:var(--ok-bg)}
+.pp-chk{display:grid;place-items:center;min-width:32px;min-height:32px}
+.pp-chk input{width:22px;height:22px;accent-color:var(--ok)}
+.pp-txt h4{margin:0 0 4px;font-size:15px}
+.pp-txt p{margin:0 0 4px}
+.pp-para{color:var(--muted)}
+.pp-ir{white-space:nowrap}
+@media (max-width:640px){.pp-paso{grid-template-columns:auto 1fr}.pp-ir{grid-column:1 / -1;width:100%}}
 /* Compacto (va al final) */
 /* COMPACTO (pedido del Gerente): menos espacio en blanco en computador. Va al FINAL de la hoja para ganar a las demás.
    Solo en pantalla ancha (>=1024px); el celular queda como estaba. Ajustar aquí las medidas, no pantalla por pantalla. */
@@ -5710,6 +5741,13 @@ legend{margin-bottom:4px}
 .as-b .as-btn{min-width:28px;min-height:30px;flex:1 1 0;padding:0 2px;font-size:14px}
 .as-b .as-v{flex:0 0 auto;min-width:34px;font-size:20px}
 }
+
+/* Una sola fila de pestañas: las de la opción (rojo) y, a su lado, las de dentro de la pantalla (amarillo) */
+.un-fila{display:flex;flex-wrap:wrap;align-items:center;gap:4px 14px;margin:0 0 8px}
+.un-fila>.un-tabs,.un-fila>.cp-tabs{margin:0}
+.un-fila>.cp-tabs{padding-left:14px;border-left:2px solid var(--line-2)}
+.un-fila>.cp-tabs .v-tab{min-height:30px;padding:0 11px;font-size:13px;border-radius:999px}
+.un-fila>.cp-tabs .v-tab[aria-selected="true"]{background:var(--yellow,#F2B72E);border-color:var(--yellow,#F2B72E);color:#1F1F1F}
 </style>
 <script>
 /* BORRADOR: guarda lo que la persona está escribiendo (y la pestaña/pantalla donde estaba) para recuperarlo si la página se actualiza.
@@ -7260,9 +7298,11 @@ async function vRepCargar() {
   try { R.data = await vApi('GET', R.tab === 'comisiones' ? '/comisiones' + q : R.tab === 'asientos' ? '/asientos' + q : R.tab === 'inventario' ? '/movimientos' : '/auditoria'); } catch (e) { vErr(e); R.data = []; }
   render();
 }
-function scrReportes() {
+function scrReportes(solo) {
   return vPantalla(() => {
-    const R = V.rep, d = R.data; if (!d) vRepCargar();
+    const R = V.rep; if (solo === 'auditoria' && R.tab !== 'auditoria') { R.tab = 'auditoria'; R.data = null; R.csv = ''; }
+    if (!solo && R.tab === 'auditoria' && !(lvl('v-clientes') >= 3)) { R.tab = 'comisiones'; R.data = null; R.csv = ''; }
+    const d = R.data; if (!d) vRepCargar();
     const tabs = [['comisiones', 'Comisiones'], ['asientos', 'Asientos contables'], ['inventario', 'Movimientos de inventario'], ...(lvl('v-clientes') >= 3 ? [['auditoria', 'Auditoría']] : [])];
     let cuerpo = '<p class="hint">Cargando…</p>', csv = '';
     if (d && R.tab === 'comisiones') {
@@ -7282,10 +7322,12 @@ function scrReportes() {
     }
     const filtros = R.tab === 'comisiones' || R.tab === 'asientos' ? `<div class="row3"><label class="fld">Desde<input type="date" data-act-change="vRepFiltro" data-vf="desde" value="${esc(R.f.desde)}"></label><label class="fld">Hasta<input type="date" data-act-change="vRepFiltro" data-vf="hasta" value="${esc(R.f.hasta)}"></label>${R.tab === 'comisiones' ? vVendSel('vendedor', R.f.vendedor, 'vRepFiltro') : ''}</div>` : '';
     V.rep.csv = csv;
-    return `${vph('Ventas y liquidación', 'Comisiones, asientos e inventario', 'Lo que el sistema calcula solo al vender y cobrar.', csv ? `<button type="button" class="btn" data-act="vRepCSV">${ic('download', 16)}Descargar CSV</button>` : '')}
-    <div class="v-tabs" role="tablist">${tabs.map(([k, t]) => `<button type="button" role="tab" aria-selected="${R.tab === k}" class="v-tab" data-act="vRepTab" data-v="${k}">${t}</button>`).join('')}</div>${filtros ? card('Filtros', `<div class="form">${filtros}</div>`) : ''}${card('', '<div class="v-cuerpo-sc">' + cuerpo + '</div>')}`;
+    return `${solo ? vph('Gerencia', 'Auditoría', 'Todo lo que se registró o cambió en el sistema: quién, cuándo y qué. Solo se puede consultar.', csv ? `<button type="button" class="btn" data-act="vRepCSV">${ic('download', 16)}Descargar CSV</button>` : '') : vph('Ventas y liquidación', 'Comisiones, asientos e inventario', 'Lo que el sistema calcula solo al vender y cobrar.', csv ? `<button type="button" class="btn" data-act="vRepCSV">${ic('download', 16)}Descargar CSV</button>` : '')}
+    ${solo ? '' : `<div class="v-tabs" role="tablist">${tabs.map(([k, t]) => `<button type="button" role="tab" aria-selected="${R.tab === k}" class="v-tab" data-act="vRepTab" data-v="${k}">${t}</button>`).join('')}</div>`}${filtros ? card('Filtros', `<div class="form">${filtros}</div>`) : ''}${card('', '<div class="v-cuerpo-sc">' + cuerpo + '</div>')}`;
   });
 }
+
+window.vAuditoriaScr = () => scrReportes('auditoria');
 
 /* ---------- Registro de ventas: lo que de verdad se vendió (datos reales de la base) ---------- */
 async function vRegVCargar() {
@@ -10190,13 +10232,26 @@ function scrParams() {
   if (!HR.cargando && !HR.F) HR.F = hrDe(HR.p);
   const p = HR.p, F = HR.F, ed = p.puede_editar, dis = ed ? '' : 'disabled';
   const num = (id, l, v, st, mx) => `<label class="fld">${l}<input type="number" id="${id}" inputmode="decimal" min="0" ${mx ? 'max="' + mx + '"' : ''} step="${st}" value="${esc(v ?? '')}" ${dis}></label>`;
-  const hor = t => { const k = t === 'Mañana' ? 'm' : 't', h = p.horarios_calculados[t]; return `<div class="tn-hr"><b>${t}</b><label class="fld">Entra<input type="time" id="pm-h${k}-i" value="${esc(F.horarios[t].inicio)}" ${dis}></label><label class="fld">Sale<input type="time" id="pm-h${k}-f" value="${esc(F.horarios[t].fin)}" ${dis}></label><span class="chip c-info">${h.definido ? htH(h.horas) + ' h' : 'Sin horario'}</span></div>`; };
+  const hrHM = v => { const m = /^(\d{1,2}):(\d{2})$/.exec(v || ''); return m ? +m[1] * 60 + +m[2] : null; };
+  const hrTxt = v => { const m = hrHM(v); if (m === null) return ''; const h = Math.floor(m / 60), mi = m % 60; return (h % 12 || 12) + ':' + String(mi).padStart(2, '0') + (h < 12 ? ' a.m.' : ' p.m.'); };
+  const hrOps = (v, vacio, desde) => { const l = ['<option value=""' + (v ? '' : ' selected') + '>' + vacio + '</option>']; let hay = !v; for (let m = 0; m < 1440; m += 30) { if (desde !== undefined && desde !== null && m <= desde && String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0') !== v) continue; const x = String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0'); if (x === v) hay = true; l.push(`<option value="${x}" ${x === v ? 'selected' : ''}>${hrTxt(x)}</option>`); } if (!hay && hrHM(v) !== null) l.push(`<option value="${esc(v)}" selected>${hrTxt(v)}</option>`); return l.join(''); };
+  const HR_PRE = {'Mañana': [['06:00', '14:00'], ['07:00', '15:00'], ['08:00', '16:00']], 'Tarde': [['14:00', '22:00'], ['15:00', '23:00'], ['12:00', '20:00']]};
+  const hor = t => {
+    const k = t === 'Mañana' ? 'm' : 't', h = F.horarios[t], a = hrHM(h.inicio), b = hrHM(h.fin);
+    const pre = HR_PRE[t].map(([i, f]) => `<button type="button" class="btn tn-pre${h.inicio === i && h.fin === f ? ' on acc' : ' ghost'}" data-act="hrPreset" data-t="${t}" data-i="${i}" data-f="${f}" aria-pressed="${h.inicio === i && h.fin === f}" ${dis}>${hrTxt(i)} a ${hrTxt(f)}</button>`).join('');
+    let res;
+    if (a !== null && b !== null && b > a) { const d = b - a; res = `<b>${Math.floor(d / 60)} horas${d % 60 ? ' y ' + (d % 60) + ' minutos' : ''}</b> de trabajo`; }
+    else if (a !== null && b !== null) res = '<span class="tn-av">La hora de salida debe ser después de la de entrada. El turno no puede pasar de medianoche.</span>';
+    else if (a === null && b === null) res = `Sin horario: se cuenta una jornada de ${htH(+F.pagos.nomJornada || 8)} horas`;
+    else res = '<span class="tn-av">Falta elegir la hora de ' + (a === null ? 'entrada' : 'salida') + '.</span>';
+    return `<div class="tn-hr"><b class="tn-ht">Turno ${t === 'Mañana' ? 'de la mañana' : 'de la tarde'}</b><div class="tn-pres">${pre}</div><div class="tn-sel"><label class="fld">Entra<select id="pm-h${k}-i" ${dis}>${hrOps(h.inicio, 'Elegir hora')}</select></label><label class="fld">Sale<select id="pm-h${k}-f" ${dis}>${hrOps(h.fin, 'Elegir hora', a)}</select></label></div><p class="tn-res">${res}</p></div>`;
+  };
   const sel = (id, v, ops) => `<select id="${id}" ${dis}>${ops.map(([k, t]) => `<option value="${k}" ${v === k ? 'selected' : ''}>${t}</option>`).join('')}</select>`;
   const tr = F.bono.tramos.map((t, i) => `<div class="tn-tr"><label class="fld">Cumplimiento desde (%)<input type="number" id="pm-td-${i}" min="0" max="300" step="1" value="${esc(t.desde ?? '')}" ${dis}></label><label class="fld">Paga (% del bono)<input type="number" id="pm-tp-${i}" min="0" max="300" step="1" value="${esc(t.pct ?? '')}" ${dis}></label>${ed ? `<button type="button" class="btn sm" data-act="hrQuitar" data-i="${i}">Quitar</button>` : ''}</div>`).join('');
   const pedir = ed ? '' : `<div class="btnrow tn-ped"><p class="hint">${ic('lock', 16)} Solo Gerencia cambia estos parámetros.</p>${typeof solBtn === 'function' ? solBtn('Una regla de pago de nómina') : ''}</div>`;
   return `${HR.err ? `<p class="err" role="alert">${esc(HR.err)}</p>` : ''}${HR.ok ? `<p class="hint">${esc(HR.ok)}</p>` : ''}
   <div class="tn-panel"><div class="tn-pgrid">
-    ${card('Horario por turno', `<div class="form">${hor('Mañana')}${hor('Tarde')}</div>`)}
+    ${card('Horario por turno', `${ed ? '<p class="hint">Toca un horario típico o elige las horas en las listas.</p>' : ''}<div class="form">${hor('Mañana')}${hor('Tarde')}</div>`)}
     ${card('Reglas de pago de nómina', `<div class="form row3">${num('pm-jor', 'Jornada completa (horas)', F.pagos.nomJornada, 0.5, 24)}${num('pm-rec', 'Recargo de hora extra (%)', F.pagos.nomRecargo, 1)}${num('pm-ley', 'Deducciones de ley (%)', F.pagos.nomLey, 0.1, 100)}</div>`)}
     ${card('Bono de producción', `<div class="form"><div class="row3"><label class="fld">Se paga${sel('pm-tipo', F.bono.tipo, [['por_kilo', 'Por kilo'], ['fijo', 'Monto fijo']])}</label>${num('pm-val', F.bono.tipo === 'fijo' ? 'Monto (Bs)' : 'Valor por kilo (Bs)', F.bono.valor, 0.01)}<label class="fld">Kilos que cuentan${sel('pm-etapa', F.bono.etapa, p.etapas.map(e => [e.k, e.t]))}</label></div>
       <div class="row3">${num('pm-meta', 'Meta de kilos por turno', F.bono.meta_kg, 1)}${num('pm-min', 'Mínimo de kilos para ganar el bono', F.bono.minimo_kg, 1)}<label class="fld">Reparto habitual${sel('pm-rep', F.bono.reparto, [['turno', 'Turno completo'], ['persona', 'Empleado por empleado']])}</label></div>
@@ -10235,11 +10290,12 @@ Object.assign(ACT, {
   htTurno: el => { HT.turno = el.dataset.v; HT.modo = ''; HT.montos = {}; HT.err = ''; render(); }, htHoy: () => { HT.fecha = htHoy(); HT.modo = ''; HT.montos = {}; HT.err = ''; render(); },
   htModo: el => { HT.modo = el.dataset.v; const b = HT.d && HT.d.bono; HT.montos = {}; if (HT.modo === 'persona' && b) HT.d.personas.forEach((p, i) => { HT.montos[p.empleado_id] = b.reparto_sugerido[i]; }); render(); },
   htBonoAplicar: () => htBonoAplicar(), htBonoDeshacer: () => htBonoDeshacer(), hrGuardar: () => hrGuardar(),
+  hrPreset: el => { hrLeer(); HR.F.horarios[el.dataset.t] = {inicio: el.dataset.i, fin: el.dataset.f}; render(); },
   hrAgregar: () => { hrLeer(); HR.F.bono.tramos.push({desde: '', pct: ''}); render(); }, hrQuitar: el => { hrLeer(); HR.F.bono.tramos.splice(+el.dataset.i, 1); render(); }
 });
 if (!window.__htListeners) {
   window.__htListeners = true;
-  document.addEventListener('change', e => { const t = e.target; if (t && t.id === 'tn-fecha' && /^\d{4}-\d{2}-\d{2}$/.test(t.value)) { HT.fecha = t.value; HT.modo = ''; HT.montos = {}; HT.err = ''; render(); } });
+  document.addEventListener('change', e => { const t = e.target; if (t && /^pm-h[mt]-[if]$/.test(t.id || '')) { hrLeer(); render(); return; } if (t && t.id === 'tn-fecha' && /^\d{4}-\d{2}-\d{2}$/.test(t.value)) { HT.fecha = t.value; HT.modo = ''; HT.montos = {}; HT.err = ''; render(); } });
   document.addEventListener('input', e => {
     const t = e.target; if (!t || !t.dataset || t.dataset.bono === undefined) return;
     HT.montos[t.dataset.bono] = t.value; const s = document.getElementById('tn-sum'); if (s && HT.d && HT.d.bono) s.textContent = htSuma(HT.d.bono);
@@ -10261,7 +10317,7 @@ if (!window.__htListeners) {
 "use strict";
 /* grupos: [nombre, [[clave de pantalla, nombre corto], ...]] */
 const PANT = [
-  {k: 'ger', t: 'Gerencia', ic: 'chart', roles: [], lead: 'Resumen del negocio', grupos: [['Resumen', [['gerencia', 'Resumen'], ['gestion', 'Control de gestión'], ['mapa', 'Mapa de procesos', 'h'], ['p-aprobar', 'Precios por aprobar'], ['g-extras', 'Funciones extra'], ['g-solic', 'Solicitudes']]]]},
+  {k: 'ger', t: 'Gerencia', ic: 'chart', roles: [], lead: 'Resumen del negocio', grupos: [['Resumen', [['gerencia', 'Resumen'], ['mapa', 'Mapa de procesos', 'h']]], ['Por aprobar', [['p-aprobar', 'Precios por aprobar'], ['g-solic', 'Solicitudes'], ['pr-dif', 'Diferencias'], ['c-pagos', 'Pagos del portal']]], ['Auditoría', [['g-audit', 'Auditoría']]], ['Ajustes', [['politicas', 'Reglas de caja y nómina'], ['rh-params', 'Turnos y bonos'], ['e-ajustes', 'Crédito'], ['pr-aj', 'Zonas y mermas'], ['pr-mot', 'Motivos de merma'], ['p-bancos', 'Bancos'], ['roles', 'Quién ve qué'], ['g-extras', 'Funciones extra'], ['datos', 'Datos'], ['gestion', 'Control de gestión'], ['ayuda', 'Ayuda', 'h']]]]},
   {k: 'adm', t: 'Administración', ic: 'wallet', roles: ['adm', 'custodio', 'rrhh', 'cobranza'], lead: 'Compras, pagos, cobros y personal', grupos: [
     ['Resumen', [['adm-resumen', 'Resumen']]],
     ['En planta', [['rh-planta', 'En planta hoy'], ['rh-turnos', 'Turnos'], ['turnos', 'Turnos'], ['rh-pagar', 'Pagar nómina'], ['rh-params', 'Parámetros de turnos y bonos']]],
@@ -10272,14 +10328,14 @@ const PANT = [
     ['Bancos', [['p-bancos', 'Bancos de la empresa']]],
     ['Flota', [['fl-flota', 'Vehículos'], ['catprod', 'Anterior (solo consulta)']]],
     ['Personal', [['personal', 'Personas'], ['asistencia', 'Asistencia'], ['nomina', 'Nómina']]],
-    ['Sistema', [['manual', 'Manual', 'h'], ['roles', 'Quién ve qué'], ['datos', 'Datos'], ['mis-solic', 'Mis solicitudes', 'h']]]]},
+    ['Sistema', [['manual', 'Manual', 'h'], ['roles', 'Quién ve qué'], ['datos', 'Datos'], ['mis-solic', 'Mis solicitudes', 'h'], ['ayuda', 'Ayuda', 'h']]]]},
   {k: 'prod', t: 'Producción', ic: 'flame', roles: ['recep', 'jefeprod', 'empaque', 'produccion'], lead: 'Recibir, producir y empacar', grupos: [
     ['Zonas', [['pr-zonas', 'Pedidos por zona'], ['pr-turno', 'Turno'], ['pr-dif', 'Diferencias'], ['pr-mot', 'Motivos de merma'], ['pr-aj', 'Ajustes']]],
     ['Planta', [['planta', 'Resumen'], ['recepcion', 'Recibir'], ['produccion', 'Producir'], ['empaque', 'Empacar'], ['mermas', 'Mermas'], ['cotejo', 'Comparar'], ['turnos', 'Turnos']]],
     ['Existencias', [['alm-mp', 'Materia prima'], ['pr-proc', 'En proceso (kilos)'], ['alm-proceso', 'En proceso'], ['alm-pt', 'Producto terminado'], ['pr-inv', 'Inventario terminado'], ['inventario', 'Inventario']]],
-    ['Más', [['catprod', 'Equipo'], ['manual', 'Manual', 'h'], ['mis-solic', 'Mis solicitudes', 'h']]]]},
-  {k: 'vent', t: 'Ventas', ic: 'cart', roles: ['ventas'], lead: 'Vender, clientes y catálogo', grupos: [['Ventas', [['v-pedido', 'Hacer una venta'], ['v-clientes', 'Clientes y catálogo'], ['v-deuda', 'Quién debe'], ['v-pagos', 'Cobros hechos'], ['ventas', 'Registro de ventas'], ['pr-invv', 'Inventario disponible'], ['clientes', 'Lista de clientes'], ['c-ficha', 'Enlace del portal'], ['c-pedidos', 'Pedidos de clientes'], ['mis-solic', 'Mis solicitudes', 'h']]]]},
-  {k: 'desp', t: 'Despacho', ic: 'truck', roles: ['empaque', 'jefeprod'], lead: 'Despachos y entregas', grupos: [['Despacho', [['em-tablero', 'Zonas'], ['despachos', 'Despachos'], ['fl-desp', 'Vehículos'], ['catprod', 'Anterior (solo consulta)'], ['e-entregas', 'Entregas con foto'], ['alm-logistica', 'Bultos y etiquetas'], ['mis-solic', 'Mis solicitudes', 'h']]]]}
+    ['Más', [['catprod', 'Equipo'], ['manual', 'Manual', 'h'], ['mis-solic', 'Mis solicitudes', 'h'], ['ayuda', 'Ayuda', 'h']]]]},
+  {k: 'vent', t: 'Ventas', ic: 'cart', roles: ['ventas'], lead: 'Vender, clientes y catálogo', grupos: [['Ventas', [['v-pedido', 'Hacer una venta'], ['pr-invv', 'Inventario disponible'], ['c-pedidos', 'Pedidos'], ['v-clientes', 'Clientes y catálogo'], ['clientes', 'Lista de clientes'], ['c-ficha', 'Enlace del portal'], ['v-deuda', 'Quién debe'], ['v-pagos', 'Cobros hechos'], ['ventas', 'Registro de ventas'], ['mis-solic', 'Mis solicitudes', 'h'], ['ayuda', 'Ayuda', 'h']]]]},
+  {k: 'desp', t: 'Despacho', ic: 'truck', roles: ['empaque', 'jefeprod'], lead: 'Despachos y entregas', grupos: [['Despacho', [['em-tablero', 'Zonas'], ['despachos', 'Despachos'], ['fl-desp', 'Vehículos'], ['catprod', 'Anterior (solo consulta)'], ['e-entregas', 'Entregas con foto'], ['alm-logistica', 'Bultos y etiquetas'], ['mis-solic', 'Mis solicitudes', 'h'], ['ayuda', 'Ayuda', 'h']]]]}
 ];
 const ORDEN_DUENO = ['ger', 'vent', 'adm', 'prod', 'desp'];
 const EXT = {rol: null, map: {}, sel: null, busy: false};
@@ -10287,23 +10343,27 @@ const EXT = {rol: null, map: {}, sel: null, busy: false};
 const extrasDe = r => { if (r === 'dueno') return []; const own = new Set(visibles(r).flatMap(p => planas(p, r))); return [...((EXT.map || {})[r] || []), ...(r === 'adm' ? (EXT.map || {}).cobranza || [] : [])].filter(k => SCREENS[k] && !own.has(k) && lvlOf(r, k) >= 1); };
 const pantDe = k => PANT.find(p => p.k === k);
 /* Cobranza: «Cobrar» va primero y «Quién debe» es su primer botón (los demás puestos conservan el orden de siempre) */
-const SOLO_GER = ['pr-aj', 'pr-mot', 'g-extras', 'g-solic', 'p-aprobar']; /* pantallas que solo Gerencia ve, sin importar lo que diga la matriz */
-const tabsRaw = (p, r) => { const gs = p.grupos.map(([g, ts]) => [g, ts.filter(([k]) => SCREENS[k] && lvlOf(r, k) >= 1 && !(k === 'mis-solic' && r === 'dueno') && !(SOLO_GER.includes(k) && r !== 'dueno'))]).filter(([, ts]) => ts.length);
+/* Lo que vive en Gerencia (Por aprobar y Ajustes): el Gerente lo ve ahí y no repetido en las otras pantallas; los demás puestos lo siguen viendo donde lo veían */
+const MOV_GER = ['pr-dif', 'c-pagos', 'politicas', 'rh-params', 'e-ajustes', 'p-bancos', 'roles', 'datos', 'gestion', 'pr-aj', 'pr-mot', 'g-extras', 'g-solic', 'p-aprobar', 'g-audit'];
+const SOLO_GER = ['pr-aj', 'pr-mot', 'g-extras', 'g-solic', 'p-aprobar', 'g-audit']; /* pantallas que solo Gerencia ve, sin importar lo que diga la matriz */
+const tabsRaw = (p, r) => { const gs = p.grupos.map(([g, ts]) => [g, ts.filter(([k]) => SCREENS[k] && lvlOf(r, k) >= 1 && !(k === 'mis-solic' && r === 'dueno') && !(SOLO_GER.includes(k) && r !== 'dueno') && !(r === 'dueno' && p.k !== 'ger' && MOV_GER.includes(k)))]).filter(([, ts]) => ts.length);
   if (r !== 'cobranza' || p.k !== 'adm') return gs;
   const c = gs.find(([g]) => g === 'Cobrar'); if (!c) return gs;
   return [[c[0], [...c[1].filter(t => t[0] === 'v-deuda'), ...c[1].filter(t => t[0] !== 'v-deuda')]], ...gs.filter(x => x !== c)]; };
 /* ---------- Uniones: varias claves viejas pasan a UNA opción del menú con pestañas por dentro. Cada clave vieja sigue existiendo (permisos, enlaces #clave, avisos). ----------
    m: [clave, nombre de la pestaña, [claves que son la misma pantalla]] */
 const UNI = [];
-const ukeys = u => u.m.flatMap(m => [m[0], ...(m[2] || [])]);
+let UR = null; /* puesto que se está evaluando (para las pestañas que dependen del puesto) */
+const ukeys = u => u.m.filter(m => !m.cond || m.cond(UR || S.rol)).flatMap(m => [m[0], ...(m[2] || [])]);
 const uniDe = (pk, k) => UNI.find(u => (!pk || u.p === pk) && ukeys(u).includes(k));
-const tabsDe = (p, r) => { const raw = tabsRaw(p, r), vistas = new Set();
+const tabsDe = (p, r) => { const ur = UR; UR = r; try { return tabsDe0(p, r); } finally { UR = ur; } };
+const tabsDe0 = (p, r) => { const raw = tabsRaw(p, r), vistas = new Set();
   return raw.map(([g, ts]) => [g, ts.map(t => {
     if (t[2] === 'h' || (r === 'dueno' && p.k === 'prod' && t[0] === 'turnos')) return null; /* Turnos: una sola vez (para Gerencia vive en Personal) */
     const u = UNI.find(x => x.p === p.k && ukeys(x).includes(t[0])); if (!u) return t;
     if (vistas.has(u)) return null; vistas.add(u);
     const acc = ukeys(u).find(k => raw.some(([, xs]) => xs.some(y => y[0] === k && y[2] !== 'h')));
-    const hay = u.m.filter(m => [m[0], ...(m[2] || [])].some(k => raw.some(([, xs]) => xs.some(y => y[0] === k && y[2] !== 'h')))).length;
+    const hay = u.m.filter(m => (!m.cond || m.cond(r)) && [m[0], ...(m[2] || [])].some(k => raw.some(([, xs]) => xs.some(y => y[0] === k && y[2] !== 'h')))).length;
     return [acc || t[0], u.siempre || hay >= 2 ? u.n : t[1]];
   }).filter(Boolean)]).filter(([, ts]) => ts.length); };
 const visibles = r => (r === 'dueno' ? ORDEN_DUENO.map(pantDe) : PANT.filter(p => p.roles.includes(r))).filter(p => r === 'dueno' || tabsDe(p, r).length);
@@ -10328,12 +10388,14 @@ Object.assign(SCREENS, {
   'adm-resumen': {mod: 'adm', g: 'Administración', t: 'Resumen de la operación', s: 'Resumen', ic: 'chart', r: () => scrGerencia('adm')},
   'log-dev':    {mod: 'home', libre: true, g: 'Logística', t: 'Logística', s: 'Próximamente', ic: 'tag', r: () => `<div class="card"><div class="card-b">${emptyState('Esta pantalla está en desarrollo', 'Todavía no hay nada que hacer aquí. Cuando esté lista aparecerá en esta pestaña. Mientras tanto usa «Bultos y etiquetas».')}</div></div>`},
   'cli-portal': {mod: 'home', libre: true, g: 'Cliente', t: 'Portal del cliente', s: 'Portal', ic: 'users', r: scrPortalCli},
+  'g-audit':    {mod: 'adm', g: 'Gerencia', t: 'Auditoría', s: 'Auditoría', ic: 'shield', r: () => (window.vAuditoriaScr ? window.vAuditoriaScr() : '')},
   'g-extras':   {mod: 'adm', g: 'Gerencia', t: 'Funciones extra por puesto', s: 'Funciones extra', ic: 'lock', r: scrExtras},
   'g-solic':    {mod: 'adm', g: 'Gerencia', t: 'Solicitudes de los puestos', s: 'Solicitudes', ic: 'shield', r: scrSolic},
+  'ayuda':      {mod: 'home', libre: true, g: 'Ayuda', t: 'Ayuda', s: 'Ayuda', ic: 'book', r: () => (window.scrAyuda ? window.scrAyuda() : '')},
   'mis-solic':  {mod: 'home', libre: true, g: 'Solicitudes', t: 'Mis solicitudes', s: 'Mis solicitudes', ic: 'shield', r: scrMisSolic},
   'pant-vacia': {mod: 'home', libre: true, g: 'Inicio', t: 'Sin pantalla', s: 'Inicio', ic: 'map', r: () => `<div class="card"><div class="card-b">${emptyState('Tu puesto todavía no tiene pantalla', 'Pide al Gerente que te asigne una. Mientras tanto no hay nada que hacer aquí.')}</div></div>`}
 });
-Object.assign(PERM_DEF, {gerencia: '', 'g-extras': '', 'g-solic': '', 'adm-resumen': 'adm:1'});
+Object.assign(PERM_DEF, {gerencia: '', 'g-audit': '', 'g-extras': '', 'g-solic': '', 'adm-resumen': 'adm:1'});
 ROLE_HOME.adm = 'adm-resumen'; ROLE_HOME.cobranza = 'v-deuda'; ROLE_HOME.empaque = 'em-tablero';
 S.perm = permInit();
 
@@ -10598,7 +10660,7 @@ homeRoute = function () {
 };
 
 /* ---------- Lanzador «Opciones»: un botón de cuadrícula que abre iconos grandes con TODAS las opciones de la pantalla ---------- */
-const IC_OP = {gerencia: 'chart', 'adm-resumen': 'chart', gestion: 'gauge', mapa: 'map', 'p-aprobar': 'check', 'g-extras': 'lock', 'g-solic': 'shield', 'mis-solic': 'shield', 'c-pedido': 'cart', 'compras-mp': 'potato', 'compras-gen': 'cart', analisis: 'compare', catalogos: 'book', 'inventario-adm': 'warehouse',
+const IC_OP = {gerencia: 'chart', 'g-audit': 'shield', 'adm-resumen': 'chart', gestion: 'gauge', mapa: 'map', ayuda: 'book', 'p-aprobar': 'check', 'g-extras': 'lock', 'g-solic': 'shield', 'mis-solic': 'shield', 'c-pedido': 'cart', 'compras-mp': 'potato', 'compras-gen': 'cart', analisis: 'compare', catalogos: 'book', 'inventario-adm': 'warehouse',
   cxp: 'receipt', caja: 'coins', prestamos: 'wallet', politicas: 'shield', 'v-cobro': 'coins', 'v-pagos': 'check', 'v-deuda': 'alert', 'c-pagos': 'receipt', 'e-plazos': 'calendar', 'v-reportes': 'chart', 'v-importar': 'file',
   'p-precios': 'tag', 'p-clientes': 'users', 'e-ajustes': 'sliders', 'p-estado': 'clip', 'p-bancos': 'wallet', 'fl-flota': 'truck', 'fl-desp': 'truck', 'rh-planta': 'users', 'rh-pagar': 'coins', 'rh-turnos': 'calendar', 'rh-params': 'sliders', turnos: 'calendar', personal: 'users', asistencia: 'calendar', nomina: 'coins', manual: 'book', roles: 'shield', datos: 'layers',
   planta: 'gauge', recepcion: 'truck', produccion: 'flame', empaque: 'pack', mermas: 'drop', cotejo: 'compare', 'alm-mp': 'potato', 'alm-proceso': 'layers', 'alm-pt': 'box', inventario: 'warehouse', catprod: 'users',
@@ -10712,30 +10774,49 @@ const EXI = ['Existencias', true, [
   ['pr-proc', 'En proceso', ['alm-proceso'], [['pr-proc', 'Sistema nuevo · kilos por etapa'], ['alm-proceso', 'Sistema anterior · lotes abiertos']]],
   ['alm-pt', 'Terminado', ['pr-inv', 'pr-invv'], [['alm-pt', 'Sistema anterior · bultos y existencias'], ['pr-inv', 'Sistema nuevo · bultos cerrados por turno'], ['pr-invv', 'Sistema nuevo · bultos cerrados por turno']]],
   ['inventario', 'Movimientos y límites', ['inventario-adm']]]];
-['prod', 'adm', 'vent'].forEach(pk => UNI.push({p: pk, n: EXI[0], siempre: true, maximo: EXI[1], m: EXI[2]}));
+['prod', 'adm'].forEach(pk => UNI.push({p: pk, n: EXI[0], siempre: true, maximo: EXI[1], m: EXI[2]}));
+/* Ventas: 4 opciones. «Vender» trae las existencias a la vista; «Cuentas» junta lo que se debe, lo cobrado y el registro de ventas. */
+UNI.push(
+  {p: 'vent', n: 'Vender', siempre: true, m: [['v-pedido', 'Hacer una venta'], ['pr-invv', 'Existencias', ['alm-pt', 'pr-inv'], [['alm-pt', 'Sistema anterior · bultos y existencias'], ['pr-inv', 'Sistema nuevo · bultos cerrados por turno'], ['pr-invv', 'Sistema nuevo · bultos cerrados por turno']]]]},
+  {p: 'vent', n: 'Cuentas', siempre: true, m: [['v-deuda', 'Quién debe'], ['v-pagos', 'Cobros hechos'], ['ventas', 'Registro de ventas']]}
+);
+/* Administración: compras, pagos y caja, precios (cada pestaña conserva el permiso de su clave; validar sigue siendo aprobar en «Por validar») */
+const TIENE_PAGOS = r => lvlOf(r, 'cxp') >= 1 || lvlOf(r, 'caja') >= 1;
+UNI.push(
+  {p: 'adm', n: 'Compras', m: [['c-pedido', 'Hacer compra'], ['compras-mp', 'Por validar'], ['compras-gen', 'Otras compras'], ['catalogos', 'Proveedores'], ['analisis', 'Comparar']]},
+  {p: 'adm', n: 'Pagos y caja', m: [['cxp', 'Por pagar'], ['caja', 'Caja chica'], Object.assign(['prestamos', 'Préstamos'], {cond: TIENE_PAGOS})]},
+  {p: 'adm', n: 'Precios', siempre: true, m: [['p-precios', 'Por lista'], ['p-clientes', 'Por cliente'], ['e-ajustes', 'Descuentos y mora'], ['p-estado', 'Historial de cambios']]}
+);
+/* Gerencia: una bandeja «Por aprobar» y «Ajustes»; cada pestaña sigue siendo su clave y su acción (nunca se mezclan con donde se registra) */
+UNI.push(
+  {p: 'ger', n: 'Por aprobar', siempre: true, m: [['p-aprobar', 'Precios'], ['g-solic', 'Solicitudes'], ['pr-dif', 'Diferencias'], ['c-pagos', 'Pagos del portal']]},
+  {p: 'ger', n: 'Ajustes', siempre: true, m: [['politicas', 'Reglas de caja y nómina'], ['rh-params', 'Turnos y bonos'], ['e-ajustes', 'Crédito'],
+    ['pr-aj', 'Zonas y mermas', ['pr-mot'], [['pr-aj', 'Zonas y ajustes'], ['pr-mot', 'Motivos de merma']]], ['p-bancos', 'Bancos'], ['roles', 'Quién ve qué'], ['g-extras', 'Funciones extra'], ['datos', 'Datos'], ['gestion', 'Control de gestión']]}
+);
 /* Cobranza: Administración y Cobranza son la misma persona; todo lo de cobrar queda en una sola opción, «Quién debe» primero */
 UNI.push({p: 'adm', n: 'Cobranza', siempre: true, m: [['v-deuda', 'Quién debe'], ['v-cobro', 'Registrar cobro'], ['v-pagos', 'Cobros hechos'], ['c-pagos', 'Pagos del portal'], ['e-plazos', 'Plazos y reclamos'], ['v-reportes', 'Reportes y auditoría'], ['c-ficha', 'Enlace del portal']]});
 /* Personal: personas, asistencia, turnos, nómina y préstamos en una sola opción (cada pestaña conserva el permiso de su clave vieja) */
 UNI.push({p: 'adm', n: 'Personal', cab: k => (window.hpCabUni ? window.hpCabUni(k) : ''), m: [['rh-planta', 'En planta hoy'], ['personal', 'Personas'], ['asistencia', 'Asistencia'], ['rh-turnos', 'Turnos y bonos', ['turnos']], ['rh-params', 'Parámetros'],
-  ['rh-pagar', 'Pagar nómina'], ['prestamos', 'Préstamos'], ['nomina', 'Nómina anterior (solo consulta)']]});
+  ['rh-pagar', 'Pagar nómina'], Object.assign(['prestamos', 'Préstamos'], {cond: r => !TIENE_PAGOS(r)}), ['nomina', 'Nómina anterior (solo consulta)']]});
 /* Vehículos: la lista nueva (alta y cambios en Administración, ubicación en Despacho) y la lista vieja de Equipo solo para consultar */
 UNI.push({p: 'adm', n: 'Vehículos', siempre: true, m: [['fl-flota', 'Vehículos'], ['catprod', 'Anterior (solo consulta)', [], () => '<span class="un-et">Sistema anterior</span>' + flotaAnteriorCard()]]},
          {p: 'desp', n: 'Vehículos', siempre: true, m: [['fl-desp', 'Vehículos'], ['catprod', 'Anterior (solo consulta)', [], () => '<span class="un-et">Sistema anterior</span>' + flotaAnteriorCard()]]});
 /* una pestaña solo aparece si el puesto la veía antes en esa misma pantalla (o por Funciones extra) */
-const uniVe = c => { if (!can(c)) return false; const p = pantActual(); return !p || planas(p, S.rol).includes(c) || extrasDe(S.rol).includes(c); };
+const VE_PROC = ['dueno', 'jefeprod', 'produccion']; /* el servidor solo entrega «En proceso (kilos)» a estos puestos: a los demás ni se muestra ni se pide */
+const uniVe = c => { if (!can(c) || (c === 'pr-proc' && !VE_PROC.includes(S.rol))) return false; const p = pantActual(); return !p || planas(p, S.rol).includes(c) || extrasDe(S.rol).includes(c); };
 const uniActual = k => { const p = pantActual(); return p ? uniDe(p.k, k) || null : uniDe('', k) || null; };
 function uniBarra(k) {
   const u = uniActual(k); if (!u) return '';
-  const ps = u.m.map(m => { const ks = [m[0], ...(m[2] || [])], ir = ks.find(uniVe); return ir ? {n: m[1], ir, ks} : null; }).filter(Boolean);
+  const ps = u.m.filter(m => !m.cond || m.cond(S.rol)).map(m => { const ks = [m[0], ...(m[2] || [])], ir = ks.find(uniVe); return ir ? {n: m[1], ir, ks} : null; }).filter(Boolean);
   if (ps.length < 2) return '';
   return '<nav class="v-tabs un-tabs" aria-label="' + esc(u.n) + '">' + ps.map(x => '<a class="v-tab" href="#' + x.ir + '"' + (x.ks.includes(k) ? ' aria-current="page"' : '') + '>' + esc(x.n) + '</a>').join('') + '</nav>';
 }
 const uniEnvuelta = new Set(), uniOrig = {};
 function uniPartes(k, lista) { const vistas = new Set(); return lista.filter(([c]) => uniVe(c) && uniOrig[c] && !vistas.has(uniOrig[c]) && vistas.add(uniOrig[c])).map(([c, e]) => '<section class="un-parte"><p class="un-et">' + esc(e) + '</p>' + uniOrig[c]() + '</section>').join(''); }
 function uniEnvolver() {
-  UNI.forEach(u => ukeys(u).forEach(k => { const sc = SCREENS[k]; if (!sc || uniEnvuelta.has(k)) return; uniEnvuelta.add(k); uniOrig[k] = sc.r; }));
+  UNI.forEach(u => u.m.flatMap(m => [m[0], ...(m[2] || [])]).forEach(k => { const sc = SCREENS[k]; if (!sc || uniEnvuelta.has(k)) return; uniEnvuelta.add(k); uniOrig[k] = sc.r; }));
   uniEnvuelta.forEach(k => { const sc = SCREENS[k], f = uniOrig[k];
-    sc.r = function () { const u = uniActual(k), pes = u && u.m.find(m => [m[0], ...(m[2] || [])].includes(k)), b = uniBarra(k), c = pes && pes[3] ? (typeof pes[3] === 'function' ? pes[3]() : uniPartes(k, pes[3])) : f.apply(this, arguments); const cab = u && u.cab ? u.cab(k) : ''; return cab + (b ? b + '<div class="un-panel">' + c + '</div>' : c); }; });
+    sc.r = function () { const u = uniActual(k), pes = u && u.m.find(m => (!m.cond || m.cond(S.rol)) && [m[0], ...(m[2] || [])].includes(k)), b = uniBarra(k), c = pes && pes[3] ? (typeof pes[3] === 'function' ? pes[3]() : uniPartes(k, pes[3])) : f.apply(this, arguments); const cab = u && u.cab ? u.cab(k) : ''; return cab + (b ? b + '<div class="un-panel">' + c + '</div>' : u ? '<div class="un-panel">' + c + '</div>' : c); }; });
 }
 uniEnvolver();
 
@@ -10745,20 +10826,263 @@ const REDIR = {'log-dev': 'alm-logistica', 'cli-portal': 'c-ficha'};
 
 /* ---------- Botones fijos de arriba: Ayuda y Autorización ---------- */
 const veOpc = k => { const r = S.rol; return visibles(r).some(p => planas(p, r).includes(k)) || extrasDe(r).includes(k); };
+/* Para «Primeros pasos»: ¿este puesto ve esta pantalla? (misma regla que el menú) */
+window.pantVe = (r, k) => visibles(r).some(p => planas(p, r).includes(k)) || extrasDe(r).includes(k);
 const _rt = renderTop;
 renderTop = function () {
   _rt();
   if (!(S.entry === 'in' && Boot.state === 'ready')) return;
   const w = document.querySelector('#top .who'); if (!w) return;
-  const ay = veOpc('manual') || veOpc('mapa'), dueno = S.rol === 'dueno';
-  w.insertAdjacentHTML('beforeend', '<span class="top-fijos">' + (ay ? '<button type="button" class="btn sm ghost" data-act="ayuda">' + ic('book', 16) + '<span>Ayuda</span></button>' : '') +
+  const dueno = S.rol === 'dueno', pend = window.ppPend ? window.ppPend() : 0;
+  w.insertAdjacentHTML('beforeend', '<span class="top-fijos"><button type="button" class="btn sm ghost" data-act="ayuda">' + ic('book', 16) + '<span>Ayuda</span>' + (pend ? '<span class="badge w" title="Pasos por hacer">' + pend + '</span>' : '') + '</button>' +
     (dueno ? '<a class="btn sm ghost" href="#g-solic">' + ic('shield', 16) + '<span>Solicitudes</span></a>' : '<button type="button" class="btn sm ghost" data-act="autorizar">' + ic('shield', 16) + '<span>Autorización</span></button>') + '</span>');
 };
 Object.assign(ACT, {
   irA: el => { closeModal(); location.hash = '#' + el.dataset.r; },
-  ayuda: () => modal('Ayuda', '<div class="form">' + (veOpc('manual') ? '<button type="button" class="btn pri" data-act="irA" data-r="manual">' + ic('book', 16) + 'Manual de procedimientos</button>' : '') + (veOpc('mapa') ? '<button type="button" class="btn" data-act="irA" data-r="mapa">' + ic('map', 16) + 'Mapa de procesos</button>' : '') + '<button type="button" class="btn" data-act="closeModal">Cerrar</button></div>'),
+  ayuda: () => { S.ayTab = 'pp'; if (S.route === 'ayuda') render(); else location.hash = '#ayuda'; },
+  ayTab: el => { S.ayTab = el.dataset.t; render(); },
   autorizar: () => modal('Autorización', '<div class="form"><button type="button" class="btn pri" data-act="solPedir" data-a="">' + ic('shield', 16) + 'Pedir autorización</button><button type="button" class="btn" data-act="irA" data-r="mis-solic">Mis solicitudes</button><button type="button" class="btn" data-act="closeModal">Cerrar</button></div>')
 });
+})();
+
+</script>
+<script>
+/* PRIMEROS PASOS (dentro de «Ayuda»): guía con casillas, barra de avance y botón «Ir aquí».
+   Cada puesto ve SOLO los pasos cuya pantalla puede ver. Todo lo escrito aquí sale de los nombres reales de botones y campos del sistema. */
+(function () {
+"use strict";
+const SEC = [
+  ['Para empezar desde cero', 'Lo que se prepara una sola vez, antes de trabajar.'],
+  ['El día a día', 'Lo que se hace todos los días.'],
+  ['Cierre de quincena y mes', 'Para pagar, revisar y dejar todo en orden.'],
+  ['Qué hacer cuando algo sale mal', 'Nada se pierde: lo que se quita queda anulado, con su motivo.']
+];
+/* s: sección (1 a 4) · k: pantalla a la que lleva «Ir aquí» · n: nivel mínimo en esa pantalla (por defecto 1) · r: solo estos puestos
+   clic: botón de dentro que se toca al llegar ({sel} o {tab}) · acc: acción sin pantalla · t: título · h: qué hacer · p: para qué sirve */
+const PASOS = [
+  /* ---------- 1 · Para empezar desde cero ---------- */
+  {id: 'a-banco', s: 1, k: 'p-bancos', r: ['dueno'], t: 'Anota los bancos de la empresa',
+    h: 'Pulsa «Agregar banco». Escribe el nombre del banco, la moneda de la cuenta, el número de cuenta y el titular, y pulsa «Guardar». Para ir más rápido usa «Bancos sugeridos» y pulsa «Agregar todos».',
+    p: 'Así cada cobro y cada pago dice en qué banco se hizo. La tasa del dólar no se escribe: se lee sola del BCV y sale arriba, en «Tasa BCV USD → Bs».'},
+  {id: 'a-personal', s: 1, k: 'personal', n: 2, t: 'Agrega a las personas que trabajan',
+    h: 'En «Personas», tarjeta «Agregar persona»: escribe nombre y apellido, cédula, cargo, área, fecha de ingreso y teléfono. Elige «Se le paga por» (Día u Hora), la tarifa en Bs y el «Turno de trabajo» (Mañana o Tarde). Pulsa «Agregar persona».',
+    p: 'Sin turno no se puede marcar la entrada («Falta el turno en Personal»). Si maneja un vehículo, activa «Es chofer».'},
+  {id: 'a-params', s: 1, k: 'rh-params', r: ['dueno'], t: 'Define los horarios, las reglas de pago y el bono',
+    h: 'En «Horario por turno» pon cuándo entran y salen la Mañana y la Tarde. En «Reglas de pago de nómina» pon la jornada completa (horas), el recargo de hora extra (%) y las deducciones de ley (%). En «Bono de producción» elige «Por kilo» o «Monto fijo» y la meta de kilos por turno. Pulsa «Guardar parámetros».',
+    p: 'Con esto el sistema calcula solo las horas extra, las deducciones y los bonos de la nómina.'},
+  {id: 'a-params-ver', s: 1, k: 'rh-params', r: ['adm', 'rrhh'], t: 'Mira los parámetros de turnos y bonos',
+    h: 'Aquí ves el horario por turno, las reglas de pago de nómina y el bono de producción. Solo Gerencia los cambia. Si hace falta un cambio, pulsa «Pedir autorización».',
+    p: 'Así sabes con qué reglas se calculan la nómina y los bonos.'},
+  {id: 'a-producto', s: 1, k: 'v-clientes', r: ['dueno'], clic: {sel: '[data-act="vAdmTab"][data-v="productos"]'}, t: 'Crea los productos',
+    h: 'En la pestaña de productos e inventario pulsa «Producto nuevo». Escribe SKU, nombre, gramaje, categoría (Papas o Salsas) e IVA (%), y pulsa «Guardar». En cada fila hay «Editar», «Peso de bulto» y «Entrada».',
+    p: 'Sin productos no se puede vender ni empacar.'},
+  {id: 'a-inicial', s: 1, k: 'pr-inv', r: ['dueno'], t: 'Carga el conteo inicial de producto terminado',
+    h: 'Pulsa «Cargar el conteo inicial», llena el conteo y pulsa «Guardar el conteo». Solo se hace una vez.',
+    p: 'Desde ese día las existencias empiezan con la cifra real.'},
+  {id: 'a-precios', s: 1, k: 'p-precios', t: 'Pon los precios por lista',
+    h: 'En «Por lista» elige «Lista A» o «Lista B» y toca el precio que quieres cambiar. Si eres Gerente pulsa «Cambiar precio»; si eres de Administración pulsa «Enviar para aprobar». En «Estados y listas» ves qué lista usa cada estado.',
+    p: 'Cada cliente paga según la lista de su estado.'},
+  {id: 'a-aprobar', s: 1, k: 'p-aprobar', r: ['dueno'], t: 'Aprueba los precios que te piden',
+    h: 'Revisa cada cambio y pulsa «Aprobar» o «Rechazar». Si quieres, escribe un motivo.',
+    p: 'Un precio nuevo solo vale cuando Gerencia lo aprueba.'},
+  {id: 'a-cliente', s: 1, k: 'v-clientes', n: 2, clic: {sel: '[data-act="vAdmTab"][data-v="clientes"]'}, t: 'Registra a tus clientes',
+    h: 'En «Clientes» pulsa «Cliente nuevo». Escribe razón social o nombre y RIF o identificación. El estado del cliente es obligatorio: de él salen la zona y la lista de precios. Agrega dirección de entrega, vendedor, modalidad habitual y teléfono, y pulsa «Guardar».',
+    p: 'Sin cliente no se puede hacer una venta. También puedes crearlo con «Cliente nuevo» al hacer la venta.'},
+  {id: 'a-prov', s: 1, k: 'catalogos', n: 2, t: 'Registra a tus proveedores',
+    h: 'En «Proveedores» pulsa «Nuevo proveedor». Escribe nombre, RIF, qué vende y condición de pago, y pulsa «Guardar».',
+    p: 'Los proveedores se eligen después al recibir mercancía y al hacer compras.'},
+  {id: 'a-flota', s: 1, k: 'fl-flota', r: ['dueno', 'adm'], t: 'Agrega los vehículos',
+    h: 'Pulsa «Agregar vehículo». Escribe placa, tipo, marca y modelo, capacidades, estado, chofer habitual y cuándo vencen el seguro y los documentos. Pulsa «Guardar».',
+    p: 'Al despachar eliges el vehículo y el chofer de esta lista.'},
+  {id: 'a-equipo', s: 1, k: 'catprod', n: 2, r: ['dueno', 'jefeprod', 'recep'], t: 'Agrega a quien recibe la mercancía',
+    h: 'En «Equipo», tarjeta «Quién recibe», pulsa «Agregar persona» y luego «Agregar».',
+    p: 'Recibir pide elegir «Quién recibe». Si no hay nadie, dice «Sin personal: agrégalo en Equipo y flota».'},
+  {id: 'a-pin', s: 1, k: 'v-clientes', r: ['dueno'], clic: {sel: '[data-act="vAdmTab"][data-v="ajustes"]'}, t: 'Crea el PIN de gerencia',
+    h: 'En «Ajustes», en «PIN de gerencia», pulsa «Crear PIN» (de 4 a 12 números). Ahí mismo puedes llenar el «Membrete de los documentos» y pulsar «Guardar ajustes».',
+    p: 'El PIN se pide para anotar un pago con fecha pasada y para perdonar mora.'},
+  {id: 'a-pol', s: 1, k: 'politicas', n: 2, r: ['dueno', 'custodio'], t: 'Revisa las reglas de caja y nómina',
+    h: 'Revisa el «Fondo fijo ($)», el «Umbral de compra de contado ($)», «Reponer cuando quede menos de (%)» y la «Tolerancia de peso en recepción (%)». En préstamos mira los días de entrega en el mes, el tope por empleado ($) y las cuotas máximas. Pulsa «Guardar políticas».',
+    p: 'Son las reglas que usa el sistema para caja, compras y préstamos.'},
+
+  /* ---------- 2 · El día a día ---------- */
+  {id: 'd-recibir', s: 2, k: 'recepcion', n: 2, t: 'Recibe la mercancía',
+    h: 'Elige «¿Qué llegó?» (Materia prima o Insumo). Escoge producto, proveedor y «Quién recibe», y marca la calidad (A, B, C o Rechazo parcial). Anota los sacos o bultos y las pesadas de «Pesaje por muestra». Pulsa «Guardar y enviar a Administración».',
+    p: 'Administración valida lo que llegó antes de volverlo compra.'},
+  {id: 'd-validar', s: 2, k: 'compras-mp', n: 3, t: 'Valida lo que llegó',
+    h: 'En «Por validar» revisa la recepción, escribe el «Precio unitario» y la «Condición», y pulsa «Validar y generar compra efectiva».',
+    p: 'Si la compra es a crédito, pasa a «Por pagar».'},
+  {id: 'd-compra', s: 2, k: 'c-pedido', n: 2, t: 'Haz una compra',
+    h: 'Elige el proveedor (o «Nuevo proveedor») y agrega los productos. Escribe el número y la fecha de la factura del proveedor, elige «¿Cómo se paga?» (banco o cuenta, plazo en días) y pulsa «HACER LA COMPRA».',
+    p: 'La compra queda anotada con su proveedor y su forma de pago.'},
+  {id: 'd-otras', s: 2, k: 'compras-gen', n: 2, t: 'Anota otras compras',
+    h: 'Escribe qué se compró, el proveedor, el monto y la partida contable. El «Motivo de la compra» es obligatorio. Pulsa «Registrar compra».',
+    p: 'Así toda compra queda con su motivo.'},
+  {id: 'd-turno', s: 2, k: 'pr-turno', n: 2, t: 'Abre y llena el turno',
+    h: 'Pulsa «Abrir turno de hoy». En cada tarjeta (Recepción, Lavado, Fritado, Empacado) escribe los kilos y pulsa «Entra» o «Sale». En Empacado elige el producto, los «Bultos» y pulsa «Anotar».',
+    p: 'Al cerrar el turno, los bultos empacados se suman al inventario.'},
+  {id: 'd-lote', s: 2, k: 'produccion', n: 2, t: 'Abre un lote de producción',
+    h: 'Pulsa «+ Abrir lote nuevo». Elige la compra de papa que alimenta el lote, escribe los kilos de papa cruda y pulsa «Abrir lote». En cada etapa (Lavado y pelado, Corte, Freído, Enfriado y reposo) pulsa «Terminé esta etapa». Al final pulsa «Cerrar lote y pasar a empaque».',
+    p: 'Así se sabe cuánta papa entró y cuánta pasó por cada etapa.'},
+  {id: 'd-empacar', s: 2, k: 'empaque', n: 2, t: 'Anota lo empacado',
+    h: 'Pulsa «Anotar lo empacado»: te lleva al turno con «Ir al turno». Si hace falta producto, pulsa «Pedir reposición» y elige presentación, unidades y motivo.',
+    p: 'Lo empacado queda escrito en el turno de hoy.'},
+  {id: 'd-zonas', s: 2, k: 'pr-zonas', n: 2, t: 'Arma y despacha por zona',
+    h: 'Abre la tarjeta de una zona, marca los pedidos y los bultos y pulsa «Armar salida». Si quedas por debajo de la meta o partes un pedido, escribe el motivo. Luego pulsa «Despachar» y elige vehículo y chofer. «Pausar la zona» pide un motivo.',
+    p: 'Al despachar se emiten las notas de entrega o facturas.'},
+  {id: 'd-tablero', s: 2, k: 'em-tablero', t: 'Mira las zonas del día',
+    h: 'Toca la tarjeta de una zona para abrir sus despachos.',
+    p: 'Es el punto de partida de Empaque y despacho.'},
+  {id: 'd-despachos', s: 2, k: 'despachos', n: 2, t: 'Cuenta la carga y entrega',
+    h: 'Pulsa «Contar la carga» y luego «Guardar la carga». Pulsa «Marcar en ruta» al salir y «Marcar entregada» al llegar. «Ver nota» abre la nota de entrega.',
+    p: 'Queda registrado qué salió y qué se entregó.'},
+  {id: 'd-vender', s: 2, k: 'v-pedido', n: 2, t: 'Haz una venta',
+    h: 'Busca al cliente (o pulsa «Cliente nuevo»). Pon los bultos de cada producto con + y −. Elige «¿Cómo paga?»: «A crédito» o «Pagó ahora» (este pide banco y «Nº de referencia»). Pulsa «REGISTRAR PEDIDO · NOTA DE ENTREGA» (o «· FACTURA») y luego «Descargar PDF».',
+    p: 'La venta queda registrada y sale el documento para el cliente.'},
+  {id: 'd-deuda', s: 2, k: 'v-deuda', t: 'Mira quién debe',
+    h: 'En cada cliente que debe puedes pulsar «WhatsApp», «Llamar» o «Registrar cobro».',
+    p: 'Para recordar el pago a quien debe.'},
+  {id: 'd-cobrar', s: 2, k: 'v-cobro', n: 2, t: 'Registra un cobro',
+    h: 'Paso 1: elige al cliente. Paso 2: marca las notas y facturas pendientes (o usa «Repartir el pago (más antigua primero)»). Paso 3: escribe fecha, monto recibido (Bs), banco y número de referencia. Pulsa «Registrar pago» y luego «Confirmar». Después puedes pulsar «Ver e imprimir el recibo».',
+    p: 'El cobro baja lo que el cliente debe y deja su recibo.'},
+  {id: 'd-cxp', s: 2, k: 'cxp', n: 2, t: 'Paga a los proveedores',
+    h: 'En «Por pagar» pulsa «Registrar pago» o «Registrar abono» en la fila de la compra.',
+    p: 'La deuda con el proveedor baja y queda anotada.'},
+  {id: 'd-caja', s: 2, k: 'caja', n: 2, t: 'Anota los gastos de caja chica',
+    h: 'Pulsa «Registrar gasto» y llena número, fecha, proveedor, RIF, monto, categoría, justificación y foto del comprobante.',
+    p: 'Cada gasto de la caja queda con su comprobante.'},
+  {id: 'd-prest', s: 2, k: 'prestamos', n: 2, t: 'Entrega un préstamo',
+    h: 'Elige al empleado y escribe monto, cuotas, fecha de entrega y motivo. Pulsa «Entregar préstamo y generar recibo».',
+    p: 'La cuota se puede descontar después al pagar la nómina.'},
+  {id: 'd-marcar', s: 2, k: 'rh-planta', n: 2, t: 'Marca la entrada y la salida',
+    h: 'En «Marcar entrada y salida» busca a la persona y pulsa «Marcó entrada» al llegar y «Marcó salida» al irse. Si el botón está apagado, a esa persona le falta el turno en Personal.',
+    p: 'Con las marcas se llena la asistencia.'},
+  {id: 'd-turnos', s: 2, k: 'rh-turnos', t: 'Mira quiénes estuvieron en cada turno',
+    h: 'Elige el día y el turno (Mañana o Tarde) y mira «Quiénes estuvieron».',
+    p: 'Así sabes quién trabajó cada turno.'},
+  {id: 'd-bono', s: 2, k: 'rh-turnos', r: ['dueno', 'adm'], t: 'Aplica el bono del turno',
+    h: 'Pulsa «Aplicar bono» y elige «Turno completo» o «Empleado por empleado». Si te equivocas, pulsa «Deshacer».',
+    p: 'El bono se suma después al pago de la nómina.'},
+  {id: 'd-asist', s: 2, k: 'asistencia', t: 'Revisa la asistencia',
+    h: 'Se llena sola con las marcas de entrada y salida. Cambia de quincena con «Anterior», «Siguiente» y «Esta quincena».',
+    p: 'Para ver quién vino y quién faltó.'},
+
+  /* ---------- 3 · Cierre de quincena y mes ---------- */
+  {id: 'c-periodo', s: 3, k: 'rh-pagar', n: 2, t: 'Elige el periodo de la nómina',
+    h: 'Escoge «Semana», «Quincena» o «Mes» y muévete con «Anterior», «Siguiente» y «Hoy». La tabla muestra por persona lo trabajado, el valor de la hora, las horas extra, los bonos, el préstamo y el total a pagar.',
+    p: 'Revisa los números antes de pagar.'},
+  {id: 'c-pagar', s: 3, k: 'rh-pagar', n: 2, t: 'Paga a cada persona',
+    h: 'Pulsa «Registrar pago» en su fila. Revisa base, extra, bonos y deducciones de ley. Si tiene préstamo, marca «Descontar la cuota del préstamo» y escribe el «Monto a descontar (Bs)». Elige la fecha y la forma de pago (Efectivo, Transferencia o Pago móvil) y pulsa «Confirmar pago».',
+    p: 'La fila queda como «Pagado».'},
+  {id: 'c-recibo', s: 3, k: 'rh-pagar', n: 2, t: 'Saca el recibo de pago',
+    h: 'Cuando la fila diga «Pagado», pulsa «Recibo» para imprimirlo o guardarlo en PDF.',
+    p: 'Cada persona queda con su comprobante.'},
+  {id: 'c-portal', s: 3, k: 'c-pagos', r: ['dueno', 'adm'], t: 'Revisa los pagos del portal',
+    h: 'En cada pago pulsa «Confirmar y aplicar» o «Rechazar». Si la fecha es anterior, el sistema pide el PIN de gerencia.',
+    p: 'Así solo cuenta el pago que alguien revisó.'},
+  {id: 'c-hechos', s: 3, k: 'v-pagos', t: 'Repasa los cobros hechos',
+    h: 'Mira la tabla de cobros y, si la necesitas, pulsa «Descargar CSV».',
+    p: 'Sirve para revisar lo cobrado.'},
+  {id: 'c-arqueo', s: 3, k: 'caja', n: 2, t: 'Cuenta la caja chica',
+    h: 'En «Arqueo» escribe el «Efectivo contado ahora ($)» y pulsa «Guardar arqueo».',
+    p: 'Queda anotado cuánto efectivo había al contar.'},
+  {id: 'c-difer', s: 3, k: 'pr-dif', r: ['dueno', 'jefeprod'], t: 'Resuelve las diferencias',
+    h: 'Revisa cada diferencia y pulsa «Aprobar» o «Rechazar». Para rechazar debes escribir el motivo.',
+    p: 'Así ninguna diferencia queda sin respuesta.'},
+  {id: 'c-audit', s: 3, k: 'g-audit', r: ['dueno'], t: 'Revisa la auditoría',
+    h: 'Aquí se consulta lo que se hizo en el sistema. Solo se mira: no se puede cambiar. Si quieres guardarla, pulsa «Descargar CSV».',
+    p: 'Para estar tranquilo de que todo quedó en orden.'},
+
+  /* ---------- 4 · Qué hacer cuando algo sale mal ---------- */
+  {id: 'm-pago', s: 4, k: 'v-pagos', r: ['dueno'], t: 'Anula un cobro mal puesto',
+    h: 'En «Cobros hechos» pulsa «Anular» en la fila y escribe el «Motivo de la anulación». El cobro no se borra: queda marcado como anulado.',
+    p: 'Nada se pierde y queda el motivo.'},
+  {id: 'm-salida', s: 4, k: 'pr-zonas', n: 2, t: 'Anula una salida equivocada',
+    h: 'En la zona busca la salida y pulsa «Anular». Escribe un motivo corto (al menos 3 letras).',
+    p: 'La salida queda anulada, no borrada.'},
+  {id: 'm-repetido', s: 4, k: 'v-cobro', n: 2, t: 'Si el pago ya estaba anotado',
+    h: 'Si sale «Referencia repetida: no se guardó», pulsa «Ver el pago existente» antes de intentar otra vez. Un pago con fecha pasada pide el «PIN de gerencia».',
+    p: 'Evita cobrar dos veces el mismo pago.'},
+  {id: 'm-venta', s: 4, k: 'v-pedido', n: 2, t: 'Si no deja registrar la venta',
+    h: 'El sistema no deja registrar la venta si no hay existencias, si falta el precio o si el cliente pasa su límite de crédito. Arregla ese punto y vuelve a pulsar el botón.',
+    p: 'Así no se vende lo que no hay ni a quien no puede pagar.'},
+  {id: 'm-faltan', s: 4, k: 'pr-turno', n: 2, t: 'Si faltan kilos al cerrar el turno',
+    h: 'Al pulsar «Cerrar turno», si sale «Faltan kilos por explicar», elige: «Todavía está en la etapa anterior», «Fue merma» o «Es parte de un lote: lo resuelvo después».',
+    p: 'Cada kilo queda explicado.'},
+  {id: 'm-merma', s: 4, k: 'mermas', n: 2, clic: {tab: 'Registrar merma'}, t: 'Anota una merma',
+    h: 'En «Registrar merma» elige la etapa donde se perdió, el origen, los kilos o unidades perdidas y la causa.',
+    p: 'Lo que se pierde queda anotado con su causa.'},
+  {id: 'm-pedir', s: 4, acc: 'autorizar', t: 'Pide autorización para lo que no puedes cambiar',
+    h: 'Pulsa «Autorización» arriba y luego «Pedir autorización». Elige «¿Qué quieres cambiar?», escribe el «Motivo (obligatorio)» y pulsa «Enviar solicitud».',
+    p: 'Gerencia la responde.'},
+  {id: 'm-mis', s: 4, k: 'mis-solic', t: 'Mira la respuesta a tus solicitudes',
+    h: 'Abre «Mis solicitudes».',
+    p: 'Ahí ves tus solicitudes y lo que respondió Gerencia.'},
+  {id: 'm-solic', s: 4, k: 'g-solic', r: ['dueno'], t: 'Responde las solicitudes de los puestos',
+    h: 'En cada solicitud pulsa «Aprobar» (puedes dejar un comentario) o «Rechazar» (el motivo es obligatorio).',
+    p: 'Los puestos piden aquí lo que no pueden cambiar solos.'}
+];
+const PUESTOS = ['dueno', 'adm', 'rrhh', 'ventas', 'custodio', 'recep', 'jefeprod', 'produccion', 'empaque'];
+const nom = r => (ROLES && ROLES[r]) || r;
+const ve = (rol, st) => {
+  if (st.r && !st.r.includes(rol)) return false;
+  if (st.acc === 'autorizar') return rol !== 'dueno';
+  if (st.k === 'mis-solic') return rol !== 'dueno';
+  return !!(window.pantVe && window.pantVe(rol, st.k)) && lvlOf(rol, st.k) >= (st.n || 1);
+};
+const lista = rol => PASOS.filter(st => ve(rol, st));
+const llave = ver => 'elmana:pp:' + S.rol + ':' + ver;
+const leer = ver => { try { const v = JSON.parse(localStorage.getItem(llave(ver)) || '[]'); return Array.isArray(v) ? v : []; } catch (e) { return []; } };
+const guardar = (ver, ids) => { try { localStorage.setItem(llave(ver), JSON.stringify(ids)); } catch (e) { /* sin guardado: la guía funciona igual */ } };
+const verRol = () => (S.rol === 'dueno' && PUESTOS.includes(S.ppRol) ? S.ppRol : S.rol);
+
+window.ppPend = () => { try { const ls = lista(S.rol), h = new Set(leer(S.rol)); return ls.filter(st => !h.has(st.id)).length; } catch (e) { return 0; } };
+
+function vistaPasos() {
+  const ver = verRol(), ls = lista(ver), hechos = new Set(leer(ver)), n = ls.filter(st => hechos.has(st.id)).length, tot = ls.length, pct = tot ? Math.round(n * 100 / tot) : 0;
+  const sel = S.rol === 'dueno'
+    ? '<label class="pp-sel">Ver los pasos de: <select data-act-change="ppRol" aria-label="Ver los pasos de">' + PUESTOS.map(r => '<option value="' + r + '"' + (r === ver ? ' selected' : '') + '>' + esc(nom(r)) + '</option>').join('') + '</select></label>' : '';
+  const aviso = ver !== S.rol ? '<p class="pp-aviso">Estás viendo la guía de «' + esc(nom(ver)) + '». Las casillas que marques aquí son aparte y no cambian las de ese puesto.</p>' : '';
+  const sections = SEC.map((sc, i) => { const xs = ls.filter(st => st.s === i + 1); if (!xs.length) return '';
+    return '<section class="pp-sec"><h3>' + esc(sc[0]) + '</h3><p class="pp-sub">' + esc(sc[1]) + '</p>' + xs.map(st => {
+      const ok = hechos.has(st.id);
+      return '<article class="pp-paso' + (ok ? ' hecho' : '') + '"><label class="pp-chk"><input type="checkbox" data-act-change="ppMarca" data-id="' + st.id + '"' + (ok ? ' checked' : '') + ' aria-label="Hecho: ' + esc(st.t) + '"></label>' +
+        '<div class="pp-txt"><h4>' + esc(st.t) + '</h4><p>' + esc(st.h) + '</p><p class="pp-para"><b>Para qué sirve:</b> ' + esc(st.p) + '</p></div>' +
+        '<button type="button" class="btn sm pri pp-ir" data-act="ppIr" data-id="' + st.id + '">Ir aquí</button></article>'; }).join('') + '</section>'; }).join('');
+  return '<div class="pp"><div class="pp-cab"><div class="pp-prog"><b>' + n + ' de ' + tot + ' pasos</b><div class="pp-barra" role="progressbar" aria-valuemin="0" aria-valuemax="' + tot + '" aria-valuenow="' + n + '"><span style="width:' + pct + '%"></span></div></div>' + sel + '</div>' + aviso +
+    (tot ? sections : '<p class="pp-aviso">Este puesto todavía no tiene pasos.</p>') + '</div>';
+}
+
+window.scrAyuda = function () {
+  const rol = S.rol, tm = !!(window.pantVe && window.pantVe(rol, 'manual')), tp = !!(window.pantVe && window.pantVe(rol, 'mapa'));
+  let tab = S.ayTab || 'pp'; if ((tab === 'man' && !tm) || (tab === 'mapa' && !tp)) tab = 'pp';
+  const tabs = [['pp', 'Primeros pasos'], tm ? ['man', 'Manual'] : null, tp ? ['mapa', 'Mapa de procesos'] : null].filter(Boolean);
+  const cuerpo = tab === 'man' ? SCREENS.manual.r() : tab === 'mapa' ? SCREENS.mapa.r() : vistaPasos();
+  return '<nav class="v-tabs un-tabs" aria-label="Ayuda">' + tabs.map(t => '<button type="button" class="v-tab" data-act="ayTab" data-t="' + t[0] + '"' + (t[0] === tab ? ' aria-current="page"' : '') + '>' + esc(t[1]) + '</button>').join('') + '</nav><div class="un-panel">' + cuerpo + '</div>';
+};
+
+function rerender() {
+  const pn = document.querySelector('#main .un-panel'), top = pn ? pn.scrollTop : 0;
+  render(); try { renderTop(); } catch (e) { /* sin barra de arriba */ }
+  const n2 = document.querySelector('#main .un-panel'); if (n2) { n2.scrollTop = top; requestAnimationFrame(() => { n2.scrollTop = top; }); }
+}
+function tocar(c) {
+  let intentos = 0;
+  const t = setInterval(() => {
+    intentos++;
+    const el = c.sel ? document.querySelector(c.sel) : [...document.querySelectorAll('[data-cp-tab]')].find(b => b.textContent.trim() === c.tab);
+    if (el) { clearInterval(t); el.click(); } else if (intentos > 20) clearInterval(t);
+  }, 100);
+}
+Object.assign(ACT, {
+  ppRol: el => { S.ppRol = el.value; rerender(); },
+  ppMarca: el => { const ver = verRol(), s = new Set(leer(ver)); if (el.checked) s.add(el.dataset.id); else s.delete(el.dataset.id); guardar(ver, [...s]); rerender(); },
+  ppIr: el => {
+    const st = PASOS.find(x => x.id === el.dataset.id); if (!st) return;
+    if (st.acc === 'autorizar') { if (S.rol === 'dueno') { location.hash = '#g-solic'; return; } if (ACT.autorizar) ACT.autorizar(); return; }
+    location.hash = '#' + st.k; if (st.clic) tocar(st.clic);
+  }
+});
+window.ppDatos = {PASOS, lista, SEC};
 })();
 
 </script>
@@ -10813,11 +11137,12 @@ function compactar(root) {
   const bar = document.createElement('div'); bar.className = 'v-tabs cp-tabs'; bar.setAttribute('role', 'tablist');
   bar.innerHTML = all.map((t, i) => `<button type="button" class="v-tab" role="tab" data-cp-tab="${i}" aria-selected="${i === act}">${t.n.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</button>`).join('');
   wrap.appendChild(bar);
+  { const ut = wrap.querySelector(':scope > .un-tabs'); if (ut) { const f = document.createElement('div'); f.className = 'un-fila'; wrap.insertBefore(f, ut); f.appendChild(ut); f.appendChild(bar); } } /* una sola fila: pestañas de la opción + pestañas de dentro */
   all.forEach((t, i) => { const pn = document.createElement('div'); pn.className = 'cp-panel' + (t.o ? ' cp-' + t.o : ''); pn.dataset.cp = i; if (i !== act) pn.hidden = true; t.els.forEach(e => pn.appendChild(e)); wrap.appendChild(pn); });
 }
 function ajustar() {
   if (!wide()) { document.querySelectorAll('#main .un-panel').forEach(pn => { pn.style.maxHeight = ''; }); return; }
-  document.querySelectorAll('#main .cp-panel:not([hidden]), #main .un-panel').forEach(pn => { pn.style.maxHeight = ''; const t = pn.getBoundingClientRect().top; pn.style.maxHeight = Math.max(160, window.innerHeight - t - 16) + 'px'; });
+  document.querySelectorAll('#main .cp-panel:not([hidden]), #main .un-panel').forEach(pn => { pn.style.maxHeight = ''; const t = pn.getBoundingClientRect().top; let abajo = 0; for (let e = pn.nextElementSibling; e; e = e.nextElementSibling) if (e.offsetParent !== null) abajo += e.offsetHeight + 8; pn.style.maxHeight = Math.max(160, window.innerHeight - t - 16 - abajo) + 'px'; });
 }
 window.cpCompactar = function (root) { try { compactar(root); ajustar(); requestAnimationFrame(ajustar); setTimeout(ajustar, 250); } catch (e) { console.error(e); } };
 document.addEventListener('click', ev => {

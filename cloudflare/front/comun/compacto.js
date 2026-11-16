@@ -48,11 +48,12 @@ function compactar(root) {
   const bar = document.createElement('div'); bar.className = 'v-tabs cp-tabs'; bar.setAttribute('role', 'tablist');
   bar.innerHTML = all.map((t, i) => `<button type="button" class="v-tab" role="tab" data-cp-tab="${i}" aria-selected="${i === act}">${t.n.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</button>`).join('');
   wrap.appendChild(bar);
+  { const ut = wrap.querySelector(':scope > .un-tabs'); if (ut) { const f = document.createElement('div'); f.className = 'un-fila'; wrap.insertBefore(f, ut); f.appendChild(ut); f.appendChild(bar); } } /* una sola fila: pestañas de la opción + pestañas de dentro */
   all.forEach((t, i) => { const pn = document.createElement('div'); pn.className = 'cp-panel' + (t.o ? ' cp-' + t.o : ''); pn.dataset.cp = i; if (i !== act) pn.hidden = true; t.els.forEach(e => pn.appendChild(e)); wrap.appendChild(pn); });
 }
 function ajustar() {
   if (!wide()) { document.querySelectorAll('#main .un-panel').forEach(pn => { pn.style.maxHeight = ''; }); return; }
-  document.querySelectorAll('#main .cp-panel:not([hidden]), #main .un-panel').forEach(pn => { pn.style.maxHeight = ''; const t = pn.getBoundingClientRect().top; pn.style.maxHeight = Math.max(160, window.innerHeight - t - 16) + 'px'; });
+  document.querySelectorAll('#main .cp-panel:not([hidden]), #main .un-panel').forEach(pn => { pn.style.maxHeight = ''; const t = pn.getBoundingClientRect().top; let abajo = 0; for (let e = pn.nextElementSibling; e; e = e.nextElementSibling) if (e.offsetParent !== null) abajo += e.offsetHeight + 8; pn.style.maxHeight = Math.max(160, window.innerHeight - t - 16 - abajo) + 'px'; });
 }
 window.cpCompactar = function (root) { try { compactar(root); ajustar(); requestAnimationFrame(ajustar); setTimeout(ajustar, 250); } catch (e) { console.error(e); } };
 document.addEventListener('click', ev => {
