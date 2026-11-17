@@ -52,10 +52,11 @@ export async function pagar(ctx, b) {
   const c = calcDe(C, e, p.tipo), v = N.validarPago(c, b, hoy); if (v.error) throw err(400, v.error);
   const o = v.ok, ts = Date.now(), st = [];
   const pago = {empleado_id: id, periodo: p.tipo, desde: p.desde, hasta: p.hasta, base: c.base, extra: c.extra, bonos: c.bonos, ley: c.ley, descuento_prestamo: o.descuento, neto: o.neto, prestamos: o.reparto, detalle: {origen: c.origen, dias: c.dias, horas: c.horas, horas_extra: c.horas_extra, bonos_produccion: c.bonos_produccion}, fecha: o.fecha, forma: o.forma, nota: o.nota, quien: ctx.rol, ts};
-  st.push(R.stPago(ctx.db, pago));
+  st.push(R.stPago(ctx.db, pago), R.stGuardaPago(ctx.db));
   for (const r of o.reparto) { const pr = C.pres.find(x => x.id === r.id), antes = +pr.pagadas || 0; st.push(R.stCuotas(ctx.db, r.id, antes, Math.round((antes + r.cuotas) * 100) / 100)); }
   st.push(...audit(ctx, id, e.n, 'registró el pago de nómina', {periodo: p.etiqueta, neto: o.neto, descuento_prestamo: o.descuento}));
-  await R.lote(ctx.db, st);
+  try { await R.lote(ctx.db, st); }
+  catch (x) { if (/NOT NULL constraint failed: ver\.v/i.test(String((x && x.message) || x))) throw err(409, (e.n || 'Esta persona') + ' ya tiene un pago registrado que cubre estas fechas (otra persona lo acaba de guardar). No se guardó nada.', {codigo: 'YA_PAGADO'}); throw x; }
   const nuevo = (await R.pagosSolapados(ctx.db, p.desde, p.hasta)).find(x => x.empleado_id === id);
   return recibo(nuevo, e);
 }

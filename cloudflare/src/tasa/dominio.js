@@ -35,15 +35,15 @@ export function fechaValor(html) {
   return null;
 }
 
+/* ¿La fecha es posterior a hoy? (fechas AAAA-MM-DD) */
+export const esFuturo = (fecha, hoy) => typeof fecha === 'string' && fecha > hoy;
+
 /* La tasa vigente para una fecha es la más reciente publicada hasta ese día (fin de semana y feriado = la última publicada).
    `filas` = [{fecha, valor, ...}] en cualquier orden. null si no hay ninguna hasta esa fecha. */
 export function vigenteEn(filas, fecha) {
-  let mejor = null, proxima = null;
-  for (const f of filas) {
-    if (f.fecha <= fecha) { if (!mejor || f.fecha > mejor.fecha) mejor = f; }
-    else if (!proxima || f.fecha < proxima.fecha) proxima = f;
-  }
-  return mejor || proxima; /* sin ninguna anterior: la publicada más cercana (rige desde su fecha valor) */
+  let mejor = null;
+  for (const f of filas) if (f.fecha <= fecha && (!mejor || f.fecha > mejor.fecha)) mejor = f;
+  return mejor; /* sin ninguna hasta esa fecha: null (nunca se usa una tasa de fecha posterior) */
 }
 /* Estado para mostrar: respaldo = la última consulta falló y se usa lo ya guardado. */
 export const armarEstado = (fila, hoy, ultimoEstado, ultimoError) => !fila ? null : {valor: fila.valor, fecha: fila.fecha, origen: fila.origen, fuente: fila.fuente, obtenida_en: fila.obtenida_en,

@@ -34,3 +34,5 @@ respaldo-*/
 wrangler-dev.log
 *.sqlite-wal
 *.sqlite-shm
+
+respaldo-*.sql

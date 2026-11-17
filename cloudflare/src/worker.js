@@ -75,7 +75,13 @@ function stAud(db, ctx, c, id, accion, detalle) {
   let t = JSON.stringify(detalle || {}); if (t.length > 2500) t = JSON.stringify({resumen: t.slice(0, 2400)});
   return db.prepare('INSERT INTO auditoria_sistema (ts, rol, ent, ref, accion, detalle) VALUES (?1, ?2, ?3, ?4, ?5, ?6)').bind(Date.now(), ctx.rolTxt || '—', c, String(id ?? ''), accion, t);
 }
-async function previo(db, c, id) { const r = await db.prepare('SELECT data FROM docs WHERE col = ?1 AND id = ?2').bind(c, id).first(); try { return r ? JSON.parse(r.data) : null; } catch (e) { return null; } }
+/* Lee un documento; si en este mismo lote ya se cambió (ctx.ov), devuelve la versión pendiente, así todo el lote se arma en memoria y se guarda de una sola vez. */
+async function previo(db, c, id, ctx) {
+  const k = c + '|' + id;
+  if (ctx && ctx.ov && ctx.ov.has(k)) return ctx.ov.get(k);
+  const r = await db.prepare('SELECT data FROM docs WHERE col = ?1 AND id = ?2').bind(c, id).first(); try { return r ? JSON.parse(r.data) : null; } catch (e) { return null; }
+}
+const pend = (ctx, c, id, d) => { if (ctx) (ctx.ov ||= new Map()).set(c + '|' + id, d); };
 function motivoDe(m) {
   const t = typeof m === 'string' ? m.trim() : '';
   if (t.length < 3) throw {status: 400, message: 'Para quitar esto escribe un motivo corto (al menos 3 letras).'};
@@ -88,45 +94,56 @@ async function apply(db, op, ctx = {}) {
   if (c === 'auditoria') {   // solo agregar: ni editar, ni borrar, ni sobrescribir una fila que ya existe
     if (op.op !== 'set') throw {status: 403, message: MSG_AUD};
     checkDoc(c, op.id);
-    if (await previo(db, c, op.id)) throw {status: 409, message: MSG_AUD};
+    if (await previo(db, c, op.id, ctx)) throw {status: 409, message: MSG_AUD};
   }
   if (op.op === 'set') {
     const s = checkDoc(op.c, op.id, {...op.d, id: op.id});
-    const ant = auditar ? await previo(db, c, op.id) : null;
+    const ant = auditar ? await previo(db, c, op.id, ctx) : null;
+    pend(ctx, c, op.id, {...op.d, id: op.id});
     if (auditar) sql.push(stAud(db, ctx, c, op.id, ant ? 'cambiar' : 'agregar', {antes: ant ? resumir(ant) : null, despues: resumir(op.d)}));
     return [db.prepare('INSERT INTO docs (col, id, data, updated) VALUES (?1, ?2, ?3, ?4) ON CONFLICT(col, id) DO UPDATE SET data = ?3, updated = ?4').bind(op.c, op.id, s, now), ...sql];
   }
   if (op.op === 'del') {
     checkDoc(op.c, op.id);
-    if (ctx.purga) return [db.prepare('DELETE FROM docs WHERE col = ?1 AND id = ?2').bind(op.c, op.id)];   // reinicio de desarrollo local
-    const ant = await previo(db, c, op.id);
+    if (ctx.purga) { pend(ctx, c, op.id, null); return [db.prepare('DELETE FROM docs WHERE col = ?1 AND id = ?2').bind(op.c, op.id)]; }   // reinicio de desarrollo local
+    const ant = await previo(db, c, op.id, ctx);
     if (!ant) return [];
-    if (SIN_ANULAR.has(c)) return [db.prepare('DELETE FROM docs WHERE col = ?1 AND id = ?2').bind(op.c, op.id), ...(auditar ? [stAud(db, ctx, c, op.id, 'quitar', {antes: resumir(ant)})] : [])];
+    if (SIN_ANULAR.has(c)) { pend(ctx, c, op.id, null); return [db.prepare('DELETE FROM docs WHERE col = ?1 AND id = ?2').bind(op.c, op.id), ...(auditar ? [stAud(db, ctx, c, op.id, 'quitar', {antes: resumir(ant)})] : [])]; }
     if (ant.anulado) return [];
     const motivo = motivoDe(op.motivo);
     const nuevo = {...ant, id: op.id, anulado: true, anuladoMotivo: motivo, anuladoPor: ctx.rolTxt || '—', anuladoTs: now};
+    pend(ctx, c, op.id, nuevo);
     sql.push(db.prepare('UPDATE docs SET data = ?3, updated = ?4 WHERE col = ?1 AND id = ?2').bind(c, op.id, JSON.stringify(nuevo), now));
     if (ctx.rolTxt) sql.push(stAud(db, ctx, c, op.id, 'anular', {antes: resumir(ant), motivo}));
     return sql;
   }
   if (op.op === 'update') {
     checkDoc(op.c, op.id, op.d || {});
-    const cur = await db.prepare('SELECT data FROM docs WHERE col = ?1 AND id = ?2').bind(op.c, op.id).first();
-    if (!cur) throw {status: 404, message: 'El documento no existe.'};
-    const ant = JSON.parse(cur.data);
+    const ant = await previo(db, c, op.id, ctx);
+    if (!ant) throw {status: 404, message: 'El documento no existe.'};
     const s = checkDoc(op.c, op.id, {...ant, ...op.d, id: op.id});
+    pend(ctx, c, op.id, {...ant, ...op.d, id: op.id});
     if (auditar) sql.push(stAud(db, ctx, c, op.id, 'cambiar', {antes: resumir(ant, Object.keys(op.d || {})), despues: resumir(op.d)}));
     return [db.prepare('UPDATE docs SET data = ?3, updated = ?4 WHERE col = ?1 AND id = ?2').bind(op.c, op.id, s, now), ...sql];
   }
   throw {status: 400, message: 'Operación desconocida.'};
 }
-async function polActual(db) { const r = await db.prepare("SELECT data FROM docs WHERE col = 'ajustes' AND id = 'politicas'").first(); try { return r ? JSON.parse(r.data) : {}; } catch (e) { return {}; } }
-async function allDocs(db, rol, conAnulados) {
-  const r = await db.prepare('SELECT col, data FROM docs').all(), cols = {};
+async function polActual(db, ctx) { return (await previo(db, 'ajustes', 'politicas', ctx)) || {}; }
+/* Descarga del almacén. Sin `since`: todo (primera carga o repaso completo).
+   Con `since` (ms del servidor): solo lo que cambió desde entonces + `quitar` (lo que se anuló y ya no debe verse). `ajustes` y `meta` (pocos y se pueden borrar de verdad) van siempre completos. */
+async function allDocs(db, rol, conAnulados, since) {
+  const delta = Number.isFinite(since) && since > 0, ahora = Date.now();
+  const r = delta ? await db.prepare("SELECT col, data FROM docs WHERE updated > ?1 OR col IN ('ajustes', 'meta')").bind(since).all() : await db.prepare('SELECT col, data FROM docs').all(), cols = {}, quitar = {};
   for (const c of COLS) cols[c] = [];
-  for (const x of r.results) { try { const d = JSON.parse(x.data); if (puedeLeer(rol, x.col, d && d.id) && (conAnulados || !(d && d.anulado))) (cols[x.col] ||= []).push(filtrarDoc(rol, x.col, d)); } catch (e) {} }
+  for (const x of r.results) {
+    try {
+      const d = JSON.parse(x.data); if (!puedeLeer(rol, x.col, d && d.id)) continue;
+      if (conAnulados || !(d && d.anulado)) (cols[x.col] ||= []).push(filtrarDoc(rol, x.col, d));
+      else if (delta) (quitar[x.col] ||= []).push(d.id);
+    } catch (e) {}
+  }
   const v = await db.prepare('SELECT v FROM ver WHERE id = 1').first();
-  return {ver: v ? v.v : 0, cols};
+  return delta ? {ver: v ? v.v : 0, delta: true, now: ahora, cols, quitar} : {ver: v ? v.v : 0, now: ahora, cols};
 }
 
 /* Puestos viejos → nuevos. ÚNICO punto del servidor donde se traduce x-rol (una pestaña abierta con «jefeprod» sigue funcionando como Producción). */
@@ -164,7 +181,7 @@ async function handle(req, env, url) {
   /* Desde aquí, todo lo de la app principal exige puesto (x-rol válido) */
   const rol = rolDe(req);
   if (!rol && (p === '/api/all' || p === '/api/batch' || p === '/api/lock' || p.startsWith('/api/c/'))) return err(403, 'Falta indicar tu puesto.');
-  if (m === 'GET' && p === '/api/all') return json(await allDocs(db, rol, url.searchParams.get('anulados') === '1'));
+  if (m === 'GET' && p === '/api/all') return json(await allDocs(db, rol, url.searchParams.get('anulados') === '1', +url.searchParams.get('since') || 0));
 
   if (m === 'POST' && p === '/api/batch') {
     const b = await readJson(req);
@@ -178,14 +195,12 @@ async function handle(req, env, url) {
       ctx.purga = true;
     }
     ctx.masivo = !ctx.purga && b.ops.length > 20;
-    let stm = [];
-    // las actualizaciones dependen del estado actual: se aplican en orden, vaciando antes lo pendiente
+    const stm = [];
+    // Todo el lote se arma en memoria (las ediciones ven lo que dejaron las anteriores) y se guarda en UN solo bloque: se aplica completo o no se aplica nada.
     for (const op of b.ops) {
       if (!isObj(op)) return err(400, 'Operación no válida.');
-      if (!puedeEscribir(rol, op.c, op.id) || (op.c === 'ajustes' && op.id === 'politicas' && cambiaCamposDueno(rol, op, await polActual(db)))) return err(403, 'Tu puesto no puede modificar esta información.');
-      if (op.op === 'update' && stm.length) { await db.batch(stm); stm = []; }
+      if (!puedeEscribir(rol, op.c, op.id) || (op.c === 'ajustes' && op.id === 'politicas' && cambiaCamposDueno(rol, op, await polActual(db, ctx)))) return err(403, 'Tu puesto no puede modificar esta información.');
       stm.push(...await apply(db, op, ctx));
-      if (op.op === 'update') { await db.batch(stm); stm = []; }
     }
     if (ctx.purga) { const n = {}; for (const o of b.ops) n[o.c] = (n[o.c] || 0) + 1; stm.push(stAud(db, ctx, 'sistema', 'purga', 'reinicio de datos (desarrollo)', {colecciones: n})); }
     else if (ctx.masivo) { const n = {}; for (const o of b.ops) if (o.c !== 'meta' && o.c !== 'auditoria') n[o.op + ':' + o.c] = (n[o.op + ':' + o.c] || 0) + 1; if (Object.keys(n).length) stm.push(stAud(db, ctx, 'sistema', 'lote', 'carga masiva', {operaciones: n})); }
@@ -208,7 +223,7 @@ async function handle(req, env, url) {
     if (m === 'GET' && !puedeLeer(rol, c, id)) return err(403, 'Tu puesto no puede ver esta información.');
     if (m === 'PUT' || m === 'PATCH') {
       const d = await readJson(req); if (!isObj(d)) return err(400, 'El documento debe ser un objeto.');
-      if (c === 'ajustes' && id === 'politicas' && cambiaCamposDueno(rol, {op: m === 'PUT' ? 'set' : 'update', c, id, d}, await polActual(db))) return err(403, 'Tu puesto no puede modificar esta información.'); const st = await apply(db, {op: m === 'PUT' ? 'set' : 'update', c, id, d}, {rolTxt: ROL_TXT[rol]});
+      if (c === 'ajustes' && id === 'politicas' && cambiaCamposDueno(rol, {op: m === 'PUT' ? 'set' : 'update', c, id, d}, await polActual(db, null))) return err(403, 'Tu puesto no puede modificar esta información.'); const st = await apply(db, {op: m === 'PUT' ? 'set' : 'update', c, id, d}, {rolTxt: ROL_TXT[rol]});
       await db.batch([...st, bump(db)]); return json({ok: true, ver: await curVer(db)});
     }
     if (m === 'DELETE') {

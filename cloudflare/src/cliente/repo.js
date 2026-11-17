@@ -33,6 +33,18 @@ export async function moverPedido(db, id, de, a, campos = {}) {
   return !!(r.meta && r.meta.changes > 0);
 }
 
+/* Sentencia (para ir DENTRO del mismo bloque que la venta o el cobro): cambia el estado solo si seguía en el estado esperado. */
+export const stMoverPedido = (db, id, de, a, c = {}) => db.prepare('UPDATE pedidos_portal SET estado = ?3, resuelto_ts = ?4, resuelto_rol = ?5, id_documento = COALESCE(?6, id_documento) WHERE id = ?1 AND estado = ?2').bind(id, de, a, c.ts ?? null, c.rol ?? null, c.id_documento ?? null);
+export const stMoverPagoReportado = (db, id, de, a, c = {}) => db.prepare('UPDATE pagos_reportados SET estado = ?3, resuelto_ts = ?4, resuelto_rol = ?5, id_pago = COALESCE(?6, id_pago) WHERE id = ?1 AND estado = ?2').bind(id, de, a, c.ts ?? null, c.rol ?? null, c.id_pago ?? null);
+/* Recuperación: quien dejó «en proceso» (APROBANDO / VERIFICANDO) hace más de `limiteMs` sin terminar (se cortó el servidor) vuelve a la cola. Como la venta y el cambio de estado se guardan juntos, aquí nunca hay una venta ya hecha. */
+export const TRABADO_MS = 2 * 60 * 1000;
+export async function destrabar(db, limiteMs = TRABADO_MS) {
+  const t = Date.now() - limiteMs;
+  const a = await run(db, "UPDATE pedidos_portal SET estado = 'POR_CONFIRMAR', resuelto_ts = NULL, resuelto_rol = NULL WHERE estado = 'APROBANDO' AND COALESCE(resuelto_ts, 0) < ?1", [t]);
+  const b = await run(db, "UPDATE pagos_reportados SET estado = 'POR_VERIFICAR', resuelto_ts = NULL, resuelto_rol = NULL WHERE estado = 'VERIFICANDO' AND COALESCE(resuelto_ts, 0) < ?1", [t]);
+  return ((a.meta && a.meta.changes) || 0) + ((b.meta && b.meta.changes) || 0);
+}
+
 /* ---------- Pagos reportados ---------- */
 /* El comprobante (imagen en base64) NUNCA viaja en las listas: solo un aviso de que existe. Se pide aparte, de uno en uno. */
 const COLS_PAGO = 'p.id, p.id_cliente, p.fecha_pago, p.banco, p.referencia, p.ref_norm, p.dup_key, p.monto_bs_cents, p.nota, p.estado, p.creado_ts, p.id_enlace, p.resuelto_ts, p.resuelto_rol, p.motivo_rechazo, p.id_pago, p.ejemplo, p.id_banco, (p.comprobante IS NOT NULL) AS tiene_comprobante';

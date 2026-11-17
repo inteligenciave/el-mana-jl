@@ -22,8 +22,12 @@ export const prestamos = db => docs(db, 'prestamos');
 export const politicas = async db => { const r = await VR.one(db, "SELECT data FROM docs WHERE col = 'ajustes' AND id = 'politicas'"); try { return r ? JSON.parse(r.data) : {}; } catch (e) { return {}; } };
 export const pagosSolapados = (db, desde, hasta) => VR.all(db, 'SELECT * FROM pagos_nomina WHERE desde <= ?2 AND hasta >= ?1 ORDER BY id', [desde, hasta]);
 export const pagoDe = (db, id) => VR.one(db, 'SELECT * FROM pagos_nomina WHERE id = ?1', [id]);
-export const stPago = (db, p) => bind(db, 'INSERT INTO pagos_nomina (empleado_id, periodo, desde, hasta, base, extra, bonos, ley, descuento_prestamo, neto, prestamos, detalle, fecha, forma, nota, quien, ts) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16,?17)',
+/* El pago solo entra si NADIE más pagó a esta persona en fechas que se cruzan (condición dentro de la misma sentencia). */
+export const stPago = (db, p) => bind(db, `INSERT INTO pagos_nomina (empleado_id, periodo, desde, hasta, base, extra, bonos, ley, descuento_prestamo, neto, prestamos, detalle, fecha, forma, nota, quien, ts)
+  SELECT ?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16,?17 WHERE NOT EXISTS (SELECT 1 FROM pagos_nomina WHERE empleado_id = ?1 AND desde <= ?4 AND hasta >= ?3)`,
   [p.empleado_id, p.periodo, p.desde, p.hasta, p.base, p.extra, p.bonos, p.ley, p.descuento_prestamo, p.neto, JSON.stringify(p.prestamos), JSON.stringify(p.detalle), p.fecha, p.forma, p.nota || null, p.quien, p.ts]);
+/* Va justo después de stPago: si el pago no entró (ya existía otro), rompe el bloque completo (NOT NULL) y no se guarda NADA (ni descuento de préstamo ni auditoría). */
+export const stGuardaPago = db => bind(db, 'UPDATE ver SET v = CASE WHEN changes() > 0 THEN v ELSE NULL END WHERE id = 1');
 /* Suma lo descontado a «pagadas» del préstamo (solo si nadie lo cambió antes) */
 export const stCuotas = (db, id, antes, despues) => bind(db, "UPDATE docs SET data = json_set(data, '$.pagadas', ?3), updated = ?4 WHERE col = 'prestamos' AND id = ?1 AND json_extract(data, '$.pagadas') = ?2", [id, antes, despues, Date.now()]);
 

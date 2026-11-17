@@ -1082,7 +1082,8 @@ const MR_C = {v: null, bl: null, lc: {}, pv: null}; // memoria de las fuentes de
 /* ---------- Backend C: API del Worker de Cloudflare (D1). Misma interfaz que los otros dos backends ---------- */
 function makeHttpBackend() {
   const subs = {}, errs = [], cache = {};
-  let ver = -1, loaded = false, busy = false, timer = null, redo = false;
+  let ver = -1, loaded = false, busy = false, timer = null, redo = false, since = 0, lastFull = 0;
+  const FULL_CADA = 5 * 60 * 1000, SOLAPE = 10000;   // cada 5 min se repasa todo por seguridad; el resto solo baja lo cambiado (con 10 s de solape)
   const api = async (method, path, body, tries = 3, hdr = {}) => {
     let r;
     try { r = await fetch('/api' + path, {method, headers: {'x-rol': S.rol, ...hdr, ...(body !== undefined ? {'content-type': 'application/json'} : {})}, body: body !== undefined ? JSON.stringify(body) : undefined}); }
@@ -1099,15 +1100,27 @@ function makeHttpBackend() {
     if (busy) { if (force) redo = true; return; } busy = true;
     try {
       if (!force && loaded) { const v = await api('GET', '/ver'); if (v.ver === ver) return; }
-      const a = await api('GET', '/all'); ver = a.ver;
-      COLS.forEach(c => { const m = {}; (a.cols[c] || []).forEach(d => { m[d.id] = d; }); cache[c] = m; });
-      loaded = true; COLS.forEach(emit);
+      const full = force || !loaded || !since || Date.now() - lastFull > FULL_CADA;
+      const a = await api('GET', '/all' + (full ? '' : '?since=' + since)); ver = a.ver;
+      if (a.delta && !full) {   // solo lo que cambió: se mezcla con lo que ya hay
+        const hubo = [];
+        COLS.forEach(c => {
+          const ch = a.cols[c] || [], rm = (a.quitar && a.quitar[c]) || [];
+          if (c === 'ajustes' || c === 'meta') { const m = {}; ch.forEach(d => { m[d.id] = d; }); if (JSON.stringify(m) !== JSON.stringify(cache[c] || {})) { cache[c] = m; hubo.push(c); } return; }
+          if (!ch.length && !rm.length) return;
+          const m = colMap(c); ch.forEach(d => { m[d.id] = d; }); rm.forEach(id => { delete m[id]; }); hubo.push(c);
+        });
+        since = (a.now || Date.now()) - SOLAPE; hubo.forEach(emit);
+      } else {
+        COLS.forEach(c => { const m = {}; (a.cols[c] || []).forEach(d => { m[d.id] = d; }); cache[c] = m; });
+        since = (a.now || Date.now()) - SOLAPE; lastFull = Date.now(); loaded = true; COLS.forEach(emit);
+      }
     } catch (e) { if (!loaded) errs.forEach(fn => fn(e)); }
     finally { busy = false; if (redo) { redo = false; pull(true); } }
   }
   const start = () => {
     if (timer) return;
-    timer = setInterval(() => { if (!document.hidden) pull(false); }, 5000);
+    timer = setInterval(() => { if (!document.hidden) pull(false); }, 10000);
     document.addEventListener('visibilitychange', () => { if (!document.hidden) pull(false); });
     pull(true);
   };

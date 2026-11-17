@@ -15,6 +15,10 @@ export async function consultar(db, {fetchFn = fetch, ahora = Date.now()} = {}) 
     if (!r.ok) throw new Error('La fuente respondió con error ' + r.status + '.');
     const {valor, fecha} = D.leerTasaBCV(await r.text());
     const dia = fecha || hoy;
+    if (D.esFuturo(dia, hoy)) {   // una tasa con fecha de mañana no se guarda ni se usa: sigue rigiendo la vigente hasta que llegue su día
+      await R.fijarEstado(db, {ultimo_estado: 'OK', ultimo_intento: iso, ultimo_dia: hoy, ultimo_error: ''});
+      return {ok: false, error: 'La tasa publicada trae fecha futura (' + dia + '): no se guardó; sigue la vigente.'};
+    }
     await R.guardarTasa(db, {fecha: dia, valor, fuente: new URL(cfg.tasa_fuente_url).host, obtenida_en: iso, origen: 'AUTO'});
     await R.fijarEstado(db, {ultimo_estado: 'OK', ultimo_intento: iso, ultimo_dia: hoy, ultimo_error: ''});
     return {ok: true, fecha: dia, valor};
@@ -43,6 +47,7 @@ export async function vigente(db, fecha) {
 }
 /* La que usa Ventas para cobrar: lanza un mensaje claro si no hay tasa. */
 export async function tasaPara(db, fecha) {
+  if (fecha && D.esFuturo(fecha, hoyVE())) throw err(400, 'No se puede usar una tasa de una fecha futura (' + fecha + ').');
   if (!fecha || fecha === hoyVE()) await asegurarDelDia(db);
   const t = await vigente(db, fecha);
   if (!t) throw err(409, 'No hay tasa BCV guardada para el ' + (fecha || hoyVE()) + '. Pide al Gerente o a Administración que consulten la tasa antes de cobrar.', {codigo: 'SIN_TASA'});
@@ -55,7 +60,7 @@ export async function estado(db) {
 
 /* SOLO DESARROLLO LOCAL: carga una tasa de prueba (origen DEV). La ruta lo bloquea fuera de localhost. */
 export async function cargarTasaDev(db, {fecha, valor}) {
-  const v = Number(valor); if (!D.fechaValida(fecha) || !(v > 0)) throw err(400, 'Indica una fecha válida y un valor mayor que cero.');
+  const v = Number(valor); if (D.fechaValida(fecha) && D.esFuturo(fecha, hoyVE())) throw err(400, 'No se aceptan tasas con fecha futura.'); if (!D.fechaValida(fecha) || !(v > 0)) throw err(400, 'Indica una fecha válida y un valor mayor que cero.');
   await R.guardarTasa(db, {fecha, valor: v, fuente: 'DESARROLLO LOCAL (no es una tasa real)', obtenida_en: new Date().toISOString(), origen: 'DEV'});
   return {ok: true, fecha, valor: v};
 }

@@ -14,6 +14,18 @@ export const SQL_DEUDA_CLIENTE = `COALESCE((SELECT SUM(${SALDO}) FROM documentos
 
 /* ---------- Secuencias (asignación atómica de números) ---------- */
 export async function siguiente(db, nombre) { const r = await one(db, 'UPDATE secuencias SET n = n + 1 WHERE nombre = ?1 RETURNING n', [nombre]); return r.n; }
+/* Numeración sin huecos: el número se LEE ahora, pero solo se consume en el mismo bloque que guarda el documento.
+   La «guarda» (primera sentencia del bloque) avanza el contador solo si nadie lo movió; si otra persona tomó el número, falla (NOT NULL) y NO se guarda nada, ni se pierde ningún número. */
+export function numerador(db) {
+  const base = new Map(), tom = new Map();
+  return {
+    async tomar(nombre) {
+      if (!base.has(nombre)) base.set(nombre, await leerSecuencia(db, nombre));
+      const k = (tom.get(nombre) || 0) + 1; tom.set(nombre, k); return base.get(nombre) + k;
+    },
+    guardas() { return [...tom].map(([nombre, k]) => bind(db, 'UPDATE secuencias SET n = CASE WHEN n = ?2 THEN ?3 ELSE NULL END WHERE nombre = ?1', [nombre, base.get(nombre), base.get(nombre) + k])); }
+  };
+}
 export async function reservar(db, nombre, k) { const r = await one(db, 'UPDATE secuencias SET n = n + ?2 WHERE nombre = ?1 RETURNING n', [nombre, k]); return r.n - k + 1; } // primer número del rango
 export const fijarSecuencia = (db, nombre, n) => run(db, 'UPDATE secuencias SET n = ?2 WHERE nombre = ?1', [nombre, n]);
 export const leerSecuencia = async (db, nombre) => (await one(db, 'SELECT n FROM secuencias WHERE nombre = ?1', [nombre])).n;
@@ -121,6 +133,8 @@ export const movimientosDe = (db, idDoc) => all(db, 'SELECT * FROM movimientos_i
 /* ---------- Pagos ---------- */
 export const stInsertarPago = (db, p) => bind(db, `INSERT INTO pagos (id_pago, fecha_pago, id_cliente, id_vendedor, monto_bs_cents, tasa, usd_cents, banco, referencia, ref_norm, dup_key, observacion, retroactivo, exonera_mora, origen, creado_rol, creado_ts, ejemplo, id_banco) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16,?17,?18,?19)`,
   [p.id_pago, p.fecha_pago, p.id_cliente, p.id_vendedor ?? null, p.monto_bs_cents, p.tasa, p.usd_cents, p.banco ?? null, p.referencia ?? null, p.ref_norm ?? null, p.dup_key ?? null, p.observacion ?? null, p.retroactivo ? 1 : 0, p.exonera_mora ? 1 : 0, p.origen || 'manual', p.creado_rol ?? null, Date.now(), p.ejemplo ? 1 : 0, p.id_banco ?? null]);
+/* Va justo después de stAplicacion: rompe TODO el bloque (NOT NULL) si la nota ya no está pendiente o si alguien más le aplicó un pago mientras tanto (evita cobrar de más o dos veces). */
+export const stGuardaCobro = (db, idDoc, pagadoAntes, usd) => bind(db, `UPDATE documentos_venta AS d SET estado = CASE WHEN d.estado = 'PENDIENTE' AND ${PAGADO} = ?2 + ?3 THEN d.estado ELSE NULL END WHERE d.id_documento = ?1`, [idDoc, pagadoAntes, usd]);
 export const stAplicacion = (db, a) => bind(db, 'INSERT INTO pago_aplicaciones (id_pago, id_documento, usd_cents, liquido, ejemplo) VALUES (?1,?2,?3,?4,?5)', [a.id_pago, a.id_documento, a.usd_cents, a.liquido ? 1 : 0, a.ejemplo ? 1 : 0]);
 export const getPago = (db, id) => one(db, 'SELECT p.*, c.razon_social, c.rif_id, v.nombre AS vendedor_nombre FROM pagos p JOIN clientes c ON c.id_cliente = p.id_cliente LEFT JOIN vendedores v ON v.id = p.id_vendedor WHERE p.id_pago = ?1', [id]);
 export const aplicacionesDe = (db, idPago) => all(db, 'SELECT a.*, d.nro_control_interno, d.nro_factura_fiscal, d.tipo_origen, d.fecha_emision, d.numero_externo, d.estado AS doc_estado, d.total_cents FROM pago_aplicaciones a JOIN documentos_venta d ON d.id_documento = a.id_documento WHERE a.id_pago = ?1 ORDER BY a.id', [idPago]);

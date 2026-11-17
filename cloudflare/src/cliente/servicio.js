@@ -198,6 +198,7 @@ export async function revocarEnlace(ctx, id) {
 
 export async function pedidosEquipo(ctx, estado) {
   exigir(ctx, 'ver', 'Tu rol no ve pedidos.');
+  await R.destrabar(ctx.db);
   const filas = await R.pedidosEquipo(ctx.db, estado === 'TODOS' ? null : (estado || 'POR_CONFIRMAR'));
   const ps = await armarPedidos(ctx.db, filas), prods = await VR.listarProductos(ctx.db), st = new Map(prods.map(p => [p.id_producto, Math.max(0, p.stock_entero - (p.stock_apartado || 0))]));
   const lin = await R.lineasDePedidos(ctx.db, filas.map(p => p.id));
@@ -209,11 +210,13 @@ export async function aprobarPedido(ctx, id, b = {}) {
   const p = await R.getPedido(ctx.db, id); if (!p) throw err(404, 'Pedido no encontrado.');
   const tipo = b.tipo === 'FACTURA' || b.tipo === 'NOTA_ENTREGA' ? b.tipo : (p.modalidad_despacho_pref === 'FACTURA_DIRECTA' ? 'FACTURA' : 'NOTA_ENTREGA');
   const lineas = (await R.lineasDePedidos(ctx.db, [id])).map(l => ({id_producto: l.id_producto, cantidad: l.cantidad}));
-  if (!await R.moverPedido(ctx.db, id, 'POR_CONFIRMAR', 'APROBANDO')) throw err(409, 'Este pedido ya fue atendido por otra persona.');
+  await R.destrabar(ctx.db);   // si quedó uno «en proceso» hace rato (se cortó el servidor), vuelve a la cola
+  if (!await R.moverPedido(ctx.db, id, 'POR_CONFIRMAR', 'APROBANDO', {ts: Date.now()})) throw err(409, 'Este pedido ya fue atendido por otra persona.');
   let v;
-  try { v = await VS.vender(ctx, {id_cliente: p.id_cliente, tipo, lineas, metodo_pago: txt(b.metodo_pago, 40) || undefined, observaciones: 'Pedido del portal ' + C.codigoPedido(id) + (p.nota ? ' · ' + p.nota : '')}); }
+  /* El cambio a APROBADO viaja DENTRO del mismo bloque que guarda el pedido de venta: o se guardan los dos o ninguno. */
+  try { v = await VS.vender(ctx, {id_cliente: p.id_cliente, tipo, lineas, metodo_pago: txt(b.metodo_pago, 40) || undefined, observaciones: 'Pedido del portal ' + C.codigoPedido(id) + (p.nota ? ' · ' + p.nota : '')},
+    {alFinal: () => [R.stMoverPedido(ctx.db, id, 'APROBANDO', 'APROBADO', {ts: Date.now(), rol: nomRol(ctx.rol)})]}); }
   catch (e) { await R.moverPedido(ctx.db, id, 'APROBANDO', 'POR_CONFIRMAR'); throw e; }   // sigue por confirmar: el equipo ve el motivo y decide
-  await R.moverPedido(ctx.db, id, 'APROBANDO', 'APROBADO', {ts: Date.now(), rol: nomRol(ctx.rol), id_documento: v.id_documento});
   await VR.lote(ctx.db, auditE(ctx, 'portal', C.codigoPedido(id), p.razon_social, 'aprobó el pedido del portal', {documento: v.nro_control_interno, total_usd: v.totales && v.totales.total}));
   return {ok: true, documento: v.nro_control_interno, tipo, totales: v.totales};
 }
@@ -228,6 +231,7 @@ export async function rechazarPedido(ctx, id, motivo) {
 
 export async function pagosEquipo(ctx, estado) {
   exigir(ctx, 'verPagos', 'Tu rol no ve pagos.');
+  await R.destrabar(ctx.db);
   const filas = await R.pagosReportadosEquipo(ctx.db, estado === 'TODOS' ? null : (estado || 'POR_VERIFICAR'));
   return filas.map(r => ({...formatoReporte(r), id_cliente: r.id_cliente, cliente: r.razon_social, rif_id: r.rif_id, zona: r.zona, resuelto_rol: r.resuelto_rol}));
 }
@@ -241,14 +245,15 @@ export async function comprobantePago(ctx, id) {
 export async function confirmarPago(ctx, id, b = {}) {
   exigir(ctx, 'cobrar', 'Tu rol no registra pagos.');
   const r = await R.getPagoReportado(ctx.db, id); if (!r) throw err(404, 'Pago reportado no encontrado.');
-  if (!await R.moverPagoReportado(ctx.db, id, 'POR_VERIFICAR', 'VERIFICANDO')) throw err(409, 'Este pago ya fue atendido por otra persona.');
+  await R.destrabar(ctx.db);
+  if (!await R.moverPagoReportado(ctx.db, id, 'POR_VERIFICAR', 'VERIFICANDO', {ts: Date.now()})) throw err(409, 'Este pago ya fue atendido por otra persona.');
   try {
     const tasa = (await T.tasaPara(ctx.db, r.fecha_pago)).valor, usdC = D.usdDeBs(r.monto_bs_cents, tasa);
     const pre = await VS.previsualizar(ctx.db, {id_cliente: r.id_cliente, fecha: r.fecha_pago});
     const rep = D.repartirAntiguoPrimero(usdC, pre.documentos.filter(d => !d.error && d.restante_cents > 0).map(d => ({id_documento: d.id_documento, fecha_emision: d.fecha_emision, pendiente_cents: d.restante_cents})));
     const c = await VS.cobrar(ctx, {id_cliente: r.id_cliente, fecha_pago: r.fecha_pago, monto_bs: r.monto_bs_cents / 100, banco: r.banco, id_banco: (r.id_banco && (await BS.elegido(ctx.db, r.id_banco).catch(() => null))) ? r.id_banco : null, referencia: r.referencia, pin: b.pin, observacion: 'Pago reportado por el cliente en el portal ' + C.codigoReporte(id),
-      aplicaciones: rep.aplicaciones.map(a => ({id_documento: a.id_documento, usd: a.usd_cents / 100}))});
-    await R.moverPagoReportado(ctx.db, id, 'VERIFICANDO', 'CONFIRMADO', {ts: Date.now(), rol: nomRol(ctx.rol), id_pago: c.id_pago});
+      aplicaciones: rep.aplicaciones.map(a => ({id_documento: a.id_documento, usd: a.usd_cents / 100}))},
+      {alFinal: ({id_pago}) => [R.stMoverPagoReportado(ctx.db, id, 'VERIFICANDO', 'CONFIRMADO', {ts: Date.now(), rol: nomRol(ctx.rol), id_pago})]});   // el cambio a CONFIRMADO va en el mismo bloque que el cobro
     await VR.lote(ctx.db, auditE(ctx, 'portal', C.codigoReporte(id), r.razon_social, 'confirmó el pago reportado', {recibo: c.recibo, usd: c.usd}));
     return {ok: true, recibo: c.recibo, usd: c.usd, aplicado: c.aplicado, sin_aplicar: c.sin_aplicar, liquidaciones: c.liquidaciones, avisos: c.avisos};
   } catch (e) { await R.moverPagoReportado(ctx.db, id, 'VERIFICANDO', 'POR_VERIFICAR'); throw e; }   // sigue por verificar
