@@ -138,3 +138,19 @@ legend{margin-bottom:4px}
 .un-fila>.cp-tabs{padding-left:14px;border-left:2px solid var(--line-2)}
 .un-fila>.cp-tabs .v-tab{min-height:30px;padding:0 11px;font-size:13px;border-radius:999px}
 .un-fila>.cp-tabs .v-tab[aria-selected="true"]{background:var(--yellow,#F2B72E);border-color:var(--yellow,#F2B72E);color:#1F1F1F}
+
+/* CELULAR: nada se sale de la pantalla (textos que se ajustan, botones apilados, tablas con su propio deslizador) */
+@media (max-width:600px){
+.v-prod-p,.v-prod-p b{white-space:normal}
+.v-prod-p{min-width:0;max-width:100%}
+.v-prod-s.crit,.v-prod-s{white-space:normal;overflow-wrap:anywhere;word-break:break-word;min-width:0;max-width:100%}
+.v-grid:not(.v-lista){grid-template-columns:minmax(0,1fr)}
+.v-p3-f .v-acc,.v-acc{display:flex;flex-direction:column;grid-template-columns:minmax(0,1fr);gap:8px}
+.v-p3-f .v-acc .btn,.v-acc .btn{width:100%;max-width:100%;min-width:0;white-space:normal;line-height:1.2;text-align:center;justify-content:center}
+.v-bar{left:0;right:0;max-width:100%;box-sizing:border-box}
+}
+@media (max-width:600px){
+.rh-c small,.rh-c b{white-space:normal;overflow:visible;overflow-wrap:anywhere}
+.cc-x span{overflow:visible;white-space:nowrap}
+.em-cli{white-space:normal;overflow-wrap:anywhere;text-overflow:clip}
+}

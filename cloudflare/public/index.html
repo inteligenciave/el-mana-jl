@@ -2804,7 +2804,7 @@ function scrAsistencia() {
 
 /* ---------- Nómina calculada ---------- */
 function nomPolCard() {
-  if (S.rol !== 'dueno' && S.rol !== 'rrhh') return ''; /* las reglas de pago las edita solo Gerencia; Nómina las ve en solo lectura */
+  if (S.rol !== 'dueno' && S.rol !== 'rrhh') return ''; /* las reglas de pago las edita solo Gerencia; Recursos humanos las ve en solo lectura */
   const ed = lvl('nomina') >= 3, F = S.nomPolF || (S.nomPolF = {nomRecargo: S.pol.nomRecargo, nomLey: S.pol.nomLey, nomJornada: S.pol.nomJornada});
   const inp = (k, l, h, st) => `<label class="fld">${l}<input type="number" inputmode="decimal" min="0" step="${st}" data-k="nomPolF.${k}" value="${F[k] ?? 0}" ${ed ? '' : 'disabled'}><small>${h}</small></label>`;
   return card('Reglas de pago (las confirma el Gerente)', `<div class="form"><div class="row3">${inp('nomJornada', 'Jornada completa (horas)', 'Convierte el pago por día en pago por hora', 0.5)}${inp('nomRecargo', 'Recargo de horas extra (%)', 'En 0 hasta que el Gerente lo confirme: la hora extra vale la hora normal', 1)}${inp('nomLey', 'Deducciones de ley (%)', 'En 0 hasta que el Gerente confirme los porcentajes; el sistema no inventa porcentajes legales', 0.1)}</div>
@@ -3326,14 +3326,14 @@ const SCREENS = {
 const BOTTOM = {prod:['recepcion', 'alm-mp', 'produccion', 'despachos'], adm:['gestion', 'cxp', 'caja', 'analisis']};
 const HOME = {prod:['planta'], adm:['gestion']};
 /* ---------- Roles, módulos visibles y permisos (0 sin acceso · 1 ver · 2 registrar · 3 aprobar) ---------- */
-const ROLES = {dueno:'Gerencia', adm:'Administración', produccion:'Producción', empaque:'Logística', ventas:'Ventas', rrhh:'Nómina'};
+const ROLES = {dueno:'Gerencia', adm:'Administración', produccion:'Producción', empaque:'Logística', ventas:'Ventas', rrhh:'Recursos humanos'};
 const ROLE_DESC = {
   dueno:'Visión de toda la operación, aprobaciones y ajustes de puestos y permisos.',
   adm:'Compras, pagos, caja chica, cobranza y préstamos. Ve las ventas y los clientes.',
   produccion:'Recepción, turno, kilos por etapa, mermas y cierre del turno.',
   empaque:'Empaque por turno, pedidos por zona, salidas y despacho. Sin precios.',
   ventas:'Pedidos, clientes y seguimiento de ventas.',
-  rrhh:'Nómina, personal, asistencia, bonos y préstamos.'
+  rrhh:'Personal, asistencia, turnos, nómina, bonos y préstamos.'
 };
 /* Módulos visibles por rol (propuesta pendiente de confirmar; el Gerente la edita y se guarda con la matriz) */
 const MODS_DEF = {dueno:['prod', 'adm'], adm:['adm'], produccion:['prod'], empaque:['prod'], ventas:['adm'], rrhh:['adm']};
@@ -4097,13 +4097,37 @@ function restorePref() {
   } catch (e) {}
 }
 
+/* ---------- Botón «atrás» del celular (gesto de deslizar o botón del sistema) ----------
+   Cada ventana abierta (modal o menú) agrega un paso al historial: «atrás» la cierra y se queda en la pantalla. Cada pantalla ya es un paso (#ruta).
+   En el inicio del puesto «atrás» NO saca de la app: se queda ahí y avisa una vez. «Cambiar rol» sí vuelve a la entrada. */
+const Nav = {ov: false, t: 0, quiet: false, pop: false, aviso: false,
+  abierta: () => !$('#modal').hidden || !$('#drawer').hidden,
+  abre() { if (Nav.t) { clearTimeout(Nav.t); Nav.t = 0; Nav.ov = true; return; } if (Nav.ov) return; Nav.ov = true; try { history.pushState({elmanaOv: 1}, '', location.href); } catch (e) { /* sin historial */ } },
+  cierra() {
+    if (!Nav.ov || Nav.abierta()) return; Nav.ov = false; if (Nav.pop) return;
+    Nav.t = setTimeout(() => { Nav.t = 0; if (!Nav.ov && history.state && history.state.elmanaOv) { Nav.quiet = true; history.back(); } }, 0);
+  },
+  guardia() { try { const st = history.state; if (st && (st.elmanaBase || st.elmanaTop)) return; history.replaceState({elmanaBase: 1}, '', location.href); history.pushState({elmanaTop: 1}, '', location.href); } catch (e) { /* sin historial */ } }
+};
+window.addEventListener('popstate', e => {
+  if (Nav.quiet) { Nav.quiet = false; return; }
+  if (Nav.abierta()) { Nav.pop = true; try { closeModal(); closeDrawer(); } finally { Nav.pop = false; } Nav.ov = false; return; }
+  const st = e.state;
+  if (st && st.elmanaOv) { history.back(); return; } /* paso de una ventana que ya se cerró: se salta */
+  if (st && st.elmanaBase) {
+    const h = S.entry === 'in' ? '#' + homeRoute() : location.hash;
+    try { history.replaceState({elmanaBase: 1}, '', h || location.pathname); history.pushState({elmanaTop: 1}, '', h || location.pathname); } catch (x) { /* sin historial */ }
+    if (S.entry === 'in') { go(h.slice(1)); if (!Nav.aviso) { Nav.aviso = true; toast('Ya estás en el inicio. Para cambiar de puesto usa «Cambiar rol».'); } }
+  }
+});
+
 /* ---------- Modal, aviso, menú ---------- */
 function modal(title, body) {
   const m = $('#modal');
   m.innerHTML = `<div class="mbox" role="dialog" aria-modal="true" aria-labelledby="mt"><div class="mbox-h"><h2 id="mt">${title}</h2><button type="button" class="iconbtn" data-act="closeModal" aria-label="Cerrar">${ic('x')}</button></div><div class="mbox-b">${body}</div></div>`;
-  m.hidden = false; m.querySelector('[data-act="closeModal"]').focus();
+  m.hidden = false; m.querySelector('[data-act="closeModal"]').focus(); Nav.abre();
 }
-function closeModal() { $('#modal').hidden = true; $('#modal').innerHTML = ''; if (typeof lmAlCerrar === 'function') lmAlCerrar(); }
+function closeModal() { $('#modal').hidden = true; $('#modal').innerHTML = ''; if (typeof lmAlCerrar === 'function') lmAlCerrar(); Nav.cierra(); }
 function toast(t, kind) {
   const el = document.createElement('div'); el.className = 'toast' + (kind ? ' ' + kind : '');
   el.setAttribute('role', kind === 'err' ? 'alert' : 'status');
@@ -4115,9 +4139,9 @@ function openDrawer() {
   d.innerHTML = `<div class="drawer-p nav" role="dialog" aria-modal="true" aria-label="Menú"><div class="drawer-h"><b>${typeof pantNombre === 'function' ? pantNombre() : modLabel(S.mod)} · ${ROLES[S.rol]}</b><button type="button" class="iconbtn" data-act="closeDrawer" aria-label="Cerrar menú">${ic('x')}</button></div>${navHTML()}
     <div class="nav-g ses"><p class="nav-gt">Sesión</p><a href="#" data-act="cambiarRol">${ic('users')}Cambiar de puesto</a><a href="#" data-act="inicio">${ic('map')}Inicio</a></div>
     </div>`;
-  d.hidden = false;
+  d.hidden = false; Nav.abre();
 }
-function closeDrawer() { $('#drawer').hidden = true; $('#drawer').innerHTML = ''; }
+function closeDrawer() { $('#drawer').hidden = true; $('#drawer').innerHTML = ''; Nav.cierra(); }
 /* Un clic sobre la barra de desplazamiento del fondo NO debe cerrar la ventana: solo cierra el clic fuera, en la zona sin barra */
 const clicEnBarra = (e, el) => e.clientX >= el.getBoundingClientRect().left + el.clientWidth || e.clientY >= el.getBoundingClientRect().top + el.clientHeight;
 $('#drawer').addEventListener('click', e => { if (e.target.id === 'drawer' && !clicEnBarra(e, e.target)) closeDrawer(); });
@@ -4725,7 +4749,7 @@ function finishBoot() {
   if (Boot.state === 'ready') return;
   Boot.state = 'ready'; hydrate(); fixForms(); restorePref(); try { if (window.Borrador) Borrador.sesion(); } catch (e) { /* sin borrador */ }
   if (S.entry === 'in') { const h = location.hash.slice(1); S.route = SCREENS[h] && can(h) ? h : homeRoute(); if (location.hash.slice(1) !== S.route) history.replaceState(null, '', '#' + S.route); S.last[S.mod] = S.route; }
-  renderAll();
+  Nav.guardia(); renderAll();
 }
 let chT = null;
 function onChange() {
@@ -5049,6 +5073,12 @@ select.v-falta{outline:2px solid var(--red,#C92121);outline-offset:1px}
 .rv-tabla{max-height:46vh;overflow:auto}
 @media (max-width:640px){.rv-barra .btnrow{width:100%}.rv-barra .btnrow .btn{flex:1 1 140px}}
 .rv-periodo{margin:0 0 8px;font-size:1.02rem}
+/* Reportes de ventas: filas de presentaciones */
+.rv-exp{background:none;border:0;padding:0;font:inherit;color:inherit;cursor:pointer;text-align:left}
+.rv-main td{background:#fff}
+.rv-sub td{background:#FAFAFA;font-size:.92em;color:#4A4A4A}
+.rv-pres{padding-left:22px;display:inline-block}
+.rv-t th small{font-weight:400;color:#6B6B6B}
 /* Entregas */
 /* Entregas con foto y plazos. Colores de marca (rojo #C92121, amarillo #F2B72E, blanco); verde y ámbar solo como semáforo. Reusa las clases de Ventas (.v-cat, .v-alerta, .v-stats, .v-pk-list, .v-dl). */
 .e-2c{display:grid;gap:14px;grid-template-columns:minmax(0,1fr);align-items:start}
@@ -5422,6 +5452,13 @@ tr.lm-fila{cursor:pointer}tr.lm-fila:hover td{background:#FFF6DD}
 .tn-bono>*{min-width:0}.tn-panel,.tn-panel .card,.tn-panel .tw{min-width:0;max-width:100%}
 @media (max-width:559px){.tn-bono{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.tn-bono>.stat{grid-column:1 / -1;width:auto}.tn-bono>.tn-ap{grid-column:1 / -1}.tn-t{min-width:0}.tn-hor{flex:1 1 100%}.tn-tab{min-width:0!important;width:100%}.tn-tab thead{display:none}.tn-tab,.tn-tab tbody,.tn-tab tfoot,.tn-tab tr,.tn-tab td{display:block;width:100%;min-width:0;box-sizing:border-box}.tn-tab tr{border-top:1px solid #E3E1E1;padding:6px 0}.tn-tab td{display:flex;justify-content:space-between;align-items:baseline;gap:10px;text-align:right;border:0;padding:2px 4px}.tn-tab td::before{content:attr(data-l);font-weight:600;color:#5E5E5E;text-align:left;flex:0 0 auto}.tn-tab td:first-child{text-align:left;justify-content:flex-start}.tn-tab td:first-child::before,.tn-tab td:not([data-l])::before{content:none}.tn-tab tr.tsum td:empty{display:none}.tn-in{width:120px}}
 .tn-bono>.stat{flex:0 0 auto;min-width:230px;width:auto;margin:0}
+
+/* Turno del día abierto por Recursos humanos */
+.hp-tn{align-items:flex-start;gap:2px}
+.hp-tn .hp-est{font-size:12px;color:#5E5E5E;max-width:230px}
+.hp-tn .hp-btn{margin-top:4px;min-height:34px;padding:4px 12px;font-size:13px}
+.hp-tn.hp-abierto{border-left-color:#1E8E3E}
+.hp-nota{align-self:center;font-size:12px}
 /* Las 7 pantallas */
 /* Barra de cada pantalla: botón «Opciones» + nombre de la opción actual (una sola fila baja) */
 .pt-bar{position:relative;display:flex;align-items:center;gap:8px;margin:0 0 8px;padding-bottom:6px;border-bottom:2px solid var(--y);min-height:44px}
@@ -6450,8 +6487,8 @@ const ElManaPDF = (() => {
       const limite = H - 60, pintarFila = (f, i, tot) => {
         const lns = f.map((v, k) => envolver(v, 9, tot, cols[k].w - 12)), n = Math.max(...lns.map(l => l.length)), h = n * 11 + 8;
         if (y + h > limite) { L.nueva(); franja(); y = 30; cab(); }
-        if (tot) L.rect(M, y, anchoT, h, [0.99, 0.93, 0.7]); else if (i % 2) L.rect(M, y, anchoT, h, [0.985, 0.985, 0.985]);
-        lns.forEach((ls, k) => ls.forEach((t, j) => L.texto(t, cols[k].x, y + 12 + j * 11, 9, {al: cols[k].al === 'r' ? 'r' : 'l', b: tot})));
+        if (tot) L.rect(M, y, anchoT, h, [0.99, 0.93, 0.7]); else if (!f.sub && i % 2) L.rect(M, y, anchoT, h, [0.985, 0.985, 0.985]);
+        lns.forEach((ls, k) => ls.forEach((t, j) => L.texto(t, cols[k].x + (f.sub && k === 0 ? 10 : 0), y + 12 + j * 11, f.sub ? 8.5 : 9, {al: cols[k].al === 'r' ? 'r' : 'l', b: tot || (d.agrupado && !f.sub && k === 0), color: f.sub ? GRY : undefined})));
         L.linea(M, y + h, W - M, y + h); y += h;
       };
       if (!d.filas.length) { L.texto('No hay ventas en este periodo.', M + 6, y + 16, 9.5, {color: GRY}); y += 28; }
@@ -6811,8 +6848,8 @@ const PERM_VENTAS = {
   'v-importar': 'adm:2'
 };
 const MODS_ADM = ['adm', 'ventas', 'rrhh']; // puestos con el módulo Administración por defecto
-/* Los 6 puestos. Las claves internas «empaque» (se ve Logística) y «rrhh» (se ve Nómina) se conservan. */
-const ROL_TXT = {dueno: 'Gerencia', adm: 'Administración', produccion: 'Producción', empaque: 'Logística', ventas: 'Ventas', rrhh: 'Nómina'};
+/* Los 6 puestos. Las claves internas «empaque» (se ve Logística) y «rrhh» (se ve Recursos humanos) se conservan. */
+const ROL_TXT = {dueno: 'Gerencia', adm: 'Administración', produccion: 'Producción', empaque: 'Logística', ventas: 'Ventas', rrhh: 'Recursos humanos'};
 /* Claves de puestos que desaparecieron → el puesto que las absorbió. ÚNICO lugar donde se traducen (el servidor lo aplica a x-rol). */
 const ROL_ALIAS = {recep: 'produccion', jefeprod: 'produccion', custodio: 'adm', cobranza: 'adm', despacho: 'empaque'};
 /* Cómo se lee en el historial un puesto que ya no existe */
@@ -7915,7 +7952,7 @@ async function rvCargar() {
   R.cargando = k; R.err = null;
   try {
     const d = await vApi('GET', '/reportes/ventas' + vQS({agrupar: R.tab, desde: R.desde, hasta: R.hasta, vendedor: S.rol === 'ventas' ? R.vend : ''}));
-    d.idx = d.filas.map(f => Busca.norm(f.nombre)); /* índice normalizado (sin tildes ni mayúsculas), construido UNA vez por carga */ d.ts = Date.now(); R.cache[k] = d;
+    d.idx = d.filas.map(f => Busca.norm([f.nombre].concat((f.detalle || []).map(x => x.nombre)).join(' '))); /* índice normalizado (sin tildes ni mayúsculas), construido UNA vez por carga */ d.ts = Date.now(); R.cache[k] = d;
   } catch (e) { R.err = e; }
   if (R.cargando === k) R.cargando = '';
   render();
@@ -7926,19 +7963,31 @@ function rvVisibles(d) {
 }
 function rvFilasTotales(d, vis) {
   const completo = vis.length === d.filas.length, ex = ['vendedor', 'zona'].includes(rvEstado().tab);
-  if (completo) return {total: d.totales.total, kilos: d.totales.kilos, bultos: d.totales.bultos, pedidos: d.totales.pedidos, pct: d.totales.pct};
+  if (completo) return {total: d.totales.total, bultos: d.totales.bultos, paquetes: d.totales.paquetes, pedidos: d.totales.pedidos, pct: d.totales.pct};
   const s = k => vis.reduce((a, f) => a + f[k], 0);
-  return {total: Math.round(s('total') * 100) / 100, kilos: Math.round(s('kilos') * 1000) / 1000, bultos: s('bultos'), pedidos: ex ? s('pedidos') : null, pct: Math.round(s('pct') * 100) / 100};
+  return {total: Math.round(s('total') * 100) / 100, bultos: s('bultos'), paquetes: s('paquetes'), pedidos: ex ? s('pedidos') : null, pct: Math.round(s('pct') * 100) / 100};
 }
+/* Papas se cuentan en BULTOS y salsas en PAQUETES: dos columnas, nunca se suman entre sí */
+const rvCant = (n, aplica) => aplica ? N0.format(n) : '<span class="muted">—</span>';
+const rvAbierta = (R, f) => R.tab === 'rubro' ? R.abiertos[f.nombre] !== false : !!R.abiertos[f.nombre];
 function rvTablaHTML() {
-  const R = rvEstado(), d = R.cache[rvClave(R)], t = RV_TABS.find(x => x[0] === R.tab);
+  const R = rvEstado(), d = R.cache[rvClave(R)], t = RV_TABS.find(x => x[0] === R.tab); R.abiertos ||= {};
   if (R.desde > R.hasta) return '<p class="v-alerta">La fecha «Desde» no puede ser posterior a «Hasta».</p>';
   if (S.rol === 'ventas' && !R.vend) return '<p class="hint">Elige tu nombre arriba para ver tus ventas.</p>';
   if (R.err) return `<p class="v-alerta">${ic('alert', 16)}${esc(R.err.message || 'No se pudo cargar el reporte.')}</p>`;
   if (!d) return '<p class="hint">Cargando el reporte…</p>';
-  const vis = rvVisibles(d), T = rvFilasTotales(d, vis);
-  return table([{h: t[2], f: f => `<b>${vtxt(f.nombre)}</b>`}, {h: 'Total vendido $', r: 1, f: f => vusd(f.total)}, {h: 'Kilos', r: 1, f: f => N2.format(f.kilos)}, {h: 'Bultos', r: 1, f: f => N0.format(f.bultos)}, {h: 'Pedidos', r: 1, f: f => N0.format(f.pedidos)}, {h: '% del total', r: 1, f: f => N2.format(f.pct) + ' %'}], vis,
-    {empty: Busca.norm(R.q) ? 'Nada coincide con lo que escribiste.' : 'No hay ventas en este periodo.', foot: vis.length ? `<tr class="v-foot"><td>${vis.length === d.filas.length ? 'Total' : 'Total de lo que se ve'}</td><td class="r">${vusd(T.total)}</td><td class="r">${N2.format(T.kilos)}</td><td class="r">${N0.format(T.bultos)}</td><td class="r">${T.pedidos == null ? '—' : N0.format(T.pedidos)}</td><td class="r">${N2.format(T.pct)} %</td></tr>` : ''});
+  const vis = rvVisibles(d), T = rvFilasTotales(d, vis), prod = R.tab === 'producto', gt = d.totales.total || 0;
+  const th = (h, r) => `<th class="${r ? 'r' : ''}" scope="col">${h}</th>`;
+  const fila = f => {
+    const abre = !prod && (f.detalle || []).length, op = abre && rvAbierta(R, f);
+    const nom = abre ? `<button type="button" class="rv-exp" data-act="rvAbrir" data-v="${esc(f.nombre)}" aria-expanded="${op}" title="${op ? 'Ocultar' : 'Ver'} las presentaciones">${op ? '▾' : '▸'} <b>${vtxt(f.nombre)}</b></button>` : `<b>${vtxt(f.nombre)}</b>`;
+    const celdaB = prod ? rvCant(f.bultos, f.rubro === 'Papas') : N0.format(f.bultos), celdaP = prod ? rvCant(f.paquetes, f.rubro === 'Salsas') : N0.format(f.paquetes);
+    let h = `<tr class="rv-main"><td>${nom}</td><td class="r">${vusd(f.total)}</td><td class="r">${celdaB}</td><td class="r">${celdaP}</td><td class="r">${N0.format(f.pedidos)}</td><td class="r">${N2.format(f.pct)} %</td></tr>`;
+    if (op) h += f.detalle.map(x => `<tr class="rv-sub"><td><span class="rv-pres">${vtxt(x.nombre)}</span></td><td class="r">${vusd(x.total)}</td><td class="r">${rvCant(x.cantidad, x.unidad === 'Bultos')}</td><td class="r">${rvCant(x.cantidad, x.unidad === 'Paquetes')}</td><td class="r">${N0.format(x.pedidos)}</td><td class="r">${N2.format(gt ? Math.round(x.total * 10000 / gt) / 100 : 0)} %</td></tr>`).join('');
+    return h;
+  };
+  const foot = vis.length ? `<tr class="v-foot"><td>${vis.length === d.filas.length ? 'Total' : 'Total de lo que se ve'}</td><td class="r">${vusd(T.total)}</td><td class="r">${N0.format(T.bultos)}</td><td class="r">${N0.format(T.paquetes)}</td><td class="r">${T.pedidos == null ? '—' : N0.format(T.pedidos)}</td><td class="r">${N2.format(T.pct)} %</td></tr>` : '';
+  return `<div class="tw"><table class="rv-t"><thead><tr>${th(t[2] + (prod ? ' (presentación)' : ''))}${th('Total vendido $', 1)}${th('Bultos <small>(papas)</small>', 1)}${th('Paquetes <small>(salsas)</small>', 1)}${th('Pedidos', 1)}${th('% del total', 1)}</tr></thead><tbody>${vis.length ? vis.map(fila).join('') : `<tr><td colspan="6" class="empty-row">${Busca.norm(R.q) ? 'Nada coincide con lo que escribiste.' : 'No hay ventas en este periodo.'}</td></tr>`}${foot}</tbody></table></div>`;
 }
 const rvFechaTxt = f => f.slice(8, 10) + '/' + f.slice(5, 7) + '/' + f.slice(0, 4);
 function rvPanel() {
@@ -7960,20 +8009,25 @@ function rvPanel() {
 /* Datos del archivo: SOLO la pestaña abierta, con lo que se ve (filtro incluido) */
 function rvArchivo() {
   const R = rvEstado(), d = R.cache[rvClave(R)]; if (!d) return null;
-  const t = RV_TABS.find(x => x[0] === R.tab), vis = rvVisibles(d), T = rvFilasTotales(d, vis), q = R.q.trim();
+  const t = RV_TABS.find(x => x[0] === R.tab), vis = rvVisibles(d), T = rvFilasTotales(d, vis), q = R.q.trim(), prod = R.tab === 'producto', gt = d.totales.total || 0;
   const ventas = S.rol === 'ventas' ? (V.vendedores.find(v => String(v.id) === String(R.vend)) || {}).nombre : '';
+  const filas = [];
+  vis.forEach(f => {
+    filas.push(Object.assign([f.nombre, f.total, prod ? (f.rubro === 'Papas' ? f.bultos : '') : f.bultos, prod ? (f.rubro === 'Salsas' ? f.paquetes : '') : f.paquetes, f.pedidos, f.pct], {sub: false}));
+    if (!prod) (f.detalle || []).forEach(x => filas.push(Object.assign(['    ' + x.nombre, x.total, x.unidad === 'Bultos' ? x.cantidad : '', x.unidad === 'Paquetes' ? x.cantidad : '', x.pedidos, gt ? Math.round(x.total * 10000 / gt) / 100 : 0], {sub: true})));
+  });
   return {
-    base: t[3], titulo: 'Ventas ' + t[1].toLowerCase(), hoja: t[1],
+    base: t[3], titulo: 'Ventas ' + t[1].toLowerCase(), hoja: t[1], agrupado: !prod,
     subtitulo: 'Periodo: del ' + rvFechaTxt(R.desde) + ' al ' + rvFechaTxt(R.hasta) + (ventas ? ' · Vendedor: ' + ventas : '') + (q ? ' · Búsqueda: «' + q + '»' : ''),
-    cols: [{h: t[2], tipo: 'txt', w: 38}, {h: 'Total vendido $', tipo: 'usd', w: 20}, {h: 'Kilos', tipo: 'kg', w: 14}, {h: 'Bultos', tipo: 'int', w: 12}, {h: 'Pedidos', tipo: 'int', w: 12}, {h: '% del total', tipo: 'pct', w: 13}],
-    filas: vis.map(f => [f.nombre, f.total, f.kilos, f.bultos, f.pedidos, f.pct]),
-    totales: ['Total', T.total, T.kilos, T.bultos, T.pedidos == null ? '' : T.pedidos, T.pct],
+    cols: [{h: t[2] + (prod ? ' (presentación)' : ' / presentación'), tipo: 'txt', w: 46}, {h: 'Total vendido $', tipo: 'usd', w: 20}, {h: 'Bultos (papas)', tipo: 'int', w: 15}, {h: 'Paquetes (salsas)', tipo: 'int', w: 17}, {h: 'Pedidos', tipo: 'int', w: 12}, {h: '% del total', tipo: 'pct', w: 13}],
+    filas, totales: ['Total', T.total, T.bultos, T.paquetes, T.pedidos == null ? '' : T.pedidos, T.pct],
     nota: d.nota
   };
 }
 const rvNombre = (a, ext) => { const R = rvEstado(); return a.base.charAt(0).toUpperCase() + a.base.slice(1) + '_' + R.desde + '_al_' + R.hasta + '.' + ext; };
 Object.assign(ACT, {
-  rvTab: el => { const R = rvEstado(); R.tab = el.dataset.v; R.q = ''; render(); },
+  rvAbrir: el => { const R = rvEstado(); R.abiertos ||= {}; const f = (R.cache[rvClave(R)] || {filas: []}).filas.find(x => x.nombre === el.dataset.v); if (f) R.abiertos[f.nombre] = !rvAbierta(R, f); const c = document.getElementById('rv-tabla'); if (c) c.innerHTML = rvTablaHTML(); },
+  rvTab: el => { const R = rvEstado(); R.tab = el.dataset.v; R.q = ''; R.abiertos = {}; render(); },
   rvRango: el => { rvFijar(el.dataset.v); rvEstado().q = ''; render(); },
   rvFecha: el => { const R = rvEstado(); if (!el.value) return; R[el.dataset.k] = el.value; R.rango = 'otro'; render(); },
   rvVend: el => { const R = rvEstado(); R.vend = el.value; try { localStorage.setItem('elmana:miVendedor', el.value); } catch (e) { /* sin almacenamiento */ } render(); },
@@ -7982,9 +8036,9 @@ Object.assign(ACT, {
     const a = rvArchivo(); if (!a) return;
     try {
       await ElManaPDF.descargarTabla({titulo: a.titulo, subtitulo: a.subtitulo, nota: a.nota, archivo: rvNombre(a, 'pdf'),
-        cols: [{h: a.cols[0].h, al: 'l', w: 4}, {h: 'Total vendido $', al: 'r', w: 2}, {h: 'Kilos', al: 'r', w: 1.5}, {h: 'Bultos', al: 'r', w: 1.2}, {h: 'Pedidos', al: 'r', w: 1.2}, {h: '% del total', al: 'r', w: 1.4}],
-        filas: a.filas.map(f => [f[0], vusd(f[1]), N2.format(f[2]), N0.format(f[3]), N0.format(f[4]), N2.format(f[5]) + ' %']),
-        totales: [a.totales[0], vusd(a.totales[1]), N2.format(a.totales[2]), N0.format(a.totales[3]), a.totales[4] === '' ? '—' : N0.format(a.totales[4]), N2.format(a.totales[5]) + ' %']}, typeof LOGO_SRC === 'string' ? LOGO_SRC : '/icon-192.png');
+        cols: [{h: a.cols[0].h, al: 'l', w: 4.6}, {h: 'Total vendido $', al: 'r', w: 2}, {h: 'Bultos (papas)', al: 'r', w: 1.5}, {h: 'Paquetes (salsas)', al: 'r', w: 1.7}, {h: 'Pedidos', al: 'r', w: 1.2}, {h: '% del total', al: 'r', w: 1.4}], agrupado: a.agrupado,
+        filas: a.filas.map(f => Object.assign([f[0].trim(), vusd(f[1]), f[2] === '' ? '' : N0.format(f[2]), f[3] === '' ? '' : N0.format(f[3]), N0.format(f[4]), N2.format(f[5]) + ' %'], {sub: f.sub})),
+        totales: [a.totales[0], vusd(a.totales[1]), N0.format(a.totales[2]), N0.format(a.totales[3]), a.totales[4] === '' ? '—' : N0.format(a.totales[4]), N2.format(a.totales[5]) + ' %']}, typeof LOGO_SRC === 'string' ? LOGO_SRC : '/icon-192.png');
       toast('Se descargó el PDF ' + esc(rvNombre(a, 'pdf')) + '.', 'ok');
     } catch (e) { vErr(e); }
   }
@@ -10279,8 +10333,8 @@ Object.assign(SCREENS, {'lg-empacar': {mod: 'prod', g: 'Logística', t: 'Empacar
 S.perm = permInit();
 
 /* En planta hoy (marcas de entrada y salida) y Pagar nómina (por semana, quincena o mes, con préstamos y recibo).
-   Todo el cálculo de montos lo hace el servidor (/api/h/*); aquí solo se muestra y se pide. Solo Gerencia y Nómina. */
-const HP = {d: null, cargando: false, ts: 0, rol: null, busy: {}, q: '', nom: null, nomClave: '', nomCarg: false, nomTs: 0, per: 'quincena', ref: null, pm: null, error: ''};
+   Todo el cálculo de montos lo hace el servidor (/api/h/*); aquí solo se muestra y se pide. Solo Gerencia y Recursos humanos. */
+const HP = {j: null, d: null, cargando: false, ts: 0, rol: null, busy: {}, q: '', nom: null, nomClave: '', nomCarg: false, nomTs: 0, per: 'quincena', ref: null, pm: null, error: ''};
 const hpN = (n, d = 2) => Number(n || 0).toLocaleString('es-VE', {minimumFractionDigits: d, maximumFractionDigits: d});
 const hpBs = n => 'Bs ' + hpN(n);
 const hpHora = ts => { const d = new Date(ts - 4 * 3600e3), p = n => String(n).padStart(2, '0'); return p(d.getUTCHours()) + ':' + p(d.getUTCMinutes()); }; /* hora de Venezuela (UTC-4) */
@@ -10292,12 +10346,12 @@ async function hpApi(m, ruta, cuerpo) {
   if (!r.ok) { const e = new Error(j.error || 'No se pudo completar la operación.'); e.status = r.status; e.datos = j; throw e; }
   return j;
 }
-const hpReset = () => { if (HP.rol !== S.rol) { HP.rol = S.rol; HP.d = null; HP.nom = null; HP.nomClave = ''; HP.error = ''; HP.q = ''; } };
+const hpReset = () => { if (HP.rol !== S.rol) { HP.rol = S.rol; HP.d = null; HP.j = null; HP.nom = null; HP.nomClave = ''; HP.error = ''; HP.q = ''; } };
 
 /* ---------- En planta hoy ---------- */
 function hpCargar() {
   if (HP.cargando) return; HP.cargando = true;
-  hpApi('GET', '/hoy').then(d => { HP.d = d; HP.error = ''; }).catch(e => { console.error(e); HP.error = e.message; if (!HP.d) HP.d = {presentes: [], trabajadores: [], total: 0, por_turno: {}}; })
+  hpApi('GET', '/jornada').then(j => { HP.j = j; }).catch(() => { HP.j = null; }); hpApi('GET', '/hoy').then(d => { HP.d = d; HP.error = ''; }).catch(e => { console.error(e); HP.error = e.message; if (!HP.d) HP.d = {presentes: [], trabajadores: [], total: 0, por_turno: {}}; })
     .finally(() => { HP.cargando = false; HP.ts = Date.now(); if (S.route === 'rh-planta') render(); });
 }
 const hpPuedeMarcar = () => lvlOf(S.rol, 'rh-planta') >= 2;
@@ -10310,8 +10364,21 @@ function hpFilas() {
     const est = dentro ? `<span class="chip c-ok">Entró ${hpHora(t.entrada_ts)}</span>` : t.estado === 'salio' ? `<span class="chip c-n">Salió ${hpHora(t.salida_ts)}</span>` : '';
     const btn = !puede ? '' : dentro ? `<button type="button" class="btn hp-btn hp-sal" data-act="hpMarcar" data-id="${esc(t.empleado_id)}" data-t="salida">Marcó salida</button>`
       : `<button type="button" class="btn pri hp-btn" data-act="hpMarcar" data-id="${esc(t.empleado_id)}" data-t="entrada" ${sinTurno ? 'disabled' : ''}>Marcó entrada</button>`;
-    return `<div class="hp-fila"><div class="hp-q"><b>${esc(t.nombre)}</b><span>${esc(t.cargo || '—')} · ${esc(hpArea(t.area))}</span><span class="hp-chips">${t.turno ? `<span class="chip c-info">${esc(t.turno)}</span>` : '<span class="chip c-warn">Falta el turno en Personal</span>'}${est}</span></div>${btn}</div>`;
+    return `<div class="hp-fila"><div class="hp-q"><b>${esc(t.nombre)}</b><span>${esc(t.cargo || '—')} · ${esc(hpArea(t.area))}</span><span class="hp-chips">${t.turno ? `<span class="chip c-info">${esc(t.turno)}</span>` : '<span class="chip c-warn">Falta el turno en Personal</span>'}${est}${t.marco && t.estado !== 'fuera' ? `<span class="chip c-n">Marcó: ${esc(t.marco)}</span>` : ''}</span></div>${btn}</div>`;
   }).join('');
+}
+/* Tarjeta de cada turno del día: cuántos hay, si el turno está abierto, desde cuándo, y los botones de abrir y cerrar (solo quien puede marcar) */
+function hpTarjetaTurno(t, n) {
+  const x = HP.j && HP.j.turnos && HP.j.turnos[t], puede = hpPuedeMarcar() && HP.j && HP.j.puede, est = x ? x.estado : '';
+  const txt = !x ? '' : est === 'abierto' ? `Turno ${t} abierto desde ${hpHora(x.desde_ts)}${x.abrio ? ' · lo abrió ' + esc(x.abrio) : ''}` : est === 'cerrado' ? `Turno ${t} cerrado a las ${hpHora(x.hasta_ts)}` : `Turno ${t} sin abrir`;
+  const btn = !puede || !x ? '' : est === 'abierto' ? `<button type="button" class="btn hp-btn hp-sal" data-act="hpJornada" data-t="${t}" data-a="cerrar">Cerrar turno ${t}</button>` : `<button type="button" class="btn pri hp-btn" data-act="hpJornada" data-t="${t}" data-a="abrir">Abrir turno de hoy: ${t}</button>`;
+  return `<div class="hp-tn ${est === 'abierto' ? 'hp-abierto' : ''}"><b>${n}</b><span>${t}</span><small class="hp-est">${txt}</small>${btn}</div>`;
+}
+async function hpJornada(el) {
+  const t = el.dataset.t, a = el.dataset.a, k = 'j' + t; if (HP.busy[k]) return; HP.busy[k] = true;
+  try { HP.j = await hpApi('POST', '/jornada/' + a, {turno: t}); toast(a === 'abrir' ? 'Turno ' + t + ' abierto.' : 'Turno ' + t + ' cerrado.'); }
+  catch (e) { toast(esc(e.message), 'err'); }
+  finally { delete HP.busy[k]; render(); }
 }
 function scrPlanta() {
   hpReset();
@@ -10321,7 +10388,7 @@ function scrPlanta() {
   const d = HP.d, pt = d.por_turno || {}, turnos = ['Mañana', 'Tarde'];
   const col = t => { const L = (d.presentes || []).filter(p => p.turno === t);
     return `<section class="card hp-turno"><div class="card-b"><h2>${t} <span class="hp-n">${L.length}</span></h2>${L.length ? L.map(p => `<div class="hp-p"><div><b>${esc(p.nombre)}</b><span>${esc(p.cargo || '—')} · ${esc(hpArea(p.area))}</span></div><time>Entró ${hpHora(p.entrada_ts)}</time></div>`).join('') : '<p class="hp-vacio">Nadie en este turno</p>'}</div></section>`; };
-  return `<div class="hp-top">${turnos.map(t => `<div class="hp-tn"><b>${pt[t] || 0}</b><span>${t}</span></div>`).join('')}
+  return `<div class="hp-top">${turnos.map(t => hpTarjetaTurno(t, pt[t] || 0)).join('')}
     ${can('rh-pagar') ? '<a class="btn pri hp-pagar" href="#rh-pagar">Pagar nómina</a>' : ''}</div>
   ${HP.error ? `<p class="err" role="alert">${esc(HP.error)}</p>` : ''}
   <div class="hp-grid"><div class="hp-izq">${d.total ? turnos.map(col).join('') : card('', emptyState('Nadie ha marcado entrada hoy', 'Cuando alguien llegue, márcalo en la lista de al lado.'))}</div>
@@ -10417,7 +10484,7 @@ function hpRecibo(r) {
     <p style="margin-top:8px">Período del ${hpFecha(r.desde)} al ${hpFecha(r.hasta)}. Pagado el ${hpFecha(r.fecha)} · ${esc(r.forma)}, en bolívares.${r.nota ? ' Nota: ' + esc(r.nota) : ''}</p><div class="firmas"><div>Firma del empleado</div><div>Firma de Administración</div></div></div>${docBar('Recibo de pago ' + r.nombre)}`);
 }
 
-/* ---------- Pestañas de Nómina y franja de resumen (siempre visible arriba) ---------- */
+/* ---------- Pestañas de Recursos humanos y franja de resumen (siempre visible arriba) ---------- */
 const HP_TABS = [['rh-planta', 'En planta hoy'], ['personal', 'Personas'], ['asistencia', 'Asistencia'], ['rh-pagar', 'Nómina'], ['prestamos', 'Préstamos']];
 const hpTabsOn = () => S.rol === 'rrhh' || S.rol === 'dueno';
 function hpResCargar() {
@@ -10430,7 +10497,7 @@ function hpCab(act) {
   if (!HP.resCarg && (HP.resClave !== hpClave() || Date.now() - (HP.resTs || 0) > 5000)) hpResCargar();
   const R = HP.res, ok = R && HP.resClave === hpClave(), v = f => ok ? f(R) : '…', pt = ok ? R.en_planta.por_turno : {};
   const c = (t, n, s, tono) => '<div class="rh-c' + (tono ? ' rh-' + tono : '') + '"><span>' + t + '</span><b>' + n + '</b><small>' + (s || '&nbsp;') + '</small></div>';
-  return '<div class="rh-cab"><div class="rh-franja">' + c('En planta hoy', v(r => r.en_planta.total), ok ? 'Mañana ' + (pt['Mañana'] || 0) + ' · Tarde ' + (pt['Tarde'] || 0) : '') +
+  return '<div class="rh-cab"><div class="rh-franja">' + c('Personal activo hoy', v(r => r.en_planta.total), (ok ? 'Mañana ' + (pt['Mañana'] || 0) + ' · Tarde ' + (pt['Tarde'] || 0) + '<br>' : '') + 'sin choferes ni administración') +
     c('Total a pagar', v(r => hpBs(r.nomina.total_pagar)), ok ? esc(R.periodo.etiqueta) : '') + c('Préstamos activos', v(r => r.prestamos.activos), ok ? 'Saldo ' + hpBs(R.prestamos.saldo_bs) : '') +
     c('Pagos pendientes', v(r => r.nomina.pendientes), ok ? 'de ' + R.nomina.personas + (R.nomina.personas === 1 ? ' persona' : ' personas') : '', ok && R.nomina.pendientes > 0 ? 'amb' : ok ? 'ver' : '') + '</div></div>';
 }
@@ -10442,11 +10509,11 @@ Object.assign(SCREENS, {
 });
 ROLE_HOME.rrhh = 'rh-planta';
 S.perm = permInit();
-Object.assign(ACT_REQ, {hpMarcar: ['rh-planta', 2], hpPagoAbrir: ['rh-pagar', 2], hpPagoGuardar: ['rh-pagar', 2]});
-Object.assign(ACT_LBL, {hpMarcar: 'marcar entradas y salidas', hpPagoAbrir: 'registrar pagos de nómina', hpPagoGuardar: 'registrar pagos de nómina'});
-['hpMarcar', 'hpPagoGuardar'].forEach(k => WRITE_ACTS.add(k));
+Object.assign(ACT_REQ, {hpJornada: ['rh-planta', 2], hpMarcar: ['rh-planta', 2], hpPagoAbrir: ['rh-pagar', 2], hpPagoGuardar: ['rh-pagar', 2]});
+Object.assign(ACT_LBL, {hpJornada: 'abrir y cerrar el turno del día', hpMarcar: 'marcar entradas y salidas', hpPagoAbrir: 'registrar pagos de nómina', hpPagoGuardar: 'registrar pagos de nómina'});
+['hpJornada', 'hpMarcar', 'hpPagoGuardar'].forEach(k => WRITE_ACTS.add(k));
 Object.assign(ACT, {
-  hpMarcar: el => hpMarcar(el), hpPagoAbrir: el => hpPagoAbrir(el.dataset.id), hpPagoGuardar: () => hpPagoGuardar(),
+  hpJornada: el => hpJornada(el), hpMarcar: el => hpMarcar(el), hpPagoAbrir: el => hpPagoAbrir(el.dataset.id), hpPagoGuardar: () => hpPagoGuardar(),
   hpPer: el => { HP.per = el.dataset.v; HP.ref = null; HP.error = ''; render(); }, hpMover: el => { HP.ref = el.dataset.r || null; HP.error = ''; render(); },
   hpRecibo: async el => { try { hpRecibo(await hpApi('GET', '/pagos/' + el.dataset.pid)); } catch (e) { toast(esc(e.message), 'err'); } }
 });
@@ -10459,7 +10526,7 @@ function hpPrestamos() {
     {h: 'Cuota', r: 1, f: p => bs(cuota(p))}, {h: 'Pagadas', r: 1, f: p => p.pagadas + ' de ' + p.cuotas}, {h: 'Saldo', r: 1, f: p => '<b>' + bs(saldo(p)) + '</b>'}], L, {empty: 'No hay préstamos activos.'}));
 }
 { const sc = SCREENS.prestamos; if (sc) { const f = sc.r; sc.r = function () { return hpTabsOn() ? hpPrestamos() : f.apply(this, arguments); }; } }
-/* La barra de pestañas ahora es la de «Personal» (front/pantallas/pantallas.js); aquí solo queda la franja de resumen, para Nómina y Gerencia */
+/* La barra de pestañas ahora es la de «Personal» (front/pantallas/pantallas.js); aquí solo queda la franja de resumen, para Recursos humanos y Gerencia */
 window.hpCabUni = k => hpTabsOn() && HP_TABS.some(t => t[0] === k) ? hpCab(k) : '';
 
 /* Turnos (quiénes estuvieron y qué se hizo), parámetros de turnos y bonos, y asistencia automática.
@@ -10651,7 +10718,7 @@ if (!window.__htListeners) {
 })();
 </script>
 <script>
-/* Las 6 pantallas principales, una por puesto: Gerencia, Administración, Producción, Logística, Ventas y Nómina.
+/* Las 6 pantallas principales, una por puesto: Gerencia, Administración, Producción, Logística, Ventas y Recursos humanos.
    Cada pantalla agrupa con pestañas las funciones que ya existían (no se borra nada). Cada persona ve solo la pantalla de su rol. */
 (function () {
 "use strict";
@@ -10680,7 +10747,7 @@ const PANT = [
     ['Empaque', [['lg-empacar', 'Empacar por turno'], ['empaque', 'Empaque y stock'], ['alm-logistica', 'Bultos y etiquetas'], ['pr-dif', 'Diferencias']]],
     ['Existencias', [['alm-pt', 'Producto terminado'], ['pr-inv', 'Inventario terminado'], ['inventario', 'Inventario'], ['mermas', 'Mermas']]],
     ['Más', [['manual', 'Manual', 'h'], ['mis-solic', 'Mis solicitudes', 'h'], ['ayuda', 'Ayuda', 'h']]]]},
-  {k: 'nom', t: 'Nómina', ic: 'coins', roles: ['rrhh'], lead: 'Pagar, personal y préstamos', grupos: [
+  {k: 'nom', t: 'Recursos humanos', ic: 'coins', roles: ['rrhh'], lead: 'Pagar, personal y préstamos', grupos: [
     ['En planta', [['rh-planta', 'En planta hoy'], ['rh-turnos', 'Turnos y bonos'], ['turnos', 'Turnos'], ['rh-params', 'Parámetros de turnos y bonos']]],
     ['Personal', [['personal', 'Personas'], ['asistencia', 'Asistencia'], ['rh-pagar', 'Pagar nómina'], ['prestamos', 'Préstamos'], ['nomina', 'Nómina anterior (solo consulta)']]],
     ['Más', [['manual', 'Manual', 'h'], ['mis-solic', 'Mis solicitudes', 'h'], ['ayuda', 'Ayuda', 'h']]]]}
@@ -10847,7 +10914,7 @@ function gZonas() {
 /* En planta hoy: solo el conteo (total y por turno), de solo lectura; el enlace solo si el puesto tiene la pantalla */
 function gPlanta() {
   const P = GER.pl, ok = P && typeof P.total === 'number', pt = (P && P.por_turno) || {}, v = ok ? P.total : (GER.est === 'ok' ? 'Sin datos' : '…');
-  const cuerpo = '<span>En planta hoy:</span> <b class="' + (ok ? '' : 'muted') + '">' + v + '</b>' + (ok ? '<small>Mañana ' + (pt['Mañana'] || 0) + ' · Tarde ' + (pt['Tarde'] || 0) + '</small>' : '');
+  const cuerpo = '<span>Personal activo hoy:</span> <b class="' + (ok ? '' : 'muted') + '">' + v + '</b>' + (ok ? '<small>Mañana ' + (pt['Mañana'] || 0) + ' · Tarde ' + (pt['Tarde'] || 0) + '</small>' : '') + '<small>sin choferes ni administración</small>';
   return gVa('rh-planta') ? '<a class="gr-pl" href="#rh-planta">' + cuerpo + '</a>' : '<div class="gr-pl">' + cuerpo + '</div>';
 }
 function scrGerencia(modo) {
