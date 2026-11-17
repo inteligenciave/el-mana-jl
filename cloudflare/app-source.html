@@ -926,11 +926,6 @@ const SEED_SRC = {
     {id:'BLT-SAL-08', lote:'C-0416', cont:'Sal refinada para sazonar', kg:24.7, ubic:'R2-A', est:'Disponible'}
   ],
 
-  flota: [
-    {id:'Camión 1', tipo:'truck', chofer:'Pedro A.', estado:'En ruta', dest:'Oriente', ok:true},
-    {id:'Camión 2', tipo:'truck', chofer:'Jesús M.', estado:'Disponible', dest:'—', ok:true},
-    {id:'Autobús', tipo:'bus', chofer:'Luis G.', estado:'Cargando', dest:'Salseras zona sur', ok:true}
-  ],
   despachos: [
     {id:'NE-2291', fecha:'2026-11-11', veh:'Camión 1', chofer:'Pedro A.', dest:'Distribuidora Oriente (ejemplo)', rif:'J-00000101-0', tipo:'Distribuidor', estado:'En ruta', items:[{d:'Papas 35 g', c:2400, u:'und', l:'L1105-P35'},{d:'Papas 20 g', c:3000, u:'und', l:'L1105-P20'},{d:'Papas 150 g', c:300, u:'und', l:'L1029-P150'}]},
     {id:'NE-2290', fecha:'2026-11-11', veh:'Autobús', chofer:'Luis G.', dest:'Salsera La Esquina (ejemplo)', rif:'J-00000102-0', tipo:'Salsera', estado:'Cargando', items:[{d:'Mostaza 3,75 kg', c:20, u:'und', l:'S-1110-MO'},{d:'Salsa de tomate 3,75 kg', c:30, u:'und', l:'S-1110-TO'},{d:'Papa a granel', c:24, u:'kg', l:'BLT-1029-14'}]},
@@ -1154,7 +1149,7 @@ function makeHttpBackend() {
 const DATA = {
   empresa: 'El Maná JL', procedimientos: SEED_SRC.procedimientos, tasaInicial: SEED_SRC.tasaInicial, politicas: {...SEED_SRC.politicas, ...MR_POL, ...NOM_POL},
   proveedores: [], productosPapa: [], insumos: [], recibidores: [], partidas: [], salsas: [], stockSalsas: [], empaqueHoy: [],
-  flota: [], empleados: [], vendedores: [], ventasDias: [], productosVenta: [], cxc: [], inactivos: [], clientesTotal: 0, inactivosTotal: 0,
+  empleados: [], vendedores: [], ventasDias: [], productosVenta: [], cxc: [], inactivos: [], clientesTotal: 0, inactivosTotal: 0,
   nomina: [], gastosFijos: [], gastosVar: []
 };
 const todayISO = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
@@ -1292,7 +1287,6 @@ function hydrate() {
   DATA.productosPapa = prods.filter(p => p.tipo === 'papa'); DATA.insumos = prods.filter(p => p.tipo === 'insumo');
   DATA.provAll = rows('proveedores').sort(byOrden).map(p => xo(p, ['nombre', 'rif', 'rubro', 'plazo', 'contacto'])); DATA.proveedores = DATA.provAll.filter(p => !p.arch);
   DATA.empleadosAll = rows('empleados').sort(byOrden).map(e => xo({...e, area: AREA_MAP[e.area] || e.area}, ['n', 'area', 'cargo', 'cedula', 'tel'])); DATA.empleados = DATA.empleadosAll.filter(e => !e.arch);
-  DATA.flota = rows('flota').sort(byOrden).map(v => xo({...v, docId: v.id, id: v.nombre}, ['id', 'nombre', 'chofer', 'estado', 'dest']));
   const flat = rows('partidas').sort((a, b) => a.cod.localeCompare(b.cod, 'es', {numeric: true}));
   const nodes = {}; flat.forEach(p => { nodes[p.cod] = {...p}; });
   DATA.partidas = []; flat.forEach(p => { const n = nodes[p.cod]; if (p.parent && nodes[p.parent]) (nodes[p.parent].h ||= []).push(n); else DATA.partidas.push(n); });
@@ -1362,7 +1356,6 @@ function buildExample() {
   put('ajustes', 'recibidores', {lista: Z.recibidores});
   Z.proveedores.forEach((p, i) => { const n = +p.id.slice(1); put('proveedores', p.id, {nombre: p.nombre, rif: p.rif, rubro: p.rubro, tipo: n <= 3 ? 'papa' : n <= 8 ? 'insumo' : 'general', cond: p.cond, plazo: p.plazo, dias: p.dias, abonos: p.abonos || null, hist: p.hist ?? null, rechazo: p.rechazo ?? null, orden: i}); });
   Z.empleados.forEach((e, i) => put('empleados', e.id, {n: e.n, area: e.area, antig: e.antig, orden: i}));
-  Z.flota.forEach((v, i) => put('flota', 'FL-' + slug(v.id), {nombre: v.id, tipo: v.tipo, chofer: v.chofer, estado: v.estado, dest: v.dest, orden: i}));
   Z.compras.forEach(c => {
     if (c.rec) put('recepciones', c.rec, {fecha: sd(c.fecha), prov: c.prov, sub: c.sub, cat: c.cat, item: c.item, sk: c.sk, unidad: c.unidad, sacos: c.sacos, kgSaco: c.kgSaco, qf: c.qf, kgRec: c.kgRec, muestra: c.muestra, calidad: c.calidad, recibe: c.recibe, fact: c.fact, obs: c.obs || '', motivo: c.motivo, entProm: sd(c.entProm), entReal: sd(c.entReal), estado: c.estado, compraId: c.id || null, ts: 0});
     if (!c.id) return;
@@ -1552,8 +1545,6 @@ const Svc = {
   async addRec(n) { const l = (one('ajustes', 'recibidores') || {}).lista || []; await W.set('ajustes', 'recibidores', {lista: [...l, n]}); },
   async delRec(n) { const l = (one('ajustes', 'recibidores') || {}).lista || []; await W.set('ajustes', 'recibidores', {lista: l.filter(x => esc(x) !== n && x !== n)}); },
   async pedirRepo(f) { const id = await nextId('RP', 3, 'RP'); await W.set('reposiciones', id, {pres: f.pres, cant: +f.cant, pide: ROLES[S.rol], motivo: f.motivo || 'Reposición', estado: 'Pendiente'}); return id; },
-  async addVeh(f) { await W.set('flota', 'FL-' + slug(f.nombre), {nombre: f.nombre, tipo: f.tipo, chofer: f.chofer || '—', estado: 'Disponible', dest: '—', orden: Date.now()}); },
-  async delVeh(docId, motivo) { await W.del('flota', docId, motivo); },
   async subirAdjunto(file) {
     if (!Layer.assets || !file) return null;
     try { const r = await Layer.assets.upload(file); return {id: r.id, nombre: file.name}; } catch (e) { return null; }
@@ -1856,7 +1847,7 @@ const S = {
   ccForm: {tipo:'Nota de entrega', num:'', prov:'', rif:'', fecha:HOY_ISO, monto:'', cat:'Mantenimiento', just:'', adj:''}, ccErr:'', ccFile:null, arqIn:null,
   prForm: {emp:'', monto:50, cuotas:2, fecha:HOY_ISO, motivo:''}, prErr:'',
   bltForm: {lote:'', kg:12.3},
-  catForm: {prov:{nombre:'', rif:'', rubro:'', tipo:'insumo', cond:'Contado', dias:30, abonos:false}, rec:'', veh:{nombre:'', tipo:'truck', chofer:''}}, catErr:{},
+  catForm: {prov:{nombre:'', rif:'', rubro:'', tipo:'insumo', cond:'Contado', dias:30, abonos:false}, rec:''}, catErr:{},
   datosStep:0, datosAct:'', datosConf:'', datosMsg:'',
   busy:{}, tasaInfo:null, tasaEstado:'', tasaRol:'', tasaT:0, polDirty:false, matDirty:0, pendingRender:false, cgInit:false,
   cmTab:'Propia', cmCond:'Todas', anFam:'Todas', calMes:0, calDia:null, vPer:'mes', cxpProv:'Todos'
@@ -2263,7 +2254,7 @@ function scrEmpaque() {
 function scrDespachos() {
   const tone = e => ({'En ruta':'info', 'Cargando':'warn', 'Entregada':'ok'})[e] || 'n';
   return `${ph('Producción · salida', 'Despachos', 'Notas de entrega impresas para salseras y distribuidores. Las transferencias internas a la línea salsera (sal y bolsones) también quedan registradas.')}
-  <div class="fleet">${DATA.flota.map(v => `<div class="veh">${ic(v.tipo, 30)}<div><p><b>${v.id}</b></p><p class="muted" style="font-size:13px">Chofer ${v.chofer} · ${v.dest}</p><p style="margin-top:6px">${chip(v.estado, v.estado === 'Disponible' ? 'ok' : v.estado === 'Cargando' ? 'warn' : 'info')}</p></div></div>`).join('')}</div>
+  ${window.flTarjetas ? window.flTarjetas() : ''}
   ${card('Notas de entrega y transferencias', `<div class="desp-m">${S.notas.map(n => `<div class="desp-n"><p><b class="mono">${n.id}</b> · ${fd(n.fecha)} ${chip(n.estado, tone(n.estado))}</p><p>${n.dest} <span class="muted">· ${n.tipo}</span></p><p class="muted">Vehículo ${n.veh}</p><p class="muted">${n.items.map(i => `${N0.format(i.c)} ${i.u} ${i.d}`).join(', ')}</p><div class="btnrow"><button type="button" class="btn sm" data-act="verNota" data-id="${n.id}">${ic('file', 16)}Ver nota</button>${n.estado !== 'Entregada' ? `<button type="button" class="btn sm" data-act="notaEstado" data-id="${n.id}">${n.estado === 'Cargando' ? 'Marcar en ruta' : 'Marcar entregada'}</button>` : ''}</div></div>`).join('')}</div><div class="desp-t">` + table([
     {h:'Documento', f:n => `<span class="mono">${n.id}</span><br><span class="muted">${fd(n.fecha)}</span>`},
     {h:'Destino', f:n => `${n.dest}<br><span class="muted">${n.tipo}</span>`},
@@ -3119,7 +3110,7 @@ function fixForms() {
   const cerr = S.lotes.filter(l => l.granel); if (!cerr.find(l => l.id === S.empForm.lote)) S.empForm.lote = cerr[0] ? cerr[0].id : '';
   if (!S.pres.find(p => p.cod === S.empForm.pres)) S.empForm.pres = S.pres[0] ? S.pres[0].cod : '';
   if (!S.pres.find(p => p.cod === S.repForm.pres)) S.repForm.pres = S.pres[0] ? S.pres[0].cod : '';
-  const nf = S.notaForm; if (nf.veh && !DATA.flota.find(v => v.id === nf.veh)) nf.veh = '';
+  const nf = S.notaForm; if (nf.veh && window.flListo && window.flListo() && !window.flActivos().find(v => v.placa === nf.veh)) nf.veh = '';
   if (S.cmTab !== 'Propia' && S.cmTab !== 'Insumo') S.cmTab = 'Propia';
 }
 function resetRecForm(tipo) {
@@ -3161,7 +3152,7 @@ function notaCard() {
   const f = S.notaForm, names = [...S.pres.map(p => p.n), ...DATA.stockSalsas.map(s => s.n)];
   return card('Nueva nota de entrega o transferencia', `<div class="form">
       <div class="row2"><fieldset><legend>Tipo</legend><div class="opts">${[['Cliente', 'Cliente'], ['Interno', 'Transferencia interna']].map(([k, t]) => `<button type="button" class="opt" aria-pressed="${f.tipo === k}" data-act="notaTipo" data-v="${k}">${t}</button>`).join('')}</div></fieldset>
-      <label class="fld">Vehículo<select id="nt-veh" data-k="notaForm.veh"><option value="">Sin vehículo</option>${DATA.flota.map(v => `<option value="${v.id}" ${v.id === f.veh ? 'selected' : ''}>${v.id} · ${v.chofer}</option>`).join('')}</select></label></div>
+      <label class="fld">Vehículo<select id="nt-veh" data-k="notaForm.veh"><option value="">Sin vehículo</option>${(window.flActivos ? window.flActivos() : []).map(v => `<option value="${esc(v.placa)}" ${v.placa === f.veh ? 'selected' : ''}>${esc(v.placa)}${v.chofer ? ' · ' + esc(v.chofer) : ''}</option>`).join('')}</select></label></div>
       <div class="row2"><label class="fld">Destino<input id="nt-dest" type="text" data-k="notaForm.dest" value="${esc(f.dest)}" placeholder="Cliente o área"></label><label class="fld">RIF<input id="nt-rif" type="text" data-k="notaForm.rif" value="${esc(f.rif)}" placeholder="J-00000000-0"></label></div>
       <div class="row3"><label class="fld">Producto<input id="nt-desc" type="text" list="nt-items" data-k="notaForm.desc" value="${esc(f.desc)}"><datalist id="nt-items">${names.map(n => `<option value="${esc(n)}"></option>`).join('')}</datalist></label>
       <label class="fld">Cantidad<input id="nt-cant" type="number" inputmode="decimal" data-k="notaForm.cant" value="${f.cant}"></label>
@@ -3190,19 +3181,14 @@ function scrCatalogos(m) {
     ${lvl('catalogos') >= 2 ? card('Proveedores desactivados', table([{h: 'Proveedor', f: p => `<b>${p.nombre}</b><br><span class="mono muted">${p.id} · ${p.rif}${p.contacto ? ' · ' + esc(p.contacto) : ''}</span>`}, {h: '', f: p => `<button type="button" class="btn sm" data-act="restProv" data-id="${p.id}">Activar</button>`}], DATA.provAll.filter(p => p.arch), {empty: 'No hay proveedores desactivados.'}), {sub: 'No salen en la lista de compras; el historial se conserva'}) : ''}
 `;
   }
-  return `${ph('Producción · referencia', 'Equipo y flota', 'Quién recibe en la puerta de la planta y los vehículos de despacho. Los usan Recepción y Despachos.')}
+  return `${ph('Producción · referencia', 'Equipo y flota', 'Quién recibe en la puerta de la planta. Lo usa Recepción. Los vehículos están en «Vehículos».')}
   <div class="cols c2">
     ${card('Quién recibe', `<ul class="list">${DATA.recibidores.map(n => `<li><div class="l-main"><p class="l-t">${n}</p></div>${ed ? `<button type="button" class="btn sm ghost" data-act="delRec" data-v="${esc(n)}">Quitar</button>` : ''}</li>`).join('') || '<li class="hint">Todavía no hay nadie registrado.</li>'}</ul>
       ${ed ? `<div class="form" style="margin-top:12px"><label class="fld">Agregar persona<input id="rc-nom" type="text" data-k="catForm.rec" value="${esc(F.rec)}" placeholder="Ej.: Ramón T."></label>
       ${S.catErr && S.catErr.rec ? `<p class="err" role="alert">${ic('alert')}${S.catErr.rec}</p>` : ''}<button type="button" class="btn pri" data-act="addRec">${ic('plus', 16)}Agregar</button></div>` : ''}`)}
-    ${flotaAnteriorCard()}
   </div>${scrCatProd2()}`;
 }
 
-/* Lista de vehículos del sistema anterior: solo consulta (los datos se conservan; las altas y cambios se hacen en «Vehículos») */
-function flotaAnteriorCard() {
-  return card('Flota (sistema anterior, solo consulta)', `<ul class="list">${DATA.flota.map(v => `<li><div class="l-main"><p class="l-t">${v.id}</p><p class="l-s">${v.tipo === 'bus' ? 'Autobús' : 'Camión'} · chofer ${v.chofer}</p></div></li>`).join('') || '<li class="hint">Todavía no hay vehículos registrados.</li>'}</ul>`);
-}
 /* ---------- Roles, módulos visibles y matriz (solo el Gerente edita) ---------- */
 function scrRoles() {
   const rs = Object.keys(ROLES).filter(r => r !== 'dueno');
@@ -4602,7 +4588,7 @@ const ACT = {
     else if (stk != null && +f.cant > stk) S.notaErr = `No hay suficiente: de «${f.desc}» quedan ${N0.format(stk)}.`;
     else S.notaErr = '';
     if (S.notaErr) return render();
-    const v = DATA.flota.find(x => x.id === f.veh), body = {...f, veh: v ? v.id : '', chofer: v ? v.chofer : ''};
+    const v = (window.flActivos ? window.flActivos() : []).find(x => x.placa === f.veh), body = {...f, veh: v ? v.placa : '', chofer: v ? v.chofer : ''};
     run('nota', () => Svc.nota(body), id => { Object.assign(S.notaForm, {dest: '', rif: '', desc: '', cant: '', lote: ''}); return `Nota ${id} creada.`; });
   },
   notaEstado: el => { const n = S.notas.find(x => x.id === el.dataset.id); if (!n) return; const nx = n.estado === 'Cargando' ? 'En ruta' : 'Entregada'; run('ne:' + n.id, () => Svc.notaEstado(n.id, nx), `${n.id}: ${nx.toLowerCase()}.`); },
@@ -4631,13 +4617,6 @@ const ACT = {
     run('arec', () => Svc.addRec(n), () => { S.catForm.rec = ''; return 'Agregado a quien recibe.'; });
   },
   delRec: el => run('drec', () => Svc.delRec(el.dataset.v), 'Quitado.'),
-  addVeh: () => {
-    const f = S.catForm.veh; S.catErr = {};
-    if (!f.nombre.trim()) { S.catErr.veh = 'Escribe el nombre o la placa.'; return render(); }
-    if (!/[A-Za-z0-9]/.test(f.nombre)) { S.catErr.veh = 'El nombre necesita letras o números.'; return render(); }
-    run('aveh', () => Svc.addVeh(f), () => { S.catForm.veh = {nombre: '', tipo: 'truck', chofer: ''}; return 'Vehículo agregado.'; });
-  },
-  delVeh: el => { const m = (window.prompt('¿Por qué quitas este vehículo? (motivo corto)', '') || '').trim(); if (m.length < 3) return toast('Escribe un motivo corto para quitarlo.'); run('dveh', () => Svc.delVeh(el.dataset.id, m), 'Vehículo quitado.'); },
   /* datos: ejemplo / limpio (doble confirmación) */
   datosPaso: el => { if (S.rol !== 'dueno') return; S.datosAct = el.dataset.v; S.datosStep = 1; S.datosConf = ''; S.datosMsg = ''; render(); },
   datosSig: () => { S.datosStep = 2; S.datosConf = ''; render(); const i = $('#dat-conf'); i && i.focus(); },

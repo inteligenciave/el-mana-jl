@@ -13,7 +13,7 @@ const PANT = [
     ['Ventas (solo ver)', [['v-pedido', 'Pedidos'], ['v-clientes', 'Clientes'], ['c-pedidos', 'Pedidos de clientes'], ['ventas', 'Registro de ventas']]],
     ['Precios', [['p-precios', 'Precios por lista'], ['p-clientes', 'Precios por cliente'], ['e-ajustes', 'Descuentos y mora'], ['p-estado', 'Mis cambios']]],
     ['Bancos', [['p-bancos', 'Bancos de la empresa']]],
-    ['Flota', [['fl-flota', 'Vehículos'], ['catprod', 'Anterior (solo consulta)']]],
+    ['Flota', [['fl-flota', 'Vehículos']]],
     ['Bonos', [['rh-turnos', 'Turnos y bonos'], ['rh-params', 'Parámetros de turnos y bonos']]],
     ['Sistema', [['manual', 'Manual', 'h'], ['roles', 'Quién ve qué'], ['datos', 'Datos'], ['mis-solic', 'Mis solicitudes', 'h'], ['ayuda', 'Ayuda', 'h']]]]},
   {k: 'prod', t: 'Producción', ic: 'flame', roles: ['produccion'], lead: 'Recibir, producir y cerrar el turno', grupos: [
@@ -23,7 +23,7 @@ const PANT = [
     ['Más', [['catprod', 'Equipo'], ['manual', 'Manual', 'h'], ['mis-solic', 'Mis solicitudes', 'h'], ['ayuda', 'Ayuda', 'h']]]]},
   {k: 'vent', t: 'Ventas', ic: 'cart', roles: ['ventas'], lead: 'Vender, clientes y catálogo', grupos: [['Ventas', [['v-pedido', 'Hacer una venta'], ['pr-invv', 'Inventario disponible'], ['c-pedidos', 'Pedidos'], ['v-clientes', 'Clientes y catálogo'], ['clientes', 'Lista de clientes'], ['c-ficha', 'Enlace del portal'], ['v-deuda', 'Quién debe'], ['v-pagos', 'Cobros hechos'], ['ventas', 'Registro de ventas'], ['mis-solic', 'Mis solicitudes', 'h'], ['ayuda', 'Ayuda', 'h']]]]},
   {k: 'log', t: 'Logística', ic: 'truck', roles: ['empaque'], lead: 'Empacar, armar zonas y despachar', grupos: [
-    ['Despacho', [['em-tablero', 'Zonas'], ['pr-zonas', 'Pedidos por zona'], ['despachos', 'Despachos'], ['e-entregas', 'Entregas con foto'], ['fl-desp', 'Vehículos'], ['catprod', 'Anterior (solo consulta)']]],
+    ['Despacho', [['em-tablero', 'Zonas'], ['pr-zonas', 'Pedidos por zona'], ['despachos', 'Despachos'], ['e-entregas', 'Entregas con foto'], ['fl-desp', 'Vehículos']]],
     ['Empaque', [['lg-empacar', 'Empacar por turno'], ['empaque', 'Empaque y stock'], ['alm-logistica', 'Bultos y etiquetas'], ['pr-dif', 'Diferencias']]],
     ['Existencias', [['alm-pt', 'Producto terminado'], ['pr-inv', 'Inventario terminado'], ['inventario', 'Inventario'], ['mermas', 'Mermas']]],
     ['Más', [['manual', 'Manual', 'h'], ['mis-solic', 'Mis solicitudes', 'h'], ['ayuda', 'Ayuda', 'h']]]]},
@@ -168,13 +168,13 @@ function gVehiculos() {
   const V = GER.veh, T = window.flTxt || {}, orden = {RUTA: 0, PLANTA: 1, TALLER: 2, FUERA_SERVICIO: 3};
   let cuerpo;
   if (!Array.isArray(V)) cuerpo = '<p class="gr-meta">' + (GER.est === 'ok' ? 'Sin datos' : '…') + '</p>';
-  else if (!V.length) cuerpo = '<p class="gr-meta">Sin vehículos cargados</p>';
+  else if (!V.length) cuerpo = '<p class="gr-meta">Todavía no hay vehículos</p>' + (S.rol === 'dueno' || S.rol === 'adm' ? '<a class="btn pri gr-btn" href="#fl-flota">Agregar vehículo</a>' : '');
   else {
     const L = V.slice().sort((a, b) => (orden[a.donde] - orden[b.donde]) || String(a.placa).localeCompare(String(b.placa)));
     cuerpo = '<ul class="gr-vl">' + L.slice(0, 4).map(v => '<li class="d-' + v.donde + '"><p class="gr-vn"><b>' + esc(v.marca_modelo || v.placa) + '</b><span>' + esc(v.placa) + '</span></p><p class="gr-vd"><b>' + esc(T.donde ? T.donde(v) : v.donde_txt) + '</b><span>' + esc(T.desde ? T.desde(v) : '') + '</span></p><p class="gr-vc">' + esc(T.carga ? T.carga(v) : '') + '</p></li>').join('') + '</ul>' +
       (V.length > 4 && gVa('fl-flota') ? '<a class="lnk gr-vall" href="#fl-flota">Ver todos (' + V.length + ')</a>' : '');
   }
-  return '<article class="card gr-card gr-veh"><div class="card-b"><h2>Vehículos</h2>' + cuerpo + (gVa('fl-flota') ? '<a class="btn pri gr-btn" href="#fl-flota">Ver detalle</a>' : '') + '</div></article>';
+  return '<article class="card gr-card gr-veh"><div class="card-b"><h2>Vehículos</h2>' + cuerpo + (gVa('fl-flota') && Array.isArray(V) && V.length ? '<a class="btn pri gr-btn" href="#fl-flota">Ver detalle</a>' : '') + '</div></article>';
 }
 const GR_ICO = '<svg class="gr-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l10 18H2z" fill="#F2B72E" stroke="#C92121" stroke-width="2" stroke-linejoin="round"/><path d="M12 10v5M12 17.5v.5" stroke="#C92121" stroke-width="2" stroke-linecap="round"/></svg>';
 function gAlertas() {
@@ -485,9 +485,9 @@ UNI.push({p: 'adm', n: 'Cobranza', siempre: true, m: [['v-deuda', 'Quién debe']
 UNI.push({p: 'nom', n: 'Personal', cab: k => (window.hpCabUni ? window.hpCabUni(k) : ''), m: [['rh-planta', 'En planta hoy'], ['personal', 'Personas'], ['asistencia', 'Asistencia'], ['rh-turnos', 'Turnos y bonos', ['turnos']], ['rh-params', 'Parámetros'],
   ['rh-pagar', 'Pagar nómina'], ['prestamos', 'Préstamos'], ['nomina', 'Nómina anterior (solo consulta)']]},
   {p: 'adm', n: 'Bonos', siempre: true, m: [['rh-turnos', 'Turnos y bonos', ['turnos']], ['rh-params', 'Parámetros']]});
-/* Vehículos: la lista nueva (alta y cambios en Administración, ubicación en Despacho) y la lista vieja de Equipo solo para consultar */
-UNI.push({p: 'adm', n: 'Vehículos', siempre: true, m: [['fl-flota', 'Vehículos'], ['catprod', 'Anterior (solo consulta)', [], () => '<span class="un-et">Sistema anterior</span>' + flotaAnteriorCard()]]},
-         {p: 'log', n: 'Vehículos', siempre: true, m: [['fl-desp', 'Vehículos'], ['catprod', 'Anterior (solo consulta)', [], () => '<span class="un-et">Sistema anterior</span>' + flotaAnteriorCard()]]});
+/* Vehículos: la lista nueva (alta y cambios en Administración, ubicación en Despacho)  */
+UNI.push({p: 'adm', n: 'Vehículos', siempre: true, m: [['fl-flota', 'Vehículos']]},
+         {p: 'log', n: 'Vehículos', siempre: true, m: [['fl-desp', 'Vehículos']]});
 /* una pestaña solo aparece si el puesto la veía antes en esa misma pantalla (o por Funciones extra) */
 const VE_PROC = ['dueno', 'produccion']; /* el servidor solo entrega «En proceso (kilos)» a estos puestos: a los demás ni se muestra ni se pide */
 const uniVe = c => { if (!can(c) || (c === 'pr-proc' && !VE_PROC.includes(S.rol))) return false; const p = pantActual(); return !p || planas(p, S.rol).includes(c) || extrasDe(S.rol).includes(c); };

@@ -27,6 +27,21 @@ const flCargaTxt = v => {
   return 'Sin carga anotada';
 };
 window.flTxt = {donde: flDondeTxt, desde: flDesdeTxt, carga: flCargaTxt};
+/* Lista nueva para otras pantallas (Despachos y notas de entrega): se carga una vez por puesto y se vuelve a pedir tras cada cambio */
+function flAsegura() {
+  if (FL.rol !== S.rol) { FL.rol = S.rol; FL.lista = null; FL.error = ''; }
+  if (!FL.lista && window.__EM_HTTP) flCargar();
+  return FL.lista;
+}
+window.flListo = () => !!FL.lista;
+window.flActivos = () => (flAsegura() || []).filter(v => v.estado === 'ACTIVO').map(v => ({placa: v.placa, chofer: v.chofer_nombre || ''}));
+window.flTarjetas = () => {
+  const L = flAsegura();
+  if (!window.__EM_HTTP) return '';
+  if (!L) return `<div class="fleet"><p class="muted">Cargando vehículos…</p></div>`;
+  if (!L.length) return '<div class="fleet" style="display:block">' + card('', emptyState(FL.error ? 'No se pudo leer la flota' : 'Todavía no hay vehículos', FL.error || (flPuede() ? 'Agrega el primero para poder usarlo al despachar.' : 'Gerencia o Administración los cargan.')) + (flPuede() && !FL.error ? '<div class="btnrow"><button type="button" class="btn pri" data-act="flNuevo">Agregar vehículo</button></div>' : '')) + '</div>';
+  return `<div class="fleet">${L.map(v => `<div class="veh">${ic(v.tipo === 'AUTOBUS' ? 'bus' : 'truck', 30)}<div><p><b>${prT(v.placa)}</b>${v.marca_modelo ? ' · ' + prT(v.marca_modelo) : ''}</p><p class="muted" style="font-size:13px">${v.chofer_nombre ? 'Chofer ' + prT(v.chofer_nombre) + ' · ' : ''}${prT(flDondeTxt(v))}</p><p style="margin-top:6px"><span class="chip ${v.estado === 'ACTIVO' ? 'c-ok' : 'c-warn'}">${prT(v.estado_txt)}</span></p></div></div>`).join('')}</div>`;
+};
 const flAv = v => (v.avisos || []).map(a => `<span class="chip c-warn">${prT(a.texto)}</span>`).join(' ');
 function flCargar() {
   if (FL.cargando) return; FL.cargando = true;

@@ -955,11 +955,6 @@ const SEED_SRC = {
     {id:'BLT-SAL-08', lote:'C-0416', cont:'Sal refinada para sazonar', kg:24.7, ubic:'R2-A', est:'Disponible'}
   ],
 
-  flota: [
-    {id:'Camión 1', tipo:'truck', chofer:'Pedro A.', estado:'En ruta', dest:'Oriente', ok:true},
-    {id:'Camión 2', tipo:'truck', chofer:'Jesús M.', estado:'Disponible', dest:'—', ok:true},
-    {id:'Autobús', tipo:'bus', chofer:'Luis G.', estado:'Cargando', dest:'Salseras zona sur', ok:true}
-  ],
   despachos: [
     {id:'NE-2291', fecha:'2026-11-11', veh:'Camión 1', chofer:'Pedro A.', dest:'Distribuidora Oriente (ejemplo)', rif:'J-00000101-0', tipo:'Distribuidor', estado:'En ruta', items:[{d:'Papas 35 g', c:2400, u:'und', l:'L1105-P35'},{d:'Papas 20 g', c:3000, u:'und', l:'L1105-P20'},{d:'Papas 150 g', c:300, u:'und', l:'L1029-P150'}]},
     {id:'NE-2290', fecha:'2026-11-11', veh:'Autobús', chofer:'Luis G.', dest:'Salsera La Esquina (ejemplo)', rif:'J-00000102-0', tipo:'Salsera', estado:'Cargando', items:[{d:'Mostaza 3,75 kg', c:20, u:'und', l:'S-1110-MO'},{d:'Salsa de tomate 3,75 kg', c:30, u:'und', l:'S-1110-TO'},{d:'Papa a granel', c:24, u:'kg', l:'BLT-1029-14'}]},
@@ -1183,7 +1178,7 @@ function makeHttpBackend() {
 const DATA = {
   empresa: 'El Maná JL', procedimientos: SEED_SRC.procedimientos, tasaInicial: SEED_SRC.tasaInicial, politicas: {...SEED_SRC.politicas, ...MR_POL, ...NOM_POL},
   proveedores: [], productosPapa: [], insumos: [], recibidores: [], partidas: [], salsas: [], stockSalsas: [], empaqueHoy: [],
-  flota: [], empleados: [], vendedores: [], ventasDias: [], productosVenta: [], cxc: [], inactivos: [], clientesTotal: 0, inactivosTotal: 0,
+  empleados: [], vendedores: [], ventasDias: [], productosVenta: [], cxc: [], inactivos: [], clientesTotal: 0, inactivosTotal: 0,
   nomina: [], gastosFijos: [], gastosVar: []
 };
 const todayISO = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
@@ -1321,7 +1316,6 @@ function hydrate() {
   DATA.productosPapa = prods.filter(p => p.tipo === 'papa'); DATA.insumos = prods.filter(p => p.tipo === 'insumo');
   DATA.provAll = rows('proveedores').sort(byOrden).map(p => xo(p, ['nombre', 'rif', 'rubro', 'plazo', 'contacto'])); DATA.proveedores = DATA.provAll.filter(p => !p.arch);
   DATA.empleadosAll = rows('empleados').sort(byOrden).map(e => xo({...e, area: AREA_MAP[e.area] || e.area}, ['n', 'area', 'cargo', 'cedula', 'tel'])); DATA.empleados = DATA.empleadosAll.filter(e => !e.arch);
-  DATA.flota = rows('flota').sort(byOrden).map(v => xo({...v, docId: v.id, id: v.nombre}, ['id', 'nombre', 'chofer', 'estado', 'dest']));
   const flat = rows('partidas').sort((a, b) => a.cod.localeCompare(b.cod, 'es', {numeric: true}));
   const nodes = {}; flat.forEach(p => { nodes[p.cod] = {...p}; });
   DATA.partidas = []; flat.forEach(p => { const n = nodes[p.cod]; if (p.parent && nodes[p.parent]) (nodes[p.parent].h ||= []).push(n); else DATA.partidas.push(n); });
@@ -1391,7 +1385,6 @@ function buildExample() {
   put('ajustes', 'recibidores', {lista: Z.recibidores});
   Z.proveedores.forEach((p, i) => { const n = +p.id.slice(1); put('proveedores', p.id, {nombre: p.nombre, rif: p.rif, rubro: p.rubro, tipo: n <= 3 ? 'papa' : n <= 8 ? 'insumo' : 'general', cond: p.cond, plazo: p.plazo, dias: p.dias, abonos: p.abonos || null, hist: p.hist ?? null, rechazo: p.rechazo ?? null, orden: i}); });
   Z.empleados.forEach((e, i) => put('empleados', e.id, {n: e.n, area: e.area, antig: e.antig, orden: i}));
-  Z.flota.forEach((v, i) => put('flota', 'FL-' + slug(v.id), {nombre: v.id, tipo: v.tipo, chofer: v.chofer, estado: v.estado, dest: v.dest, orden: i}));
   Z.compras.forEach(c => {
     if (c.rec) put('recepciones', c.rec, {fecha: sd(c.fecha), prov: c.prov, sub: c.sub, cat: c.cat, item: c.item, sk: c.sk, unidad: c.unidad, sacos: c.sacos, kgSaco: c.kgSaco, qf: c.qf, kgRec: c.kgRec, muestra: c.muestra, calidad: c.calidad, recibe: c.recibe, fact: c.fact, obs: c.obs || '', motivo: c.motivo, entProm: sd(c.entProm), entReal: sd(c.entReal), estado: c.estado, compraId: c.id || null, ts: 0});
     if (!c.id) return;
@@ -1581,8 +1574,6 @@ const Svc = {
   async addRec(n) { const l = (one('ajustes', 'recibidores') || {}).lista || []; await W.set('ajustes', 'recibidores', {lista: [...l, n]}); },
   async delRec(n) { const l = (one('ajustes', 'recibidores') || {}).lista || []; await W.set('ajustes', 'recibidores', {lista: l.filter(x => esc(x) !== n && x !== n)}); },
   async pedirRepo(f) { const id = await nextId('RP', 3, 'RP'); await W.set('reposiciones', id, {pres: f.pres, cant: +f.cant, pide: ROLES[S.rol], motivo: f.motivo || 'Reposición', estado: 'Pendiente'}); return id; },
-  async addVeh(f) { await W.set('flota', 'FL-' + slug(f.nombre), {nombre: f.nombre, tipo: f.tipo, chofer: f.chofer || '—', estado: 'Disponible', dest: '—', orden: Date.now()}); },
-  async delVeh(docId, motivo) { await W.del('flota', docId, motivo); },
   async subirAdjunto(file) {
     if (!Layer.assets || !file) return null;
     try { const r = await Layer.assets.upload(file); return {id: r.id, nombre: file.name}; } catch (e) { return null; }
@@ -1885,7 +1876,7 @@ const S = {
   ccForm: {tipo:'Nota de entrega', num:'', prov:'', rif:'', fecha:HOY_ISO, monto:'', cat:'Mantenimiento', just:'', adj:''}, ccErr:'', ccFile:null, arqIn:null,
   prForm: {emp:'', monto:50, cuotas:2, fecha:HOY_ISO, motivo:''}, prErr:'',
   bltForm: {lote:'', kg:12.3},
-  catForm: {prov:{nombre:'', rif:'', rubro:'', tipo:'insumo', cond:'Contado', dias:30, abonos:false}, rec:'', veh:{nombre:'', tipo:'truck', chofer:''}}, catErr:{},
+  catForm: {prov:{nombre:'', rif:'', rubro:'', tipo:'insumo', cond:'Contado', dias:30, abonos:false}, rec:''}, catErr:{},
   datosStep:0, datosAct:'', datosConf:'', datosMsg:'',
   busy:{}, tasaInfo:null, tasaEstado:'', tasaRol:'', tasaT:0, polDirty:false, matDirty:0, pendingRender:false, cgInit:false,
   cmTab:'Propia', cmCond:'Todas', anFam:'Todas', calMes:0, calDia:null, vPer:'mes', cxpProv:'Todos'
@@ -2292,7 +2283,7 @@ function scrEmpaque() {
 function scrDespachos() {
   const tone = e => ({'En ruta':'info', 'Cargando':'warn', 'Entregada':'ok'})[e] || 'n';
   return `${ph('Producción · salida', 'Despachos', 'Notas de entrega impresas para salseras y distribuidores. Las transferencias internas a la línea salsera (sal y bolsones) también quedan registradas.')}
-  <div class="fleet">${DATA.flota.map(v => `<div class="veh">${ic(v.tipo, 30)}<div><p><b>${v.id}</b></p><p class="muted" style="font-size:13px">Chofer ${v.chofer} · ${v.dest}</p><p style="margin-top:6px">${chip(v.estado, v.estado === 'Disponible' ? 'ok' : v.estado === 'Cargando' ? 'warn' : 'info')}</p></div></div>`).join('')}</div>
+  ${window.flTarjetas ? window.flTarjetas() : ''}
   ${card('Notas de entrega y transferencias', `<div class="desp-m">${S.notas.map(n => `<div class="desp-n"><p><b class="mono">${n.id}</b> · ${fd(n.fecha)} ${chip(n.estado, tone(n.estado))}</p><p>${n.dest} <span class="muted">· ${n.tipo}</span></p><p class="muted">Vehículo ${n.veh}</p><p class="muted">${n.items.map(i => `${N0.format(i.c)} ${i.u} ${i.d}`).join(', ')}</p><div class="btnrow"><button type="button" class="btn sm" data-act="verNota" data-id="${n.id}">${ic('file', 16)}Ver nota</button>${n.estado !== 'Entregada' ? `<button type="button" class="btn sm" data-act="notaEstado" data-id="${n.id}">${n.estado === 'Cargando' ? 'Marcar en ruta' : 'Marcar entregada'}</button>` : ''}</div></div>`).join('')}</div><div class="desp-t">` + table([
     {h:'Documento', f:n => `<span class="mono">${n.id}</span><br><span class="muted">${fd(n.fecha)}</span>`},
     {h:'Destino', f:n => `${n.dest}<br><span class="muted">${n.tipo}</span>`},
@@ -3148,7 +3139,7 @@ function fixForms() {
   const cerr = S.lotes.filter(l => l.granel); if (!cerr.find(l => l.id === S.empForm.lote)) S.empForm.lote = cerr[0] ? cerr[0].id : '';
   if (!S.pres.find(p => p.cod === S.empForm.pres)) S.empForm.pres = S.pres[0] ? S.pres[0].cod : '';
   if (!S.pres.find(p => p.cod === S.repForm.pres)) S.repForm.pres = S.pres[0] ? S.pres[0].cod : '';
-  const nf = S.notaForm; if (nf.veh && !DATA.flota.find(v => v.id === nf.veh)) nf.veh = '';
+  const nf = S.notaForm; if (nf.veh && window.flListo && window.flListo() && !window.flActivos().find(v => v.placa === nf.veh)) nf.veh = '';
   if (S.cmTab !== 'Propia' && S.cmTab !== 'Insumo') S.cmTab = 'Propia';
 }
 function resetRecForm(tipo) {
@@ -3190,7 +3181,7 @@ function notaCard() {
   const f = S.notaForm, names = [...S.pres.map(p => p.n), ...DATA.stockSalsas.map(s => s.n)];
   return card('Nueva nota de entrega o transferencia', `<div class="form">
       <div class="row2"><fieldset><legend>Tipo</legend><div class="opts">${[['Cliente', 'Cliente'], ['Interno', 'Transferencia interna']].map(([k, t]) => `<button type="button" class="opt" aria-pressed="${f.tipo === k}" data-act="notaTipo" data-v="${k}">${t}</button>`).join('')}</div></fieldset>
-      <label class="fld">Vehículo<select id="nt-veh" data-k="notaForm.veh"><option value="">Sin vehículo</option>${DATA.flota.map(v => `<option value="${v.id}" ${v.id === f.veh ? 'selected' : ''}>${v.id} · ${v.chofer}</option>`).join('')}</select></label></div>
+      <label class="fld">Vehículo<select id="nt-veh" data-k="notaForm.veh"><option value="">Sin vehículo</option>${(window.flActivos ? window.flActivos() : []).map(v => `<option value="${esc(v.placa)}" ${v.placa === f.veh ? 'selected' : ''}>${esc(v.placa)}${v.chofer ? ' · ' + esc(v.chofer) : ''}</option>`).join('')}</select></label></div>
       <div class="row2"><label class="fld">Destino<input id="nt-dest" type="text" data-k="notaForm.dest" value="${esc(f.dest)}" placeholder="Cliente o área"></label><label class="fld">RIF<input id="nt-rif" type="text" data-k="notaForm.rif" value="${esc(f.rif)}" placeholder="J-00000000-0"></label></div>
       <div class="row3"><label class="fld">Producto<input id="nt-desc" type="text" list="nt-items" data-k="notaForm.desc" value="${esc(f.desc)}"><datalist id="nt-items">${names.map(n => `<option value="${esc(n)}"></option>`).join('')}</datalist></label>
       <label class="fld">Cantidad<input id="nt-cant" type="number" inputmode="decimal" data-k="notaForm.cant" value="${f.cant}"></label>
@@ -3219,19 +3210,14 @@ function scrCatalogos(m) {
     ${lvl('catalogos') >= 2 ? card('Proveedores desactivados', table([{h: 'Proveedor', f: p => `<b>${p.nombre}</b><br><span class="mono muted">${p.id} · ${p.rif}${p.contacto ? ' · ' + esc(p.contacto) : ''}</span>`}, {h: '', f: p => `<button type="button" class="btn sm" data-act="restProv" data-id="${p.id}">Activar</button>`}], DATA.provAll.filter(p => p.arch), {empty: 'No hay proveedores desactivados.'}), {sub: 'No salen en la lista de compras; el historial se conserva'}) : ''}
 `;
   }
-  return `${ph('Producción · referencia', 'Equipo y flota', 'Quién recibe en la puerta de la planta y los vehículos de despacho. Los usan Recepción y Despachos.')}
+  return `${ph('Producción · referencia', 'Equipo y flota', 'Quién recibe en la puerta de la planta. Lo usa Recepción. Los vehículos están en «Vehículos».')}
   <div class="cols c2">
     ${card('Quién recibe', `<ul class="list">${DATA.recibidores.map(n => `<li><div class="l-main"><p class="l-t">${n}</p></div>${ed ? `<button type="button" class="btn sm ghost" data-act="delRec" data-v="${esc(n)}">Quitar</button>` : ''}</li>`).join('') || '<li class="hint">Todavía no hay nadie registrado.</li>'}</ul>
       ${ed ? `<div class="form" style="margin-top:12px"><label class="fld">Agregar persona<input id="rc-nom" type="text" data-k="catForm.rec" value="${esc(F.rec)}" placeholder="Ej.: Ramón T."></label>
       ${S.catErr && S.catErr.rec ? `<p class="err" role="alert">${ic('alert')}${S.catErr.rec}</p>` : ''}<button type="button" class="btn pri" data-act="addRec">${ic('plus', 16)}Agregar</button></div>` : ''}`)}
-    ${flotaAnteriorCard()}
   </div>${scrCatProd2()}`;
 }
 
-/* Lista de vehículos del sistema anterior: solo consulta (los datos se conservan; las altas y cambios se hacen en «Vehículos») */
-function flotaAnteriorCard() {
-  return card('Flota (sistema anterior, solo consulta)', `<ul class="list">${DATA.flota.map(v => `<li><div class="l-main"><p class="l-t">${v.id}</p><p class="l-s">${v.tipo === 'bus' ? 'Autobús' : 'Camión'} · chofer ${v.chofer}</p></div></li>`).join('') || '<li class="hint">Todavía no hay vehículos registrados.</li>'}</ul>`);
-}
 /* ---------- Roles, módulos visibles y matriz (solo el Gerente edita) ---------- */
 function scrRoles() {
   const rs = Object.keys(ROLES).filter(r => r !== 'dueno');
@@ -4631,7 +4617,7 @@ const ACT = {
     else if (stk != null && +f.cant > stk) S.notaErr = `No hay suficiente: de «${f.desc}» quedan ${N0.format(stk)}.`;
     else S.notaErr = '';
     if (S.notaErr) return render();
-    const v = DATA.flota.find(x => x.id === f.veh), body = {...f, veh: v ? v.id : '', chofer: v ? v.chofer : ''};
+    const v = (window.flActivos ? window.flActivos() : []).find(x => x.placa === f.veh), body = {...f, veh: v ? v.placa : '', chofer: v ? v.chofer : ''};
     run('nota', () => Svc.nota(body), id => { Object.assign(S.notaForm, {dest: '', rif: '', desc: '', cant: '', lote: ''}); return `Nota ${id} creada.`; });
   },
   notaEstado: el => { const n = S.notas.find(x => x.id === el.dataset.id); if (!n) return; const nx = n.estado === 'Cargando' ? 'En ruta' : 'Entregada'; run('ne:' + n.id, () => Svc.notaEstado(n.id, nx), `${n.id}: ${nx.toLowerCase()}.`); },
@@ -4660,13 +4646,6 @@ const ACT = {
     run('arec', () => Svc.addRec(n), () => { S.catForm.rec = ''; return 'Agregado a quien recibe.'; });
   },
   delRec: el => run('drec', () => Svc.delRec(el.dataset.v), 'Quitado.'),
-  addVeh: () => {
-    const f = S.catForm.veh; S.catErr = {};
-    if (!f.nombre.trim()) { S.catErr.veh = 'Escribe el nombre o la placa.'; return render(); }
-    if (!/[A-Za-z0-9]/.test(f.nombre)) { S.catErr.veh = 'El nombre necesita letras o números.'; return render(); }
-    run('aveh', () => Svc.addVeh(f), () => { S.catForm.veh = {nombre: '', tipo: 'truck', chofer: ''}; return 'Vehículo agregado.'; });
-  },
-  delVeh: el => { const m = (window.prompt('¿Por qué quitas este vehículo? (motivo corto)', '') || '').trim(); if (m.length < 3) return toast('Escribe un motivo corto para quitarlo.'); run('dveh', () => Svc.delVeh(el.dataset.id, m), 'Vehículo quitado.'); },
   /* datos: ejemplo / limpio (doble confirmación) */
   datosPaso: el => { if (S.rol !== 'dueno') return; S.datosAct = el.dataset.v; S.datosStep = 1; S.datosConf = ''; S.datosMsg = ''; render(); },
   datosSig: () => { S.datosStep = 2; S.datosConf = ''; render(); const i = $('#dat-conf'); i && i.focus(); },
@@ -10138,6 +10117,21 @@ const flCargaTxt = v => {
   return 'Sin carga anotada';
 };
 window.flTxt = {donde: flDondeTxt, desde: flDesdeTxt, carga: flCargaTxt};
+/* Lista nueva para otras pantallas (Despachos y notas de entrega): se carga una vez por puesto y se vuelve a pedir tras cada cambio */
+function flAsegura() {
+  if (FL.rol !== S.rol) { FL.rol = S.rol; FL.lista = null; FL.error = ''; }
+  if (!FL.lista && window.__EM_HTTP) flCargar();
+  return FL.lista;
+}
+window.flListo = () => !!FL.lista;
+window.flActivos = () => (flAsegura() || []).filter(v => v.estado === 'ACTIVO').map(v => ({placa: v.placa, chofer: v.chofer_nombre || ''}));
+window.flTarjetas = () => {
+  const L = flAsegura();
+  if (!window.__EM_HTTP) return '';
+  if (!L) return `<div class="fleet"><p class="muted">Cargando vehículos…</p></div>`;
+  if (!L.length) return '<div class="fleet" style="display:block">' + card('', emptyState(FL.error ? 'No se pudo leer la flota' : 'Todavía no hay vehículos', FL.error || (flPuede() ? 'Agrega el primero para poder usarlo al despachar.' : 'Gerencia o Administración los cargan.')) + (flPuede() && !FL.error ? '<div class="btnrow"><button type="button" class="btn pri" data-act="flNuevo">Agregar vehículo</button></div>' : '')) + '</div>';
+  return `<div class="fleet">${L.map(v => `<div class="veh">${ic(v.tipo === 'AUTOBUS' ? 'bus' : 'truck', 30)}<div><p><b>${prT(v.placa)}</b>${v.marca_modelo ? ' · ' + prT(v.marca_modelo) : ''}</p><p class="muted" style="font-size:13px">${v.chofer_nombre ? 'Chofer ' + prT(v.chofer_nombre) + ' · ' : ''}${prT(flDondeTxt(v))}</p><p style="margin-top:6px"><span class="chip ${v.estado === 'ACTIVO' ? 'c-ok' : 'c-warn'}">${prT(v.estado_txt)}</span></p></div></div>`).join('')}</div>`;
+};
 const flAv = v => (v.avisos || []).map(a => `<span class="chip c-warn">${prT(a.texto)}</span>`).join(' ');
 function flCargar() {
   if (FL.cargando) return; FL.cargando = true;
@@ -10733,7 +10727,7 @@ const PANT = [
     ['Ventas (solo ver)', [['v-pedido', 'Pedidos'], ['v-clientes', 'Clientes'], ['c-pedidos', 'Pedidos de clientes'], ['ventas', 'Registro de ventas']]],
     ['Precios', [['p-precios', 'Precios por lista'], ['p-clientes', 'Precios por cliente'], ['e-ajustes', 'Descuentos y mora'], ['p-estado', 'Mis cambios']]],
     ['Bancos', [['p-bancos', 'Bancos de la empresa']]],
-    ['Flota', [['fl-flota', 'Vehículos'], ['catprod', 'Anterior (solo consulta)']]],
+    ['Flota', [['fl-flota', 'Vehículos']]],
     ['Bonos', [['rh-turnos', 'Turnos y bonos'], ['rh-params', 'Parámetros de turnos y bonos']]],
     ['Sistema', [['manual', 'Manual', 'h'], ['roles', 'Quién ve qué'], ['datos', 'Datos'], ['mis-solic', 'Mis solicitudes', 'h'], ['ayuda', 'Ayuda', 'h']]]]},
   {k: 'prod', t: 'Producción', ic: 'flame', roles: ['produccion'], lead: 'Recibir, producir y cerrar el turno', grupos: [
@@ -10743,7 +10737,7 @@ const PANT = [
     ['Más', [['catprod', 'Equipo'], ['manual', 'Manual', 'h'], ['mis-solic', 'Mis solicitudes', 'h'], ['ayuda', 'Ayuda', 'h']]]]},
   {k: 'vent', t: 'Ventas', ic: 'cart', roles: ['ventas'], lead: 'Vender, clientes y catálogo', grupos: [['Ventas', [['v-pedido', 'Hacer una venta'], ['pr-invv', 'Inventario disponible'], ['c-pedidos', 'Pedidos'], ['v-clientes', 'Clientes y catálogo'], ['clientes', 'Lista de clientes'], ['c-ficha', 'Enlace del portal'], ['v-deuda', 'Quién debe'], ['v-pagos', 'Cobros hechos'], ['ventas', 'Registro de ventas'], ['mis-solic', 'Mis solicitudes', 'h'], ['ayuda', 'Ayuda', 'h']]]]},
   {k: 'log', t: 'Logística', ic: 'truck', roles: ['empaque'], lead: 'Empacar, armar zonas y despachar', grupos: [
-    ['Despacho', [['em-tablero', 'Zonas'], ['pr-zonas', 'Pedidos por zona'], ['despachos', 'Despachos'], ['e-entregas', 'Entregas con foto'], ['fl-desp', 'Vehículos'], ['catprod', 'Anterior (solo consulta)']]],
+    ['Despacho', [['em-tablero', 'Zonas'], ['pr-zonas', 'Pedidos por zona'], ['despachos', 'Despachos'], ['e-entregas', 'Entregas con foto'], ['fl-desp', 'Vehículos']]],
     ['Empaque', [['lg-empacar', 'Empacar por turno'], ['empaque', 'Empaque y stock'], ['alm-logistica', 'Bultos y etiquetas'], ['pr-dif', 'Diferencias']]],
     ['Existencias', [['alm-pt', 'Producto terminado'], ['pr-inv', 'Inventario terminado'], ['inventario', 'Inventario'], ['mermas', 'Mermas']]],
     ['Más', [['manual', 'Manual', 'h'], ['mis-solic', 'Mis solicitudes', 'h'], ['ayuda', 'Ayuda', 'h']]]]},
@@ -10888,13 +10882,13 @@ function gVehiculos() {
   const V = GER.veh, T = window.flTxt || {}, orden = {RUTA: 0, PLANTA: 1, TALLER: 2, FUERA_SERVICIO: 3};
   let cuerpo;
   if (!Array.isArray(V)) cuerpo = '<p class="gr-meta">' + (GER.est === 'ok' ? 'Sin datos' : '…') + '</p>';
-  else if (!V.length) cuerpo = '<p class="gr-meta">Sin vehículos cargados</p>';
+  else if (!V.length) cuerpo = '<p class="gr-meta">Todavía no hay vehículos</p>' + (S.rol === 'dueno' || S.rol === 'adm' ? '<a class="btn pri gr-btn" href="#fl-flota">Agregar vehículo</a>' : '');
   else {
     const L = V.slice().sort((a, b) => (orden[a.donde] - orden[b.donde]) || String(a.placa).localeCompare(String(b.placa)));
     cuerpo = '<ul class="gr-vl">' + L.slice(0, 4).map(v => '<li class="d-' + v.donde + '"><p class="gr-vn"><b>' + esc(v.marca_modelo || v.placa) + '</b><span>' + esc(v.placa) + '</span></p><p class="gr-vd"><b>' + esc(T.donde ? T.donde(v) : v.donde_txt) + '</b><span>' + esc(T.desde ? T.desde(v) : '') + '</span></p><p class="gr-vc">' + esc(T.carga ? T.carga(v) : '') + '</p></li>').join('') + '</ul>' +
       (V.length > 4 && gVa('fl-flota') ? '<a class="lnk gr-vall" href="#fl-flota">Ver todos (' + V.length + ')</a>' : '');
   }
-  return '<article class="card gr-card gr-veh"><div class="card-b"><h2>Vehículos</h2>' + cuerpo + (gVa('fl-flota') ? '<a class="btn pri gr-btn" href="#fl-flota">Ver detalle</a>' : '') + '</div></article>';
+  return '<article class="card gr-card gr-veh"><div class="card-b"><h2>Vehículos</h2>' + cuerpo + (gVa('fl-flota') && Array.isArray(V) && V.length ? '<a class="btn pri gr-btn" href="#fl-flota">Ver detalle</a>' : '') + '</div></article>';
 }
 const GR_ICO = '<svg class="gr-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l10 18H2z" fill="#F2B72E" stroke="#C92121" stroke-width="2" stroke-linejoin="round"/><path d="M12 10v5M12 17.5v.5" stroke="#C92121" stroke-width="2" stroke-linecap="round"/></svg>';
 function gAlertas() {
@@ -11205,9 +11199,9 @@ UNI.push({p: 'adm', n: 'Cobranza', siempre: true, m: [['v-deuda', 'Quién debe']
 UNI.push({p: 'nom', n: 'Personal', cab: k => (window.hpCabUni ? window.hpCabUni(k) : ''), m: [['rh-planta', 'En planta hoy'], ['personal', 'Personas'], ['asistencia', 'Asistencia'], ['rh-turnos', 'Turnos y bonos', ['turnos']], ['rh-params', 'Parámetros'],
   ['rh-pagar', 'Pagar nómina'], ['prestamos', 'Préstamos'], ['nomina', 'Nómina anterior (solo consulta)']]},
   {p: 'adm', n: 'Bonos', siempre: true, m: [['rh-turnos', 'Turnos y bonos', ['turnos']], ['rh-params', 'Parámetros']]});
-/* Vehículos: la lista nueva (alta y cambios en Administración, ubicación en Despacho) y la lista vieja de Equipo solo para consultar */
-UNI.push({p: 'adm', n: 'Vehículos', siempre: true, m: [['fl-flota', 'Vehículos'], ['catprod', 'Anterior (solo consulta)', [], () => '<span class="un-et">Sistema anterior</span>' + flotaAnteriorCard()]]},
-         {p: 'log', n: 'Vehículos', siempre: true, m: [['fl-desp', 'Vehículos'], ['catprod', 'Anterior (solo consulta)', [], () => '<span class="un-et">Sistema anterior</span>' + flotaAnteriorCard()]]});
+/* Vehículos: la lista nueva (alta y cambios en Administración, ubicación en Despacho)  */
+UNI.push({p: 'adm', n: 'Vehículos', siempre: true, m: [['fl-flota', 'Vehículos']]},
+         {p: 'log', n: 'Vehículos', siempre: true, m: [['fl-desp', 'Vehículos']]});
 /* una pestaña solo aparece si el puesto la veía antes en esa misma pantalla (o por Funciones extra) */
 const VE_PROC = ['dueno', 'produccion']; /* el servidor solo entrega «En proceso (kilos)» a estos puestos: a los demás ni se muestra ni se pide */
 const uniVe = c => { if (!can(c) || (c === 'pr-proc' && !VE_PROC.includes(S.rol))) return false; const p = pantActual(); return !p || planas(p, S.rol).includes(c) || extrasDe(S.rol).includes(c); };
