@@ -13,3 +13,5 @@
 .p-tabs{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0}
 .p-est{max-height:58vh;overflow:auto}.p-est td,.p-est th{padding:3px 8px}.p-est select{font-size:14px;min-height:34px}
 .p-listas td.p-cel{padding:1px 4px}.p-cbtn{padding-top:1px;padding-bottom:1px;min-height:32px}
+
+.hint .chip{white-space:normal;max-width:100%}

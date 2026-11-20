@@ -6,13 +6,13 @@ Sistema local http://localhost:8799 · Datos de prueba con prefijo "UATB-". Solo
 
 Totales (conté cada prueba numerada de abajo; las observaciones sin número no se cuentan):
 - Pasó: 25 (incluye 4 "pasó con detalle")
-- Falló: 5 (2.3 kg negativos aceptados; 1.6 datos sin rol en /api/all y /api/batch; 5.3 pedido del portal da "Error interno"; 5.4 reporte de pago del portal da "Error interno"; 2.6 mensaje "+0 unidades" mal)
+- Falló: 5 (2.3 kg negativos aceptados; 1.6 datos sin rol en /api/all y /api/batch (corregido el 20/11/2026); 5.3 pedido del portal da "Error interno"; 5.4 reporte de pago del portal da "Error interno"; 2.6 mensaje "+0 unidades" mal)
 - No probado: 4 (tramo de 21 días y vencimiento de entrega; enlace vencido por fecha; pedido "por confirmar" y su aprobación; pago "por verificar" exitoso — los dos últimos por el error 500)
 - No existe aún: 9 (tarjetas por zona, kilos por zona, meta 15 t, semáforo, despachar antes de 15 t, pausar zona, dividir pedido, rol Producción con cierre de turno y etapas lavado/fritado por kilos, enlace entre inventario producido y vendible)
 
 Lo más importante (gravedad alta):
 1. Portal del cliente: enviar un pedido y reportar un pago fallan con "Error interno" (D1_ERROR: Wrong number of parameter bindings; archivo cloudflare/src/cliente/repo.js, líneas 22 y 37). El cliente no puede pedir ni avisar pagos.
-2. /api/all y /api/batch no piden puesto: cualquiera que llegue al sitio lee (y escribe) datos de planta, incluidos empleados con cédula y tarifa de pago.
+2. CORREGIDO el 20/11/2026: /api/all y /api/batch ahora piden puesto y revisan el permiso de cada colección; cada puesto solo recibe los datos que su pantalla necesita (empleados sin cédula, teléfono ni tarifa salvo Gerencia y Recursos humanos). Pendiente: el puesto aún viaja sin clave (login con claves pausado).
 Gravedad media: kg facturados negativos se guardan en Recepción; el inventario que sube Producción no es el que ven Ventas ni el portal; tablas de Despachos en móvil con botones fuera de la vista; "Ventas hechas" de Gerencia cuenta dos veces las notas ya facturadas (a confirmar si es la regla).
 Cosas que sí funcionaron bien: menús por puesto, doble clic sin duplicados, cierre de lote y empaque suben el stock de Producción, comprimir foto (1,0 MB a 99 KB), temporizador de 7 días, disputa "No recibí esto" (pausa el plazo), aislamiento entre clientes, enlaces inválidos/revocados, límite de intentos, cifras de Gerencia coinciden con los datos, portal sin desborde en los 4 tamaños.
 
@@ -163,7 +163,7 @@ Preparé dos clientes de prueba (UATB-Cliente 1 = id 33, UATB-Cliente 2 = id 34)
 ### 1.6 Datos de otro puesto sin identificarse (API vieja de planta)
 - Qué hice: GET /api/all sin ningún rol y con rol Recepción/Jefe/Empaque; POST /api/batch sin rol con lista vacía.
 - Qué pasó: /api/all devuelve todo sin pedir rol, incluidas colecciones de empleados (cédula, teléfono, tarifa de pago), pagos, caja chica, préstamos, clientes, auditoría. /api/batch acepta escrituras sin rol (respondió ok con 0 operaciones). Las rutas nuevas /api/v/ sí exigen rol y verifican permisos. La pantalla avisa que elegir puesto "no es seguridad".
-- Resultado: falló frente a "cada puesto solo ve lo suyo" (a nivel de datos). Gravedad ALTA si va a internet (aquí es local y está advertido en la pantalla de inicio).
+- Resultado: falló frente a "cada puesto solo ve lo suyo" (a nivel de datos). CORREGIDO el 20/11/2026: el servidor ahora pide puesto y permiso por colección. Queda como límite conocido que el puesto aún no se comprueba con clave.
 - Repetir: curl localhost:8799/api/all (sin cabeceras).
 
 ## Sección 7. Errores humanos (resumen de lo probado)

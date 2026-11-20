@@ -1,0 +1,83 @@
+{
+ "empleados": [
+  "E09",
+  "ZZ1",
+  "ZZ2",
+  "TP01",
+  "TP02",
+  "TP03",
+  "TP04",
+  "TP05",
+  "TP06",
+  "TP07",
+  "TP08",
+  "TP09",
+  "TP10",
+  "TP11",
+  "TP12",
+  "TP13",
+  "TP14",
+  "TP15",
+  "TP16",
+  "TP17",
+  "TP18",
+  "TP19",
+  "TP20",
+  "TP21"
+ ],
+ "clientes": {
+  "9": null,
+  "10": null,
+  "11": null,
+  "12": null,
+  "13": null,
+  "16": null
+ },
+ "precios": [
+  [
+   1,
+   "Mayorista"
+  ],
+  [
+   1,
+   "Gran Mayor"
+  ],
+  [
+   2,
+   "Minorista"
+  ],
+  [
+   2,
+   "Mayorista"
+  ],
+  [
+   2,
+   "Gran Mayor"
+  ],
+  [
+   3,
+   "Minorista"
+  ],
+  [
+   3,
+   "Mayorista"
+  ],
+  [
+   3,
+   "Gran Mayor"
+  ],
+  [
+   56,
+   "Minorista"
+  ],
+  [
+   56,
+   "Mayorista"
+  ],
+  [
+   56,
+   "Gran Mayor"
+  ]
+ ],
+ "turno_marcado": "Nocturno"
+}

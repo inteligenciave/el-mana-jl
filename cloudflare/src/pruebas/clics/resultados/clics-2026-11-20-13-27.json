@@ -1,0 +1,2193 @@
+{
+ "meta": {
+  "fecha": "2026-11-20T13:27:44.980Z",
+  "url": "http://localhost:8811",
+  "vista": "1366x768",
+  "tareas": 30
+ },
+ "resultados": [
+  {
+   "id": "adm-hacer-compra",
+   "nombre": "Hacer una compra (pedido a proveedor)",
+   "puesto": "adm",
+   "frecuencia": "diaria",
+   "pasos": 7,
+   "ideal": {
+    "clics": 4,
+    "teclas": 3,
+    "desglose": "1 entrar al puesto + 1 abrir la tarea + 1 elecciones + 1 confirmar"
+   },
+   "estado": "ok",
+   "nota": "",
+   "real": {
+    "clics": 7,
+    "teclas": 8,
+    "campos": 2,
+    "pantallas": 2,
+    "ventanas": 0,
+    "desplazamientos": 0,
+    "listas": 0,
+    "archivos": 0,
+    "focos": 3,
+    "reintentos": 0
+   },
+   "exceso": 3,
+   "bitacora": [
+    {
+     "paso": "{\"clic\":\"Nueva compra\"}",
+     "clics": 1,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 1,
+     "ventanas": 0,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"clic\":\"Agrícola Páramo\"}",
+     "clics": 1,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"escribe\":[{\"css\":\"#main input[type=text]\"},\"10\"]}",
+     "clics": 1,
+     "teclas": 2,
+     "campos": 1,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"escribe\":[{\"css\":\"#main input[type=text]\",\"nth\":1},\"5\"]}",
+     "clics": 1,
+     "teclas": 1,
+     "campos": 1,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"escribe\":[\"Nº de factura\",\"F-001\"]}",
+     "clics": 1,
+     "teclas": 5,
+     "campos": 0,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"clic\":\"HACER LA COMPRA\"}",
+     "clics": 1,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"aviso\":\"hecha\"}",
+     "clics": 0,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 0
+    }
+   ],
+   "hitos": [],
+   "avisos": [
+    "ok|Compra CP-00020 hecha: queda pedida a Agrícola Páramo (ejemplo) y Producción la recibe cuando llegue."
+   ]
+  },
+  {
+   "id": "adm-pagar-proveedor",
+   "nombre": "Pagar una factura a un proveedor",
+   "puesto": "adm",
+   "frecuencia": "diaria",
+   "pasos": 4,
+   "ideal": {
+    "clics": 4,
+    "teclas": 0,
+    "desglose": "1 entrar al puesto + 1 abrir la tarea + 1 elecciones + 1 confirmar"
+   },
+   "estado": "ok",
+   "nota": "",
+   "real": {
+    "clics": 4,
+    "teclas": 0,
+    "campos": 0,
+    "pantallas": 2,
+    "ventanas": 1,
+    "desplazamientos": 1,
+    "listas": 0,
+    "archivos": 0,
+    "focos": 0,
+    "reintentos": 0
+   },
+   "exceso": 0,
+   "bitacora": [
+    {
+     "paso": "{\"clic\":\"#ptBtn\"}",
+     "clics": 1,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 0,
+     "ventanas": 1,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"clic\":{\"css\":\"#ptPan .pt-op[href=\\\"#cxp\\\"]\"}}",
+     "clics": 1,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 1,
+     "ventanas": 0,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"clic\":{\"css\":\"[data-act=pagar]\"}}",
+     "clics": 1,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 1
+    },
+    {
+     "paso": "{\"aviso\":\"registrado\"}",
+     "clics": 0,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 0
+    }
+   ],
+   "hitos": [],
+   "avisos": [
+    "ok|Pago de $ 1.890,00 registrado a Aceites del Centro (ejemplo)."
+   ]
+  },
+  {
+   "id": "adm-gasto-caja",
+   "nombre": "Anotar un gasto de caja chica",
+   "puesto": "adm",
+   "frecuencia": "diaria",
+   "pasos": 8,
+   "ideal": {
+    "clics": 4,
+    "teclas": 8,
+    "desglose": "1 entrar al puesto + 1 abrir la tarea + 1 elecciones + 1 confirmar"
+   },
+   "estado": "fallo",
+   "nota": "",
+   "error": "No encontré en pantalla: «Registrar gasto»",
+   "real": {
+    "clics": 9,
+    "teclas": 44,
+    "campos": 5,
+    "pantallas": 3,
+    "ventanas": 1,
+    "desplazamientos": 1,
+    "listas": 0,
+    "archivos": 0,
+    "focos": 5,
+    "reintentos": 0
+   },
+   "exceso": 5,
+   "bitacora": [
+    {
+     "paso": "{\"clic\":\"#ptBtn\"}",
+     "clics": 1,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 0,
+     "ventanas": 1,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"clic\":{\"css\":\"#ptPan .pt-op[href=\\\"#cxp\\\"]\"}}",
+     "clics": 1,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 1,
+     "ventanas": 0,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"clic\":\"Caja chica\"}",
+     "clics": 1,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 1,
+     "ventanas": 0,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"escribe\":[{\"css\":\"#cc-num\"},\"G-1\"]}",
+     "clics": 1,
+     "teclas": 3,
+     "campos": 1,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 1
+    },
+    {
+     "paso": "{\"escribe\":[{\"css\":\"#cc-prov\"},\"Ferretería\"]}",
+     "clics": 1,
+     "teclas": 9,
+     "campos": 1,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"escribe\":[{\"css\":\"#cc-rif\"},\"J-123456789\"]}",
+     "clics": 1,
+     "teclas": 11,
+     "campos": 1,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"escribe\":[{\"css\":\"#cc-monto\"},\"15\"]}",
+     "clics": 1,
+     "teclas": 2,
+     "campos": 1,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"escribe\":[{\"css\":\"#cc-just\"},\"Compra de repuestos\"]}",
+     "clics": 1,
+     "teclas": 19,
+     "campos": 1,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 0
+    }
+   ],
+   "hitos": [],
+   "avisos": []
+  },
+  {
+   "id": "adm-cobrar-cliente",
+   "nombre": "Registrar el cobro a un cliente",
+   "puesto": "adm",
+   "frecuencia": "diaria",
+   "pasos": 9,
+   "ideal": {
+    "clics": 6,
+    "teclas": 11,
+    "desglose": "1 entrar al puesto + 1 abrir la tarea + 3 elecciones + 1 confirmar"
+   },
+   "estado": "ok",
+   "nota": "",
+   "real": {
+    "clics": 10,
+    "teclas": 11,
+    "campos": 2,
+    "pantallas": 3,
+    "ventanas": 0,
+    "desplazamientos": 1,
+    "listas": 1,
+    "archivos": 0,
+    "focos": 2,
+    "reintentos": 0
+   },
+   "exceso": 4,
+   "bitacora": [
+    {
+     "paso": "{\"clic\":\"Cobranza\"}",
+     "clics": 1,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 1,
+     "ventanas": 0,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"clic\":\"Registrar cobro\"}",
+     "clics": 1,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 1,
+     "ventanas": 0,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"clic\":\"Abasto El Puente\"}",
+     "clics": 1,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"clic\":\"Todo\",\"nth\":0}",
+     "clics": 1,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"escribe\":[\"Monto recibido\",\"52500\"]}",
+     "clics": 1,
+     "teclas": 5,
+     "campos": 1,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"elige\":[\"Banco\",\"Banesco\"]}",
+     "clics": 2,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"escribe\":[\"Número de referencia\",\"123456\"]}",
+     "clics": 1,
+     "teclas": 6,
+     "campos": 1,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"clic\":\"Registrar pago\"}",
+     "clics": 1,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 1
+    },
+    {
+     "paso": "{\"aviso\":\"pago\"}",
+     "clics": 0,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 0
+    }
+   ],
+   "hitos": [],
+   "avisos": [
+    "ok|Pago RC-00037 registrado: $ 57,14."
+   ]
+  },
+  {
+   "id": "adm-pedir-cambio-precio",
+   "nombre": "Pedir un cambio de precio (para aprobar)",
+   "puesto": "adm",
+   "frecuencia": "semanal",
+   "pasos": 6,
+   "ideal": {
+    "clics": 4,
+    "teclas": 2,
+    "desglose": "1 entrar al puesto + 1 abrir la tarea + 1 elecciones + 1 confirmar"
+   },
+   "estado": "ok",
+   "nota": "",
+   "real": {
+    "clics": 5,
+    "teclas": 2,
+    "campos": 1,
+    "pantallas": 2,
+    "ventanas": 2,
+    "desplazamientos": 0,
+    "listas": 0,
+    "archivos": 0,
+    "focos": 0,
+    "reintentos": 0
+   },
+   "exceso": 1,
+   "bitacora": [
+    {
+     "paso": "{\"clic\":\"#ptBtn\"}",
+     "clics": 1,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 0,
+     "ventanas": 1,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"clic\":{\"css\":\"#ptPan .pt-op[href=\\\"#p-precios\\\"]\"}}",
+     "clics": 1,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 1,
+     "ventanas": 0,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"clic\":{\"css\":\"[data-act=pEditar]\"}}",
+     "clics": 1,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 0,
+     "ventanas": 1,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"escribe\":[{\"css\":\"#p-nuevo\"},\"13\"]}",
+     "clics": 0,
+     "teclas": 2,
+     "campos": 1,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"clic\":\"Enviar para aprobar\"}",
+     "clics": 1,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"aviso\":\"enviado\"}",
+     "clics": 0,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 0
+    }
+   ],
+   "hitos": [],
+   "avisos": [
+    "ok|Cambio de precio enviado al Gerente para aprobar. Mientras tanto sigue vigente el precio anterior."
+   ]
+  },
+  {
+   "id": "adm-vehiculo-nuevo",
+   "nombre": "Agregar un vehículo a la flota",
+   "puesto": "adm",
+   "frecuencia": "ocasional",
+   "pasos": 7,
+   "ideal": {
+    "clics": 4,
+    "teclas": 8,
+    "desglose": "1 entrar al puesto + 1 abrir la tarea + 1 elecciones + 1 confirmar"
+   },
+   "estado": "ok",
+   "nota": "",
+   "real": {
+    "clics": 6,
+    "teclas": 11,
+    "campos": 2,
+    "pantallas": 2,
+    "ventanas": 2,
+    "desplazamientos": 1,
+    "listas": 0,
+    "archivos": 0,
+    "focos": 1,
+    "reintentos": 0
+   },
+   "exceso": 2,
+   "bitacora": [
+    {
+     "paso": "{\"clic\":\"#ptBtn\"}",
+     "clics": 1,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 0,
+     "ventanas": 1,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"clic\":{\"css\":\"#ptPan .pt-op[href=\\\"#fl-flota\\\"]\"}}",
+     "clics": 1,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 1,
+     "ventanas": 0,
+     "scrolls": 1
+    },
+    {
+     "paso": "{\"clic\":\"Agregar vehículo\"}",
+     "clics": 1,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 0,
+     "ventanas": 1,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"escribe\":[{\"css\":\"#fl-placa\"},\"AB123CD\"]}",
+     "clics": 0,
+     "teclas": 7,
+     "campos": 1,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"escribe\":[{\"css\":\"#fl-marca\"},\"Ford\"]}",
+     "clics": 1,
+     "teclas": 4,
+     "campos": 1,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"clic\":\"Guardar\"}",
+     "clics": 1,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"aviso\":\"Vehículo agregado\"}",
+     "clics": 0,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 0
+    }
+   ],
+   "hitos": [],
+   "avisos": [
+    "ok|Vehículo agregado."
+   ]
+  },
+  {
+   "id": "adm-bonos-aplicar",
+   "nombre": "Aplicar un bono",
+   "puesto": "adm",
+   "frecuencia": "semanal",
+   "pasos": 5,
+   "ideal": {
+    "clics": 4,
+    "teclas": 0,
+    "desglose": "1 entrar al puesto + 1 abrir la tarea + 1 elecciones + 1 confirmar"
+   },
+   "estado": "ok",
+   "nota": "",
+   "real": {
+    "clics": 5,
+    "teclas": 0,
+    "campos": 0,
+    "pantallas": 2,
+    "ventanas": 1,
+    "desplazamientos": 1,
+    "listas": 0,
+    "archivos": 0,
+    "focos": 0,
+    "reintentos": 0
+   },
+   "exceso": 1,
+   "bitacora": [
+    {
+     "paso": "{\"clic\":\"#ptBtn\"}",
+     "clics": 1,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 0,
+     "ventanas": 1,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"clic\":{\"css\":\"#ptPan .pt-op[href=\\\"#rh-bonos\\\"]\"}}",
+     "clics": 1,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 1,
+     "ventanas": 0,
+     "scrolls": 1
+    },
+    {
+     "paso": "{\"clic\":\"Bonos y metas\"}",
+     "clics": 1,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"clic\":\"Aplicar ahora\"}",
+     "clics": 1,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"aviso\":\"Bono aplicado\"}",
+     "clics": 0,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 0
+    }
+   ],
+   "hitos": [],
+   "avisos": [
+    "ok|Bono aplicado."
+   ]
+  },
+  {
+   "id": "ger-ver-resumen",
+   "nombre": "Ver el resumen del mes (ventas, compras, producción)",
+   "puesto": "dueno",
+   "frecuencia": "diaria",
+   "pasos": 1,
+   "ideal": {
+    "clics": 1,
+    "teclas": 0,
+    "desglose": "1 entrar al puesto + 0 abrir la tarea + 0 elecciones + 0 confirmar"
+   },
+   "estado": "ok",
+   "nota": "",
+   "real": {
+    "clics": 1,
+    "teclas": 0,
+    "campos": 0,
+    "pantallas": 1,
+    "ventanas": 0,
+    "desplazamientos": 0,
+    "listas": 0,
+    "archivos": 0,
+    "focos": 0,
+    "reintentos": 0
+   },
+   "exceso": 0,
+   "bitacora": [
+    {
+     "paso": "{\"ver\":\"Punto de equilibrio\"}",
+     "clics": 0,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 0
+    }
+   ],
+   "hitos": [],
+   "avisos": []
+  },
+  {
+   "id": "ger-aprobar-precio",
+   "nombre": "Aprobar un cambio de precio",
+   "puesto": "dueno",
+   "frecuencia": "diaria",
+   "pasos": 4,
+   "ideal": {
+    "clics": 3,
+    "teclas": 0,
+    "desglose": "1 entrar al puesto + 1 abrir la tarea + 0 elecciones + 1 confirmar"
+   },
+   "estado": "ok",
+   "nota": "",
+   "real": {
+    "clics": 4,
+    "teclas": 0,
+    "campos": 0,
+    "pantallas": 2,
+    "ventanas": 1,
+    "desplazamientos": 0,
+    "listas": 0,
+    "archivos": 0,
+    "focos": 0,
+    "reintentos": 0
+   },
+   "exceso": 1,
+   "bitacora": [
+    {
+     "paso": "{\"clic\":\"#ptBtn\"}",
+     "clics": 1,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 0,
+     "ventanas": 1,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"clic\":{\"css\":\"#ptPan .pt-op[href=\\\"#p-aprobar\\\"]\"}}",
+     "clics": 1,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 1,
+     "ventanas": 0,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"clic\":\"Aprobar\"}",
+     "clics": 1,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"aviso\":\"aprob\"}",
+     "clics": 0,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 0
+    }
+   ],
+   "hitos": [],
+   "avisos": [
+    "ok|Cambio aprobado: el precio nuevo ya rige."
+   ]
+  },
+  {
+   "id": "ger-fijar-meta",
+   "nombre": "Fijar la meta de ventas del mes",
+   "puesto": "dueno",
+   "frecuencia": "mensual",
+   "pasos": 4,
+   "ideal": {
+    "clics": 3,
+    "teclas": 6,
+    "desglose": "1 entrar al puesto + 1 abrir la tarea + 0 elecciones + 1 confirmar"
+   },
+   "estado": "ok",
+   "nota": "",
+   "real": {
+    "clics": 3,
+    "teclas": 6,
+    "campos": 1,
+    "pantallas": 1,
+    "ventanas": 1,
+    "desplazamientos": 0,
+    "listas": 0,
+    "archivos": 0,
+    "focos": 0,
+    "reintentos": 0
+   },
+   "exceso": 0,
+   "bitacora": [
+    {
+     "paso": "{\"clic\":\"Fijar meta\"}",
+     "clics": 1,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 0,
+     "ventanas": 1,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"escribe\":[{\"css\":\"#meta-v\"},\"250000\"]}",
+     "clics": 0,
+     "teclas": 6,
+     "campos": 1,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"clic\":\"Guardar meta\"}",
+     "clics": 1,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"aviso\":\"meta\"}",
+     "clics": 0,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 0
+    }
+   ],
+   "hitos": [],
+   "avisos": [
+    "ok|Meta guardada."
+   ]
+  },
+  {
+   "id": "ger-minimo-inventario",
+   "nombre": "Definir el mínimo de un insumo (inventario)",
+   "puesto": "dueno",
+   "frecuencia": "ocasional",
+   "pasos": 4,
+   "ideal": {
+    "clics": 3,
+    "teclas": 3,
+    "desglose": "1 entrar al puesto + 1 abrir la tarea + 0 elecciones + 1 confirmar"
+   },
+   "estado": "ok",
+   "nota": "",
+   "real": {
+    "clics": 3,
+    "teclas": 3,
+    "campos": 1,
+    "pantallas": 1,
+    "ventanas": 1,
+    "desplazamientos": 0,
+    "listas": 0,
+    "archivos": 0,
+    "focos": 0,
+    "reintentos": 0
+   },
+   "exceso": 0,
+   "bitacora": [
+    {
+     "paso": "{\"clic\":\"Definir mínimo\"}",
+     "clics": 1,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 0,
+     "ventanas": 1,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"escribe\":[{\"css\":\"#inv-min\"},\"500\"]}",
+     "clics": 0,
+     "teclas": 3,
+     "campos": 1,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"clic\":\"Guardar mínimo\"}",
+     "clics": 1,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"aviso\":\"mínimo\"}",
+     "clics": 0,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 0
+    }
+   ],
+   "hitos": [],
+   "avisos": [
+    "ok|Mínimo guardado."
+   ]
+  },
+  {
+   "id": "ger-agregar-banco",
+   "nombre": "Agregar una cuenta bancaria de la empresa",
+   "puesto": "dueno",
+   "frecuencia": "ocasional",
+   "pasos": 12,
+   "ideal": {
+    "clics": 4,
+    "teclas": 60,
+    "desglose": "1 entrar al puesto + 1 abrir la tarea + 1 elecciones + 1 confirmar"
+   },
+   "estado": "ok",
+   "nota": "",
+   "real": {
+    "clics": 11,
+    "teclas": 78,
+    "campos": 6,
+    "pantallas": 3,
+    "ventanas": 2,
+    "desplazamientos": 0,
+    "listas": 0,
+    "archivos": 0,
+    "focos": 5,
+    "reintentos": 0
+   },
+   "exceso": 7,
+   "bitacora": [
+    {
+     "paso": "{\"clic\":\"#ptBtn\"}",
+     "clics": 1,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 0,
+     "ventanas": 1,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"clic\":{\"css\":\"#ptPan .pt-op[href=\\\"#politicas\\\"]\"}}",
+     "clics": 1,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 1,
+     "ventanas": 0,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"clic\":\"Bancos\"}",
+     "clics": 1,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 1,
+     "ventanas": 0,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"clic\":\"Agregar banco\"}",
+     "clics": 1,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 0,
+     "ventanas": 1,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"escribe\":[{\"css\":\"#bk-n\"},\"Banco Prueba\"]}",
+     "clics": 0,
+     "teclas": 12,
+     "campos": 1,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"escribe\":[{\"css\":\"#bk-c\"},\"01020000000000000001\"]}",
+     "clics": 1,
+     "teclas": 20,
+     "campos": 1,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"escribe\":[{\"css\":\"#bk-t\"},\"Empresa Prueba\"]}",
+     "clics": 1,
+     "teclas": 14,
+     "campos": 1,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"escribe\":[{\"css\":\"#bk-tel\"},\"04141234567\"]}",
+     "clics": 1,
+     "teclas": 11,
+     "campos": 1,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"escribe\":[{\"css\":\"#bk-ced\"},\"V-12345678\"]}",
+     "clics": 1,
+     "teclas": 10,
+     "campos": 1,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"escribe\":[{\"css\":\"#bk-rif\"},\"J-123456789\"]}",
+     "clics": 1,
+     "teclas": 11,
+     "campos": 1,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"clic\":\"Guardar\"}",
+     "clics": 1,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"aviso\":\"banco\"}",
+     "clics": 0,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 0
+    }
+   ],
+   "hitos": [],
+   "avisos": [
+    "ok|Banco agregado."
+   ]
+  },
+  {
+   "id": "ger-aprobar-solicitud",
+   "nombre": "Responder una solicitud de autorización de un puesto",
+   "puesto": "dueno",
+   "frecuencia": "semanal",
+   "pasos": 1,
+   "ideal": {
+    "clics": 3,
+    "teclas": 0,
+    "desglose": "1 entrar al puesto + 1 abrir la tarea + 0 elecciones + 1 confirmar"
+   },
+   "estado": "fallo",
+   "nota": "",
+   "error": "No se ve «§§» (la tarea no terminó)",
+   "real": {
+    "clics": 2,
+    "teclas": 0,
+    "campos": 0,
+    "pantallas": 2,
+    "ventanas": 0,
+    "desplazamientos": 0,
+    "listas": 0,
+    "archivos": 0,
+    "focos": 0,
+    "reintentos": 0
+   },
+   "exceso": -1,
+   "bitacora": [
+    {
+     "paso": "{\"clic\":\"Solicitudes\"}",
+     "clics": 1,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 1,
+     "ventanas": 0,
+     "scrolls": 0
+    }
+   ],
+   "hitos": [],
+   "avisos": []
+  },
+  {
+   "id": "ger-ver-auditoria",
+   "nombre": "Revisar la auditoría (quién hizo qué)",
+   "puesto": "dueno",
+   "frecuencia": "semanal",
+   "pasos": 3,
+   "ideal": {
+    "clics": 2,
+    "teclas": 0,
+    "desglose": "1 entrar al puesto + 1 abrir la tarea + 0 elecciones + 0 confirmar"
+   },
+   "estado": "ok",
+   "nota": "",
+   "real": {
+    "clics": 3,
+    "teclas": 0,
+    "campos": 0,
+    "pantallas": 2,
+    "ventanas": 1,
+    "desplazamientos": 0,
+    "listas": 0,
+    "archivos": 0,
+    "focos": 0,
+    "reintentos": 0
+   },
+   "exceso": 1,
+   "bitacora": [
+    {
+     "paso": "{\"clic\":\"#ptBtn\"}",
+     "clics": 1,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 0,
+     "ventanas": 1,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"clic\":{\"css\":\"#ptPan .pt-op[href=\\\"#g-audit\\\"]\"}}",
+     "clics": 1,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 1,
+     "ventanas": 0,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"ver\":\"uditor\"}",
+     "clics": 0,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 0
+    }
+   ],
+   "hitos": [],
+   "avisos": []
+  },
+  {
+   "id": "ger-cambiar-puesto",
+   "nombre": "Pasar a mirar otro puesto (ej. Producción)",
+   "puesto": "dueno",
+   "frecuencia": "diaria",
+   "pasos": 2,
+   "ideal": {
+    "clics": 2,
+    "teclas": 0,
+    "desglose": "1 entrar al puesto + 1 abrir la tarea + 0 elecciones + 0 confirmar"
+   },
+   "estado": "ok",
+   "nota": "",
+   "real": {
+    "clics": 2,
+    "teclas": 0,
+    "campos": 0,
+    "pantallas": 2,
+    "ventanas": 0,
+    "desplazamientos": 0,
+    "listas": 0,
+    "archivos": 0,
+    "focos": 0,
+    "reintentos": 0
+   },
+   "exceso": 0,
+   "bitacora": [
+    {
+     "paso": "{\"clic\":{\"css\":\"#side a[href=\\\"#pr-turno\\\"]\"}}",
+     "clics": 1,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 1,
+     "ventanas": 0,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"ver\":\"Producir\"}",
+     "clics": 0,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 0
+    }
+   ],
+   "hitos": [],
+   "avisos": []
+  },
+  {
+   "id": "prod-recibir-compra",
+   "nombre": "Recibir una compra de papa (sacos y 5 de muestra)",
+   "puesto": "produccion",
+   "frecuencia": "diaria",
+   "pasos": 9,
+   "ideal": {
+    "clics": 4,
+    "teclas": 12,
+    "desglose": "1 entrar al puesto + 1 abrir la tarea + 1 elecciones + 1 confirmar"
+   },
+   "estado": "ok",
+   "nota": "",
+   "real": {
+    "clics": 10,
+    "teclas": 12,
+    "campos": 6,
+    "pantallas": 2,
+    "ventanas": 0,
+    "desplazamientos": 0,
+    "listas": 0,
+    "archivos": 0,
+    "focos": 6,
+    "reintentos": 0
+   },
+   "exceso": 6,
+   "bitacora": [
+    {
+     "paso": "{\"clic\":\"Recibir\"}",
+     "clics": 1,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 1,
+     "ventanas": 0,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"clic\":{\"css\":\"[data-act=crElegir]\"}}",
+     "clics": 1,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"escribe\":[{\"css\":\"#main input[type=text]\"},\"10\"]}",
+     "clics": 1,
+     "teclas": 2,
+     "campos": 1,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"escribe\":[\"Saco 1\",\"43\"]}",
+     "clics": 1,
+     "teclas": 2,
+     "campos": 1,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"escribe\":[\"Saco 2\",\"43\"]}",
+     "clics": 1,
+     "teclas": 2,
+     "campos": 1,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"escribe\":[\"Saco 3\",\"43\"]}",
+     "clics": 1,
+     "teclas": 2,
+     "campos": 1,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"escribe\":[\"Saco 4\",\"43\"]}",
+     "clics": 1,
+     "teclas": 2,
+     "campos": 1,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"escribe\":[\"Saco 5\",\"43\"]}",
+     "clics": 1,
+     "teclas": 2,
+     "campos": 1,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"clicHasta\":\"RECIBIR\",\"aviso\":\"recibida\"}",
+     "clics": 1,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 0
+    }
+   ],
+   "hitos": [],
+   "avisos": [
+    "ok|Compra CP-00020 recibida. La compra quedó lista y se anotó lo que se debe al proveedor."
+   ]
+  },
+  {
+   "id": "prod-turno-completo",
+   "nombre": "Turno de producción completo (abrir, tomar papa, etapas, merma y cerrar)",
+   "puesto": "produccion",
+   "frecuencia": "diaria",
+   "pasos": 0,
+   "ideal": {
+    "clics": 6,
+    "teclas": 5,
+    "desglose": "1 entrar al puesto + 0 abrir la tarea + 3 elecciones + 2 confirmar"
+   },
+   "estado": "fallo",
+   "nota": "",
+   "error": "No encontré en pantalla: «Abrir turno»",
+   "real": {
+    "clics": 1,
+    "teclas": 0,
+    "campos": 0,
+    "pantallas": 1,
+    "ventanas": 0,
+    "desplazamientos": 0,
+    "listas": 0,
+    "archivos": 0,
+    "focos": 0,
+    "reintentos": 0
+   },
+   "exceso": -5,
+   "bitacora": [],
+   "hitos": [],
+   "avisos": []
+  },
+  {
+   "id": "rrhh-marcar-entrada",
+   "nombre": "Marcar la entrada de una persona",
+   "puesto": "rrhh",
+   "frecuencia": "diaria",
+   "pasos": 2,
+   "ideal": {
+    "clics": 2,
+    "teclas": 0,
+    "desglose": "1 entrar al puesto + 0 abrir la tarea + 0 elecciones + 1 confirmar"
+   },
+   "estado": "ok",
+   "nota": "",
+   "real": {
+    "clics": 2,
+    "teclas": 0,
+    "campos": 0,
+    "pantallas": 1,
+    "ventanas": 0,
+    "desplazamientos": 0,
+    "listas": 0,
+    "archivos": 0,
+    "focos": 0,
+    "reintentos": 0
+   },
+   "exceso": 0,
+   "bitacora": [
+    {
+     "paso": "{\"clic\":{\"css\":\"[data-act=hpMarcar][data-t=entrada]\"}}",
+     "clics": 1,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"aviso\":\"entrada marcada\"}",
+     "clics": 0,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 0
+    }
+   ],
+   "hitos": [],
+   "avisos": [
+    "ok|Administrador Uno (prueba): entrada marcada a las 09:26."
+   ]
+  },
+  {
+   "id": "rrhh-marcar-grupo",
+   "nombre": "Marcar la entrada de todo el grupo",
+   "puesto": "rrhh",
+   "frecuencia": "diaria",
+   "pasos": 3,
+   "ideal": {
+    "clics": 3,
+    "teclas": 0,
+    "desglose": "1 entrar al puesto + 0 abrir la tarea + 1 elecciones + 1 confirmar"
+   },
+   "estado": "ok",
+   "nota": "",
+   "real": {
+    "clics": 3,
+    "teclas": 0,
+    "campos": 0,
+    "pantallas": 1,
+    "ventanas": 1,
+    "desplazamientos": 0,
+    "listas": 0,
+    "archivos": 0,
+    "focos": 0,
+    "reintentos": 0
+   },
+   "exceso": 0,
+   "bitacora": [
+    {
+     "paso": "{\"clic\":{\"css\":\"[data-act=hpGrupo]\"}}",
+     "clics": 1,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 0,
+     "ventanas": 1,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"clic\":\"Sí, marcar a\"}",
+     "clics": 1,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"aviso\":\"Entrada marcada a\"}",
+     "clics": 0,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 0
+    }
+   ],
+   "hitos": [],
+   "avisos": [
+    "ok|Entrada marcada a 2 personas del turno Nocturno."
+   ]
+  },
+  {
+   "id": "rrhh-ver-asistencia",
+   "nombre": "Ver la asistencia de la quincena",
+   "puesto": "rrhh",
+   "frecuencia": "semanal",
+   "pasos": 2,
+   "ideal": {
+    "clics": 2,
+    "teclas": 0,
+    "desglose": "1 entrar al puesto + 1 abrir la tarea + 0 elecciones + 0 confirmar"
+   },
+   "estado": "ok",
+   "nota": "",
+   "real": {
+    "clics": 2,
+    "teclas": 0,
+    "campos": 0,
+    "pantallas": 2,
+    "ventanas": 0,
+    "desplazamientos": 0,
+    "listas": 0,
+    "archivos": 0,
+    "focos": 0,
+    "reintentos": 0
+   },
+   "exceso": 0,
+   "bitacora": [
+    {
+     "paso": "{\"clic\":{\"css\":\".v-tabs a.v-tab\",\"t\":\"Asistencia\"}}",
+     "clics": 1,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 1,
+     "ventanas": 0,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"ver\":\"Asistencia\"}",
+     "clics": 0,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 0
+    }
+   ],
+   "hitos": [],
+   "avisos": []
+  },
+  {
+   "id": "rrhh-abrir-lector",
+   "nombre": "Abrir el lector de huellas",
+   "puesto": "rrhh",
+   "frecuencia": "diaria",
+   "pasos": 2,
+   "ideal": {
+    "clics": 2,
+    "teclas": 0,
+    "desglose": "1 entrar al puesto + 1 abrir la tarea + 0 elecciones + 0 confirmar"
+   },
+   "estado": "ok",
+   "nota": "",
+   "real": {
+    "clics": 2,
+    "teclas": 0,
+    "campos": 0,
+    "pantallas": 2,
+    "ventanas": 0,
+    "desplazamientos": 0,
+    "listas": 0,
+    "archivos": 0,
+    "focos": 0,
+    "reintentos": 0
+   },
+   "exceso": 0,
+   "bitacora": [
+    {
+     "paso": "{\"clic\":{\"css\":\".v-tabs a.v-tab\",\"t\":\"Lector de huellas\"}}",
+     "clics": 1,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 1,
+     "ventanas": 0,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"ver\":\"Importar archivo\"}",
+     "clics": 0,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 0
+    }
+   ],
+   "hitos": [],
+   "avisos": []
+  },
+  {
+   "id": "rrhh-ver-prestamos",
+   "nombre": "Ver los préstamos activos",
+   "puesto": "rrhh",
+   "frecuencia": "semanal",
+   "pasos": 3,
+   "ideal": {
+    "clics": 2,
+    "teclas": 0,
+    "desglose": "1 entrar al puesto + 1 abrir la tarea + 0 elecciones + 0 confirmar"
+   },
+   "estado": "ok",
+   "nota": "",
+   "real": {
+    "clics": 3,
+    "teclas": 0,
+    "campos": 0,
+    "pantallas": 3,
+    "ventanas": 0,
+    "desplazamientos": 0,
+    "listas": 0,
+    "archivos": 0,
+    "focos": 0,
+    "reintentos": 0
+   },
+   "exceso": 1,
+   "bitacora": [
+    {
+     "paso": "{\"clic\":{\"css\":\".v-tabs a.v-tab\",\"t\":\"Pagar nómina\"}}",
+     "clics": 1,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 1,
+     "ventanas": 0,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"clic\":{\"css\":\".v-tabs a.v-tab\",\"t\":\"Préstamos\"}}",
+     "clics": 1,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 1,
+     "ventanas": 0,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"ver\":\"Préstamos activos\"}",
+     "clics": 0,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 0
+    }
+   ],
+   "hitos": [],
+   "avisos": []
+  },
+  {
+   "id": "rrhh-nomina-anterior",
+   "nombre": "Consultar una nómina anterior",
+   "puesto": "rrhh",
+   "frecuencia": "ocasional",
+   "pasos": 3,
+   "ideal": {
+    "clics": 2,
+    "teclas": 0,
+    "desglose": "1 entrar al puesto + 1 abrir la tarea + 0 elecciones + 0 confirmar"
+   },
+   "estado": "ok",
+   "nota": "",
+   "real": {
+    "clics": 3,
+    "teclas": 0,
+    "campos": 0,
+    "pantallas": 3,
+    "ventanas": 0,
+    "desplazamientos": 0,
+    "listas": 0,
+    "archivos": 0,
+    "focos": 0,
+    "reintentos": 0
+   },
+   "exceso": 1,
+   "bitacora": [
+    {
+     "paso": "{\"clic\":{\"css\":\".v-tabs a.v-tab\",\"t\":\"Pagar nómina\"}}",
+     "clics": 1,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 1,
+     "ventanas": 0,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"clic\":{\"css\":\".v-tabs a.v-tab\",\"t\":\"Nómina anterior\"}}",
+     "clics": 1,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 1,
+     "ventanas": 0,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"ver\":\"quincena\"}",
+     "clics": 0,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 0
+    }
+   ],
+   "hitos": [],
+   "avisos": []
+  },
+  {
+   "id": "rrhh-ver-quienes",
+   "nombre": "Ver quiénes estuvieron en un turno",
+   "puesto": "rrhh",
+   "frecuencia": "diaria",
+   "pasos": 3,
+   "ideal": {
+    "clics": 2,
+    "teclas": 0,
+    "desglose": "1 entrar al puesto + 1 abrir la tarea + 0 elecciones + 0 confirmar"
+   },
+   "estado": "ok",
+   "nota": "",
+   "real": {
+    "clics": 3,
+    "teclas": 0,
+    "campos": 0,
+    "pantallas": 3,
+    "ventanas": 0,
+    "desplazamientos": 0,
+    "listas": 0,
+    "archivos": 0,
+    "focos": 0,
+    "reintentos": 0
+   },
+   "exceso": 1,
+   "bitacora": [
+    {
+     "paso": "{\"clic\":{\"css\":\".v-tabs a.v-tab\",\"t\":\"Grupos y turnos\"}}",
+     "clics": 1,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 1,
+     "ventanas": 0,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"clic\":{\"css\":\".v-tabs a.v-tab\",\"t\":\"Quiénes estuvieron\"}}",
+     "clics": 1,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 1,
+     "ventanas": 0,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"espera\":\"Quiénes estuvieron\"}",
+     "clics": 0,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 0
+    }
+   ],
+   "hitos": [],
+   "avisos": []
+  },
+  {
+   "id": "rrhh-ver-bonos",
+   "nombre": "Ver los bonos del turno",
+   "puesto": "rrhh",
+   "frecuencia": "diaria",
+   "pasos": 2,
+   "ideal": {
+    "clics": 2,
+    "teclas": 0,
+    "desglose": "1 entrar al puesto + 1 abrir la tarea + 0 elecciones + 0 confirmar"
+   },
+   "estado": "ok",
+   "nota": "",
+   "real": {
+    "clics": 2,
+    "teclas": 0,
+    "campos": 0,
+    "pantallas": 2,
+    "ventanas": 0,
+    "desplazamientos": 0,
+    "listas": 0,
+    "archivos": 0,
+    "focos": 0,
+    "reintentos": 0
+   },
+   "exceso": 0,
+   "bitacora": [
+    {
+     "paso": "{\"clic\":{\"css\":\".v-tabs a.v-tab\",\"t\":\"Bonos\"}}",
+     "clics": 1,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 1,
+     "ventanas": 0,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"ver\":\"Turno en vivo\"}",
+     "clics": 0,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 0
+    }
+   ],
+   "hitos": [],
+   "avisos": []
+  },
+  {
+   "id": "rrhh-grupo-turno",
+   "nombre": "Asignar el turno de la semana siguiente a un grupo",
+   "puesto": "rrhh",
+   "frecuencia": "semanal",
+   "pasos": 5,
+   "ideal": {
+    "clics": 2,
+    "teclas": 0,
+    "desglose": "1 entrar al puesto + 1 abrir la tarea + 0 elecciones + 0 confirmar"
+   },
+   "estado": "ok",
+   "nota": "",
+   "real": {
+    "clics": 4,
+    "teclas": 0,
+    "campos": 0,
+    "pantallas": 2,
+    "ventanas": 1,
+    "desplazamientos": 1,
+    "listas": 0,
+    "archivos": 0,
+    "focos": 0,
+    "reintentos": 0
+   },
+   "exceso": 2,
+   "bitacora": [
+    {
+     "paso": "{\"clic\":{\"css\":\".v-tabs a.v-tab\",\"t\":\"Grupos y turnos\"}}",
+     "clics": 1,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 1,
+     "ventanas": 0,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"clic\":\"Semana siguiente\"}",
+     "clics": 1,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"baja\":\"[data-act=hgAsignar][data-g=\\\"2\\\"][data-t=Nocturno]\"}",
+     "clics": 0,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 1
+    },
+    {
+     "paso": "{\"clic\":{\"css\":\"[data-act=hgAsignar][data-g=\\\"2\\\"][data-t=Nocturno]\"}}",
+     "clics": 1,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 0,
+     "ventanas": 1,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"pausa\":700}",
+     "clics": 0,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 0
+    }
+   ],
+   "hitos": [],
+   "avisos": [
+    "HTTP|409 /api/h/grupos/semana {\"error\":\"No se puede cambiar el turno del Grupo 2 en la semana del 23/11/2026: Ana B. ya tiene pago de nómina del 16/11/2026 al 30/11/2026. Lo ya pag"
+   ]
+  },
+  {
+   "id": "rrhh-cambiar-horario",
+   "nombre": "Cambiar el horario de un turno",
+   "puesto": "rrhh",
+   "frecuencia": "ocasional",
+   "pasos": 4,
+   "ideal": {
+    "clics": 4,
+    "teclas": 0,
+    "desglose": "1 entrar al puesto + 1 abrir la tarea + 1 elecciones + 1 confirmar"
+   },
+   "estado": "ok",
+   "nota": "",
+   "real": {
+    "clics": 4,
+    "teclas": 0,
+    "campos": 0,
+    "pantallas": 2,
+    "ventanas": 0,
+    "desplazamientos": 2,
+    "listas": 0,
+    "archivos": 0,
+    "focos": 0,
+    "reintentos": 0
+   },
+   "exceso": 0,
+   "bitacora": [
+    {
+     "paso": "{\"clic\":{\"css\":\".v-tabs a.v-tab\",\"t\":\"Grupos y turnos\"}}",
+     "clics": 1,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 1,
+     "ventanas": 0,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"clic\":{\"css\":\"[data-act=hrPreset][data-t=Diurno][data-i=\\\"06:00\\\"]\"}}",
+     "clics": 1,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 1
+    },
+    {
+     "paso": "{\"clic\":\"Guardar horarios\"}",
+     "clics": 1,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 1
+    },
+    {
+     "paso": "{\"aviso\":\"Horarios guardados\"}",
+     "clics": 0,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 0
+    }
+   ],
+   "hitos": [],
+   "avisos": [
+    "ok|Horarios guardados."
+   ]
+  },
+  {
+   "id": "rrhh-pagar-nomina",
+   "nombre": "Registrar un pago de nómina",
+   "puesto": "rrhh",
+   "frecuencia": "semanal",
+   "pasos": 4,
+   "ideal": {
+    "clics": 3,
+    "teclas": 0,
+    "desglose": "1 entrar al puesto + 1 abrir la tarea + 0 elecciones + 1 confirmar"
+   },
+   "estado": "ok",
+   "nota": "",
+   "real": {
+    "clics": 4,
+    "teclas": 0,
+    "campos": 0,
+    "pantallas": 2,
+    "ventanas": 1,
+    "desplazamientos": 0,
+    "listas": 0,
+    "archivos": 0,
+    "focos": 0,
+    "reintentos": 0
+   },
+   "exceso": 1,
+   "bitacora": [
+    {
+     "paso": "{\"clic\":{\"css\":\".v-tabs a.v-tab\",\"t\":\"Pagar nómina\"}}",
+     "clics": 1,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 1,
+     "ventanas": 0,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"clic\":{\"css\":\"[data-act=hpPagoAbrir]\"}}",
+     "clics": 1,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 0,
+     "ventanas": 1,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"clic\":\"Confirmar pago\"}",
+     "clics": 1,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"aviso\":\"Pago registrado\"}",
+     "clics": 0,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 0
+    }
+   ],
+   "hitos": [],
+   "avisos": [
+    "ok|Pago registrado: Almacenista Dos (prueba), $ 147,00 (Bs 135.058,63)."
+   ]
+  },
+  {
+   "id": "ven-vender",
+   "nombre": "Hacer una venta (pedido con nota de entrega)",
+   "puesto": "ventas",
+   "frecuencia": "diaria",
+   "pasos": 6,
+   "ideal": {
+    "clics": 3,
+    "teclas": 1,
+    "desglose": "1 entrar al puesto + 0 abrir la tarea + 1 elecciones + 1 confirmar"
+   },
+   "estado": "ok",
+   "nota": "",
+   "real": {
+    "clics": 7,
+    "teclas": 13,
+    "campos": 2,
+    "pantallas": 1,
+    "ventanas": 0,
+    "desplazamientos": 0,
+    "listas": 1,
+    "archivos": 0,
+    "focos": 2,
+    "reintentos": 0
+   },
+   "exceso": 4,
+   "bitacora": [
+    {
+     "paso": "{\"escribe\":[{\"css\":\"input[type=search]\"},\"Venta Prueba\"]}",
+     "clics": 1,
+     "teclas": 12,
+     "campos": 1,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"clic\":\"Bodega Venta Prueba\"}",
+     "clics": 1,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"escribe\":[\"Bultos de Papas Doraditas Cabello de Ángel 400 g\",\"2\"]}",
+     "clics": 1,
+     "teclas": 1,
+     "campos": 1,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"elige\":[\"Método de pago\",\"Banesco\"]}",
+     "clics": 2,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"clic\":\"REGISTRAR PEDIDO · NOTA DE ENTREGA\"}",
+     "clics": 1,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"aviso\":\"Pedido PED\"}",
+     "clics": 0,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 0
+    }
+   ],
+   "hitos": [],
+   "avisos": [
+    "ok|Pedido PED-000021 registrado (zona Aragua, 24,00 kg). La nota de entrega sale cuando se despache. AVISO: Falta zona/dirección de entrega: co"
+   ]
+  },
+  {
+   "id": "ven-cliente-nuevo",
+   "nombre": "Crear un cliente nuevo",
+   "puesto": "ventas",
+   "frecuencia": "semanal",
+   "pasos": 10,
+   "ideal": {
+    "clics": 5,
+    "teclas": 20,
+    "desglose": "1 entrar al puesto + 1 abrir la tarea + 2 elecciones + 1 confirmar"
+   },
+   "estado": "ok",
+   "nota": "",
+   "real": {
+    "clics": 13,
+    "teclas": 48,
+    "campos": 4,
+    "pantallas": 1,
+    "ventanas": 1,
+    "desplazamientos": 0,
+    "listas": 3,
+    "archivos": 0,
+    "focos": 4,
+    "reintentos": 0
+   },
+   "exceso": 8,
+   "bitacora": [
+    {
+     "paso": "{\"clic\":\"Cliente nuevo\"}",
+     "clics": 1,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 0,
+     "ventanas": 1,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"escribe\":[{\"css\":\"#vc-rs\"},\"Bodega Prueba Clics\"]}",
+     "clics": 1,
+     "teclas": 19,
+     "campos": 1,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"escribe\":[{\"css\":\"#vc-rif\"},\"J-987654321\"]}",
+     "clics": 1,
+     "teclas": 11,
+     "campos": 1,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"elige\":[{\"css\":\"#vc-zona\"},\"Aragua\"]}",
+     "clics": 2,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"escribe\":[{\"css\":\"#vc-dir\"},\"Calle 1\"]}",
+     "clics": 1,
+     "teclas": 7,
+     "campos": 1,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"escribe\":[{\"css\":\"#vc-tel\"},\"04141234567\"]}",
+     "clics": 1,
+     "teclas": 11,
+     "campos": 1,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"elige\":[{\"css\":\"#vc-cat\"},\"Minorista\"]}",
+     "clics": 2,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"elige\":[{\"css\":\"#vc-vend\"},\"\"]}",
+     "clics": 2,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"clic\":\"Guardar\"}",
+     "clics": 1,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"aviso\":\"Cliente guardado\"}",
+     "clics": 0,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 0
+    }
+   ],
+   "hitos": [],
+   "avisos": [
+    "ok|Cliente guardado."
+   ]
+  }
+ ]
+}

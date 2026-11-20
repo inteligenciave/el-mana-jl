@@ -1,4 +1,4 @@
-/* Portal del cliente (página pública /cliente.html). Habla SOLO con /api/c/portal/*; el código personal viaja en la cabecera x-token.
+/* Portal del cliente (página pública /cliente.html). Habla SOLO con /api/c/portal/*; el enlace personal trae un código que viaja en la cabecera x-token.
    Nunca manda un id de cliente: el servidor lo saca del código. */
 (function () {
 'use strict';
@@ -38,7 +38,8 @@ function imgsPendientes() {
 }
 let imgT = 0;
 new MutationObserver(() => { if (!imgT) imgT = setTimeout(() => { imgT = 0; imgsPendientes(); }, 30); }).observe(document.body, {childList: true, subtree: true});
-const leerCodigo = () => (location.hash || '').replace(/^#(k=)?/, '').trim();
+const leerCodigo = () => (location.hash || '').replace(/^#(t=|k=)?/, '').trim();
+const guardarEnlace = t => { try { if (t) localStorage.setItem('em_ct', t); else { localStorage.removeItem('em_ct'); sessionStorage.removeItem('em_ct'); } } catch (x) { /* sin almacenamiento */ } };
 async function cargar() {
   S.cargando = true; pintar();
   try {
@@ -46,7 +47,7 @@ async function cargar() {
     S.perfil = yo; S.cat = cat; S.cuenta = cu; S.errLogin = '';
     for (const id of Object.keys(S.cart)) { const p = cat.find(x => x.id_producto === +id); if (!p || p.sin_inventario) delete S.cart[id]; else S.cart[id] = Math.min(S.cart[id], p.disponible); }
   } catch (e) {
-    if (e.status === 401 || e.status === 429) { S.tok = ''; S.errLogin = e.message; try { sessionStorage.removeItem('em_ct'); } catch (x) { /* sin almacenamiento */ } } else S.errLogin = e.message;
+    if (e.status === 401 || e.status === 429) { S.tok = ''; S.errLogin = e.message; guardarEnlace(''); } else S.errLogin = e.message;
     S.perfil = null;
   }
   S.cargando = false; pintar();
@@ -81,10 +82,9 @@ const tonoPago = e => e === 'CONFIRMADO' ? 'ok' : e === 'RECHAZADO' ? 'mal' : 'e
 
 function vEntrada() {
   return `<div class="entrada"><div class="card"><img src="/icon-192.png" alt="El Maná JL"><h1>Mi cuenta · El Maná JL</h1>
-    <p class="sub">Entra con tu código personal. Te lo entrega quien te atiende en El Maná JL.</p>
     ${S.errLogin ? `<p class="aviso e" role="alert">${esc(S.errLogin)}</p>` : ''}
-    <form id="f-codigo" class="form"><label class="fld">Tu código personal<input id="codigo" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" required placeholder="Pega aquí tu código"><small>Es privado: no lo compartas con nadie.</small></label>
-    <button class="btn full" type="submit">Entrar</button></form></div></div>`;
+    <p class="sub">Pide tu enlace personal a El Maná JL.</p>
+    <p class="sub">Te lo envían por WhatsApp. Al tocarlo entras directo, sin escribir nada.</p></div></div>`;
 }
 function vInicio() {
   const y = S.perfil, c = y.credito, usado = c.limite ? Math.min(100, Math.round((c.debe + c.por_confirmar) / c.limite * 100)) : 0;
@@ -147,11 +147,16 @@ function vCuenta() {
     <div class="seg" role="group" aria-label="Qué ver">${subs.map(([k, t]) => `<button type="button" data-a="sub" data-v="${k}" aria-pressed="${S.sub === k}">${t}</button>`).join('')}</div>${cuerpo}`;
 }
 /* Bancos de la empresa: lista plegable con los datos para pagar. Si aun no hay ninguno, se explica y se deja escribir el banco. */
+function datosBanco(id) {
+  const b = id && S.bancos ? S.bancos.bancos.find(x => String(x.id) === String(id)) : null;
+  if (!b) return '<p class="sub">Elige un banco para ver sus datos de cuenta.</p>';
+  return '<p class="sub"><b>' + esc(b.nombre) + '</b> · ' + esc(b.moneda_txt) + (b.cuenta_numero ? '<br>Cuenta: ' + esc(b.cuenta_numero) : '') + (b.telefono ? '<br>Teléfono: ' + esc(b.telefono) : '') + (b.cedula ? '<br>Cédula: ' + esc(b.cedula) : '') + (b.rif ? '<br>RIF: ' + esc(b.rif) : '') + (b.cuenta_titular ? '<br>Titular: ' + esc(b.cuenta_titular) : '') + '</p>';
+}
 function bancoCampo(P) {
   const L = S.bancos;
   if (L === undefined) { cargarBancos(); return '<p class="sub ancho">Cargando los bancos…</p>'; }
   if (!L || !L.bancos.length) return '<p class="aviso i ancho">' + esc((L && L.mensaje_vacio) || 'Todavía no hay bancos cargados.') + '</p><label class="fld">Banco<input name="banco" value="' + esc(P.banco) + '" maxlength="40" required autocomplete="off" placeholder="Escribe el banco"></label>';
-  return '<label class="fld">Banco al que pagaste<select name="id_banco" required><option value="">Elige el banco…</option>' + L.bancos.map(b => '<option value="' + b.id + '"' + (String(P.id_banco) === String(b.id) ? ' selected' : '') + '>' + esc(b.nombre + ' (' + b.moneda_txt.toLowerCase() + ')') + '</option>').join('') + '</select></label><details class="ancho"><summary>Ver los datos de cuenta para pagar</summary>' + L.bancos.map(b => '<p class="sub"><b>' + esc(b.nombre) + '</b> · ' + esc(b.moneda_txt) + (b.cuenta_numero ? '<br>Cuenta: ' + esc(b.cuenta_numero) : '') + (b.cuenta_titular ? '<br>Titular: ' + esc(b.cuenta_titular) : '') + '</p>').join('') + '</details>';
+  return '<label class="fld">Banco al que pagaste<select name="id_banco" required><option value="">Elige el banco…</option>' + L.bancos.map(b => '<option value="' + b.id + '"' + (String(P.id_banco) === String(b.id) ? ' selected' : '') + '>' + esc(b.nombre + ' (' + b.moneda_txt.toLowerCase() + ')') + '</option>').join('') + '</select></label><div class="ancho" id="bco-datos" aria-live="polite">' + datosBanco(P.id_banco) + '</div>';
 }
 async function cargarBancos() { S.bancos = null; try { S.bancos = await api('GET', '/bancos'); } catch (e) { S.bancos = null; } pintar(); }
 function vPagar() {
@@ -179,7 +184,7 @@ function pintar() {
   const y = S.perfil, pend = (y.pedidos_por_confirmar || 0) + (y.pagos_por_verificar || 0);
   const cuerpo = S.vista === 'pedir' ? vPedir() : S.vista === 'entregas' ? vEntregas() : S.vista === 'cuenta' ? vCuenta() : S.vista === 'pagar' ? vPagar() : vInicio();
   const tabs = `<nav class="tabs" aria-label="Secciones">${VISTAS.map(([k, t, i]) => `<button type="button" data-a="ir" data-v="${k}" ${S.vista === k ? 'aria-current="page"' : ''}>${ic[i]}<span>${t}</span>${k === 'cuenta' && pend ? `<span class="pt" aria-label="${pend} por revisar">${pend}</span>` : ''}</button>`).join('')}</nav>`;
-  app.innerHTML = `<header class="cab"><div class="cab-i"><img src="/icon-192.png" alt=""><div><b>El Maná JL</b><small>${esc(y.cliente.nombre)}</small></div><button type="button" class="salir" data-a="salir">Salir</button></div></header>${tabs}<main id="main" tabindex="-1">${cuerpo}</main>`;
+  app.innerHTML = `<header class="cab"><div class="cab-i"><img src="/icon-192.png" alt=""><div><b>El Maná JL</b><small>${esc(y.cliente.nombre)}</small></div></div></header>${tabs}<main id="main" tabindex="-1">${cuerpo}</main>`;
   pintarResumen(); Busca.restaurarFoco(foco);
   if (S.vista === 'entregas' && typeof EntregasPortal !== 'undefined' && $('#ep-x')) EntregasPortal.montar($('#ep-x'), {token: S.tok});
 }
@@ -245,10 +250,10 @@ document.addEventListener('click', async e => {
   else if (a === 'pdfdoc') bajarPdf('/documentos/' + id + '/pdf');
   else if (a === 'pdfped') bajarPdf('/pedidos-venta/' + id + '/pdf');
   else if (a === 'cancelar') { if (!confirm('¿Cancelar este pedido?')) return; try { await api('POST', '/pedidos/' + id + '/cancelar'); await refrescarCuenta(); pintar(); aviso('Pedido cancelado.'); } catch (er) { aviso(er.message, 1); } }
-  else if (a === 'salir') { S.tok = ''; S.perfil = null; S.cuenta = null; S.cart = {}; try { sessionStorage.removeItem('em_ct'); } catch (x) { /* nada */ } history.replaceState(null, '', location.pathname); pintar(); }
 });
 document.addEventListener('input', e => { const t = e.target; if (t.classList && t.classList.contains('qin')) { const l = t.value.replace(/\D/g, ''); if (l !== t.value) t.value = l; ponerCant(t.dataset.id, l === '' ? 0 : +l); } });
 document.addEventListener('change', async e => {
+  if (e.target.name === 'id_banco' && e.target.closest('#f-pago')) { S.pago.id_banco = e.target.value; const d = $('#bco-datos'); if (d) d.innerHTML = datosBanco(e.target.value); return; }
   if (e.target.id !== 'f-comp') return; const P = S.pago, f = e.target.files && e.target.files[0]; if (!f) return;
   const f2 = document.getElementById('f-pago'); if (f2) Object.assign(P, {banco: f2.elements.banco ? f2.elements.banco.value : P.banco, id_banco: f2.elements.id_banco ? f2.elements.id_banco.value : P.id_banco, referencia: f2.elements.referencia.value, monto: f2.elements.monto.value, fecha: f2.elements.fecha.value, nota: f2.elements.nota.value});
   P.err = ''; P.ok = ''; P.compOcupado = true; P.comp = null; pintar();
@@ -257,13 +262,14 @@ document.addEventListener('change', async e => {
 });
 document.addEventListener('submit', e => {
   e.preventDefault();
-  if (e.target.id === 'f-codigo') { S.tok = $('#codigo').value.trim(); try { sessionStorage.setItem('em_ct', S.tok); } catch (x) { /* nada */ } history.replaceState(null, '', location.pathname + '#' + S.tok); cargar(); }
-  else if (e.target.id === 'f-pago') enviarPago(e.target);
+  if (e.target.id === 'f-pago') enviarPago(e.target);
 });
 document.addEventListener('keydown', e => { if (e.key === 'Escape') cerrarHoja(); });
 document.addEventListener('click', e => { if (e.target.id === 'vel') cerrarHoja(); });
 
-S.tok = leerCodigo(); try { if (!S.tok) S.tok = sessionStorage.getItem('em_ct') || ''; } catch (x) { /* nada */ }
+S.tok = leerCodigo();
+if (S.tok) { if (!/^[A-Za-z0-9_-]{43}$/.test(S.tok)) { S.tok = ''; S.errLogin = 'El enlace no está completo. Pide uno nuevo a El Maná JL.'; } else guardarEnlace(S.tok); try { history.replaceState(null, '', location.pathname); } catch (x) { /* nada */ } }
+if (!S.tok && !S.errLogin) { try { S.tok = localStorage.getItem('em_ct') || sessionStorage.getItem('em_ct') || ''; } catch (x) { /* nada */ } }
 /* Borrador: lo que la persona estaba escribiendo y dónde estaba (solo en este navegador, 24 h; el código personal nunca se guarda) */
 try {
   if (window.Borrador) {

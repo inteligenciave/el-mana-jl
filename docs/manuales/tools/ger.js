@@ -1,0 +1,20 @@
+const {abrir} = require('./cap.js');
+(async () => {
+  const {browser, page, U, errores} = await abrir('Gerencia', 'gerencia-');
+  const ver = async t => { await page.locator('text=' + t).first().scrollIntoViewIfNeeded().catch(()=>{}); await page.waitForTimeout(400); };
+  await U.ir('#gerencia'); await U.marcar('Requiere atención'); await U.foto('01');
+  await U.ir('#p-aprobar'); await page.waitForTimeout(800); await U.borroso(); await U.marcar('Aprobar'); await U.foto('02');
+  await U.ir('#g-solic'); await page.waitForTimeout(800); await U.foto('03');
+  await U.ir('#pr-dif'); await page.waitForTimeout(800); await U.foto('04');
+  await U.ir('#p-bancos'); await page.waitForTimeout(800); await U.marcar('Agregar banco'); await U.foto('05');
+  await U.ir('#rh-params'); await page.waitForTimeout(800); await U.marcar('Guardar parámetros'); await U.foto('06');
+  await U.ir('#v-clientes'); await page.locator('css=[data-act="vAdmTab"][data-v="ajustes"]').first().click().catch(()=>{}); await page.waitForTimeout(900); await U.marcar('Cambiar PIN'); await U.foto('07');
+  await U.ir('#politicas'); await page.waitForTimeout(800); await U.marcar('Guardar políticas'); await U.foto('08');
+  await U.ir('#v-clientes'); await page.locator('css=[data-act="vAdmTab"][data-v="productos"]').first().click().catch(()=>{}); await page.waitForTimeout(900); await U.borroso(); await U.marcar('Producto nuevo'); await U.foto('09');
+  await U.ir('#gerencia'); await ver('Inventario de producción'); await U.marcar('Definir mínimo'); await U.foto('10');
+  await U.ir('#g-audit'); await page.waitForTimeout(900); await U.marcar('Descargar CSV'); await U.foto('11');
+  await U.ir('#roles'); await page.waitForTimeout(900); await U.foto('12');
+  await U.ir('#v-pagos'); await page.waitForTimeout(900); await U.marcar('Anular'); await U.foto('13');
+  await U.ir('#g-solic'); await page.waitForTimeout(800); await U.marcar('Rechazar'); await U.foto('14');
+  console.log('errores consola:', errores.length, errores.slice(0,3)); await browser.close();
+})();

@@ -285,3 +285,8 @@ select.v-falta{outline:2px solid var(--red,#C92121);outline-offset:1px}
 .rv-sub td{background:#FAFAFA;font-size:.92em;color:#4A4A4A}
 .rv-pres{padding-left:22px;display:inline-block}
 .rv-t th small{font-weight:400;color:#6B6B6B}
+
+/* Cobro en celular: la tabla de notas se desliza dentro de su caja (sin desbordar la página) y los toques miden al menos 44 px */
+#v-docs .tw{max-width:100%;overflow-x:auto}
+#v-docs .btnrow{flex-wrap:wrap}
+@media (max-width:700px){#v-docs .btn,#v-docs .v-dec,.v-pago .btn.pri{min-height:44px}#v-docs .btn.sm{min-width:44px}.v-apl .v-dec{width:92px}}

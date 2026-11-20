@@ -231,3 +231,55 @@ a.gr-pl:hover{border-color:#C92121}
   header.top .hctl-tasa .tl-s{display:inline;font-size:11px;color:var(--band-muted)}
   header.top .hctl-tasa .tv{font-size:14px}
 }
+
+/* Botones grandes «Cobranza» y «Nueva compra» en el Resumen de Administración */
+.gr-cobro.btn.pri{background:#C92121;border-color:#C92121;color:#fff;font-weight:700;font-size:16px;min-height:48px;padding:0 20px;justify-content:center}
+.gr-cobro.btn.pri:hover{background:#A91A1A;border-color:#A91A1A;color:#fff}
+.gr-cobro.btn.pri:focus-visible{outline:3px solid #F2B72E;outline-offset:2px}
+@media (min-width:560px){.gr-cobro.btn.pri{margin-left:auto}.gr-cobro.btn.pri+.gr-cobro.btn.pri{margin-left:0}}
+/* «Nueva compra»: mismo tamaño, en amarillo de marca */
+.gr-cobro.gr-compra.btn.pri{background:#F2B72E;border-color:#F2B72E;color:#1F1A17}
+.gr-cobro.gr-compra.btn.pri:hover{background:#D99F1C;border-color:#D99F1C;color:#1F1A17}
+.gr-cobro.gr-compra.btn.pri:focus-visible{outline-color:#C92121}
+/* «Cobranza»: mismo tamaño, fondo blanco con borde rojo de marca */
+.gr-cobro.gr-cobranza.btn.pri{background:#fff;border:2px solid #C92121;color:#C92121}
+.gr-cobro.gr-cobranza.btn.pri:hover{background:#FDECEC;border-color:#A91A1A;color:#A91A1A}
+.gr-cobro.gr-cobranza.btn.pri:focus-visible{outline-color:#F2B72E}
+@media (max-width:559px){.gr-cobro.btn.pri{width:100%;order:3}}
+/* Solicitudes: botones de respuesta táctiles (44 px) */
+.btn.sm[data-act="solResp"],.btn.sm[data-act="solAhora"],.btn.sm[data-act="solVer"]{min-height:44px}
+/* Tres botones principales (Producción): caben en 375 px, con el texto bajo el ícono */
+@media (max-width:600px){.pt-prin:has(.pt-main:nth-child(3)){flex:1 1 100%}.pt-prin:has(.pt-main:nth-child(3)) .pt-main{min-width:0;flex-direction:column;gap:2px;font-size:14px;line-height:1.1;text-align:center;padding:4px;min-height:60px}.pt-prin:has(.pt-main:nth-child(3)) .pt-main svg{width:22px;height:22px}}
+.pt-btn{min-height:44px}
+
+/* Inventario de producción (Gerencia): barras por insumo con semáforo */
+.gr-il{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:1fr;gap:8px 18px;text-align:left}
+.gr-il li{min-width:0;border-top:1px solid var(--line-2);padding-top:6px}
+.gi-t{margin:0;display:flex;justify-content:space-between;gap:8px;font-size:14px}
+.gi-t b{font-weight:700;white-space:nowrap}
+.gi-b i{display:block;position:relative;height:12px;background:#E4E1DA;border-radius:6px;margin:4px 0}
+.gi-b u{display:block;height:100%;border-radius:6px;background:#2E8B3D}
+.gi-b s{position:absolute;top:-3px;bottom:-3px;width:2px;background:#1F1F1F;text-decoration:none}
+.gi-amarillo .gi-b u{background:#F2B72E}
+.gi-rojo .gi-b u{background:#C92121}
+.gi-sin_minimo .gi-b u,.gi-sin_conteo .gi-b u{background:#B9B5AB}
+.gi-m{margin:0;display:flex;flex-wrap:wrap;gap:2px 12px;align-items:baseline;font-size:13px;color:var(--muted)}
+.gi-e{font-weight:700;color:#2E8B3D}
+.gi-amarillo .gi-e{color:#8A5A00}
+.gi-rojo .gi-e{color:#C92121}
+.gi-sin_minimo .gi-e,.gi-sin_conteo .gi-e{color:#6B675E}
+.gi-ed{font-size:13px;margin-left:auto;min-height:32px}
+.gi-leyenda{text-align:left;margin-top:4px}
+@media (min-width:640px){.gr-il{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (min-width:1181px){.gr-grid .gr-inv{grid-column:span 6}}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .gi-b i{background:#3a3833}:root:not([data-theme="light"]) .gi-rojo .gi-e{color:#FF8080}:root:not([data-theme="light"]) .gi-amarillo .gi-e{color:#F2B72E}:root:not([data-theme="light"]) .gi-b s{background:#eee}}
+
+/* Recursos humanos: 5 pestañas (2 renglones en el celular) y botones pequeños adentro */
+.un-sub{display:flex;gap:6px;margin:0 0 10px;padding:4px;border-radius:12px;background:var(--line-2,#ECE9E2)}
+.un-sub a.v-tab{flex:1 1 0;display:inline-flex;align-items:center;justify-content:center;text-align:center;min-height:36px;padding:0 8px;border:0;border-radius:9px;background:transparent;text-decoration:none;color:inherit;font-size:14px;line-height:1.15;cursor:pointer}
+.un-sub a.v-tab[aria-current="page"]{background:var(--yellow,#F2B72E);color:#1F1F1F;font-weight:700}
+@media (max-width:600px){
+  .un-tabs.un-5{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;overflow:visible}
+  .un-tabs.un-5 a.v-tab{min-height:40px;justify-content:center;text-align:center;white-space:normal;line-height:1.15;padding:0 6px}
+  .un-sub a.v-tab{min-height:40px;white-space:normal}
+}

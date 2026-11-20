@@ -28,26 +28,21 @@ export function preciosProducto(prod, regla, lp) {
   return {base, pp, mora};
 }
 
-/* Lista regional del cliente: la elegida en su ficha o, si no, la que sale de su zona.
-   A = Lara, Trujillo, Yaracuy. B = Capital, Miranda, Aragua, Carabobo, Oriente. Sin zona reconocida: null (hay que completarla). */
-const sinTildes = t => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase();
-/* Zona de venta = ESTADO de Venezuela. El cliente elige el estado; la zona (Oriente, Capital…) y la lista (A/B) salen de él.
-   El mapa estado → lista vive en la tabla estados_lista (el Gerente asigna lista a un estado nuevo); estos valores son los de partida. */
+/* Categoría de precio del cliente (Minorista, Mayorista, Gran Mayor): se elige en su ficha y reemplaza por completo a las listas regionales A y B.
+   La «lista» de precios que rige para el cliente ES su categoría (precios_lista.lista guarda el nombre de la categoría). Los precios especiales del cliente mandan sobre la categoría.
+   La ZONA (derivada del ESTADO del cliente) se conserva solo como referencia logística: despacho, producción por zonas y reportes. */
+const sinTildes = t => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase();
+export const CATEGORIAS = ['Minorista', 'Mayorista', 'Gran Mayor'];
+export const categoriaReal = c => CATEGORIAS.find(n => sinTildes(n) === sinTildes(String(c || '').trim())) || null;
 export const ESTADOS = ['Amazonas', 'Anzoátegui', 'Apure', 'Aragua', 'Barinas', 'Bolívar', 'Carabobo', 'Cojedes', 'Delta Amacuro', 'Distrito Capital', 'Falcón', 'Guárico', 'Lara', 'Mérida', 'Miranda', 'Monagas', 'Nueva Esparta', 'Portuguesa', 'Sucre', 'Táchira', 'Trujillo', 'Vargas', 'Yaracuy', 'Zulia'];
-export const LISTA_INICIAL = {Lara: 'A', Trujillo: 'A', Yaracuy: 'A', 'Distrito Capital': 'B', Miranda: 'B', Aragua: 'B', Carabobo: 'B', Anzoátegui: 'B', Monagas: 'B', Sucre: 'B', Mérida: 'B', 'Nueva Esparta': 'B'};
-let MAPA = {...LISTA_INICIAL};
-export const setMapaListas = m => { MAPA = {...(m || {})}; };
-export const getMapaListas = () => ({...MAPA});
 /* Estado exacto (sin importar mayúsculas ni tildes): devuelve el nombre oficial o null */
 export const estadoReal = e => ESTADOS.find(n => sinTildes(n) === sinTildes(String(e || '').trim())) || null;
 export const zonaDeEstado = e => { const n = estadoReal(e); return !n ? null : ['Anzoátegui', 'Monagas', 'Sucre'].includes(n) ? 'Oriente' : n === 'Distrito Capital' ? 'Capital' : n; };
-export const listaDeEstado = e => { const n = estadoReal(e); return n && MAPA[n] ? MAPA[n] : null; };
-export const listaRegional = e => { const l = listaDeEstado(e); return l === 'A' || l === 'B' ? l : null; };   // columna de referencia (solo A/B)
-export const listaDeCliente = cli => listaDeEstado(cli && cli.zona);   // cli.zona guarda el ESTADO
-export const MSG_ELEGIR_ZONA = 'Elige el estado del cliente: de ahí sale su lista de precios.';
-export const MSG_SIN_LISTA_ESTADO = 'Todavía no hay lista de precios para este estado. Pídele al Gerente que la asigne.';
-export const MSG_SIN_LISTA = MSG_ELEGIR_ZONA + ' Hasta entonces no se le puede vender.';
-export const mensajeSinLista = cli => estadoReal(cli && cli.zona) ? MSG_SIN_LISTA_ESTADO : MSG_ELEGIR_ZONA;
+export const listaDeCliente = cli => categoriaReal(cli && cli.categoria_precio);   // la lista que rige es la categoría del cliente
+export const MSG_ELEGIR_ZONA = 'Elige el estado del cliente: de ahí sale su zona de entrega.';
+export const MSG_ELEGIR_CATEGORIA = 'Elige la categoría de precio del cliente: Minorista, Mayorista o Gran Mayor.';
+export const MSG_SIN_LISTA = 'Este cliente no tiene categoría de precio. Elígela en su ficha (Minorista, Mayorista o Gran Mayor); hasta entonces no se le puede vender.';
+export const mensajeSinLista = () => MSG_SIN_LISTA;
 export const MSG_FALTA_ENVIO = 'Falta zona/dirección de entrega';
 /* Ubicación de envío para congelar en el documento: {zona, direccion, texto, completa} */
 export function ubicacionEnvio(cli) {

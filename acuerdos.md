@@ -1,6 +1,6 @@
 # Acuerdos de la maqueta: Sistema El Maná JL
 
-Maqueta: `sistema-produccion.html`. Artefacto privado: https://claude.ai/artifact/NSff1HHVYuriQDyNZAwgvo
+Maqueta: `sistema-produccion.html`.
 Fecha simulada de la maqueta: miércoles 11 de noviembre de 2026. Todos los nombres, RIF, cédulas y montos son de ejemplo.
 
 Origen de cada decisión:

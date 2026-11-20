@@ -72,7 +72,7 @@ export async function crearPedido(ctx, b) {
   const sin = [], lineas = [];
   for (const l of ls) {
     const p = pm.get(l.id_producto); if (!p || !p.activo) throw err(400, 'Uno de los productos ya no está disponible.');
-    const pd = VS.precioDe(p, rm.get(p.id_producto), cx); if (pd.sinLista) throw err(409, 'Todavía no tenemos tu lista de precios: avisa a quien te atiende para que complete tu zona.', {codigo: 'SIN_LISTA'}); const pr = pd.pr; if (!pr) throw err(400, `«${p.nombre} ${p.gramaje || ''}» no está disponible para pedir.`);
+    const pd = VS.precioDe(p, rm.get(p.id_producto), cx); if (pd.sinLista) throw err(409, 'Todavía no tenemos tu categoría de precio: avisa a quien te atiende para que la complete.', {codigo: 'SIN_LISTA'}); const pr = pd.pr; if (!pr) throw err(400, `«${p.nombre} ${p.gramaje || ''}» no está disponible para pedir.`);
     const nom = `${p.nombre} ${p.gramaje || ''}`.trim();
     const libre = Math.max(0, p.stock_entero - (p.stock_apartado || 0));   // disponible = existencias − apartado por pedidos
     if (libre <= 0) { sin.push({id_producto: p.id_producto, nombre: nom, disponible: 0}); continue; }
@@ -172,11 +172,11 @@ export async function listaClientes(ctx, {q = '', limite = 100} = {}) {
 export async function fichaCliente(ctx, id) {
   exigir(ctx, 'verClientes', 'Tu rol no ve clientes.');
   const c = await VR.getCliente(ctx.db, id); if (!c) throw err(404, 'Cliente no encontrado.');
-  const [enlaces, lista, peds, pags] = await Promise.all([R.enlacesDe(ctx.db, id), R.nombreLista(ctx.db, c.id_lista_base), armarPedidos(ctx.db, await R.pedidosDeCliente(ctx.db, id)), R.pagosReportadosDe(ctx.db, id)]), ahora = Date.now();
+  const [enlaces, peds, pags] = await Promise.all([R.enlacesDe(ctx.db, id), armarPedidos(ctx.db, await R.pedidosDeCliente(ctx.db, id)), R.pagosReportadosDe(ctx.db, id)]), ahora = Date.now();
   const est = e => e.revocado_ts ? 'Revocado' : (e.vence_ts && e.vence_ts <= ahora) ? 'Vencido' : 'Activo';
-  return {cliente: {id_cliente: c.id_cliente, razon_social: c.razon_social, rif_id: c.rif_id, zona: c.zona, telefono: c.telefono, vendedor: c.vendedor_nombre, nivel_precio: lista ? lista.nombre : null, descuento_fijo_pct: c.descuento_fijo_pct,
+  return {cliente: {id_cliente: c.id_cliente, razon_social: c.razon_social, rif_id: c.rif_id, zona: c.zona, telefono: c.telefono, vendedor: c.vendedor_nombre, nivel_precio: c.categoria_precio || null, descuento_fijo_pct: c.descuento_fijo_pct,
     dias_pronto_pago: c.dias_pronto_pago, dias_credito_normal: c.dias_credito_normal, limite_credito_usd: dol(c.limite_credito_cents), deuda: dol(c.deuda_cents), ejemplo: !!c.ejemplo},
-    enlaces: enlaces.map(e => ({...e, estado: est(e)})), enlace_activo: enlaces.find(e => est(e) === 'Activo') || null,
+    enlaces: enlaces.map(e => ({...e, estado: est(e)})), enlace_activo: enlaces.find(e => est(e) === 'Activo') || null, enlace_copiable: !!enlaces.find(e => est(e) === 'Activo' && e.copiable),
     pedidos: peds.filter(p => ['POR_CONFIRMAR', 'APROBANDO'].includes(p.estado)), pedidos_recientes: peds.slice(0, 5), pagos: pags.filter(p => ['POR_VERIFICAR', 'VERIFICANDO'].includes(p.estado)).map(formatoReporte), pagos_recientes: pags.slice(0, 5).map(formatoReporte)};
 }
 export async function generarEnlace(ctx, id, dias) {
@@ -185,9 +185,17 @@ export async function generarEnlace(ctx, id, dias) {
   let vence = null;
   if (dias != null && dias !== '') { const n = Number(dias); if (!Number.isInteger(n) || n < 1 || n > 3650) throw err(400, 'Los días de vigencia deben ser un entero entre 1 y 3650, o vacío para que no venza.'); vence = Date.now() + n * 864e5; }
   const codigo = C.nuevoCodigo();
-  await R.lote(ctx.db, [R.stRevocarActivos(ctx.db, id, nomRol(ctx.rol)), R.stNuevoEnlace(ctx.db, {id_cliente: id, token_hash: await C.huella(codigo), token_fin: codigo.slice(-4), creado_rol: nomRol(ctx.rol), vence_ts: vence}),
+  await R.lote(ctx.db, [R.stRevocarActivos(ctx.db, id, nomRol(ctx.rol)), R.stNuevoEnlace(ctx.db, {id_cliente: id, token_hash: await C.huella(codigo), token_fin: codigo.slice(-4), creado_rol: nomRol(ctx.rol), vence_ts: vence, token_claro: codigo}),
     ...auditE(ctx, 'portal', c.razon_social, c.razon_social, 'generó un enlace del portal', {vence: vence ? new Date(vence).toISOString().slice(0, 10) : 'no vence'})]);
-  return {codigo, ruta: '/cliente.html#' + codigo, termina_en: codigo.slice(-4), vence_ts: vence, aviso: 'Este código se muestra solo ahora. Guárdalo o envíalo ya: después no se puede volver a ver (solo generar uno nuevo).'};
+  return {codigo, ruta: C.rutaEnlace(codigo), termina_en: codigo.slice(-4), vence_ts: vence, aviso: 'Este enlace es personal de este cliente: quien lo tenga ve su cuenta. Envíaselo solo a él. El anterior ya no sirve.'};
+}
+export async function enlaceCopiable(ctx, id) {
+  exigir(ctx, 'editarCliente', 'Tu rol no puede copiar enlaces de clientes.');
+  const c = await VR.getCliente(ctx.db, id); if (!c) throw err(404, 'Cliente no encontrado.');
+  const e = await R.enlaceActivoDe(ctx.db, id);
+  if (!e || !e.token_claro) throw err(404, 'Este cliente no tiene un enlace que se pueda copiar. Pulsa «Generar enlace nuevo».');
+  await R.lote(ctx.db, auditE(ctx, 'portal', c.razon_social, c.razon_social, 'copió el enlace del portal', {}));
+  return {ruta: C.rutaEnlace(e.token_claro), vence_ts: e.vence_ts || null};
 }
 export async function revocarEnlace(ctx, id) {
   exigir(ctx, 'editarCliente', 'Tu rol no revoca enlaces de clientes.');

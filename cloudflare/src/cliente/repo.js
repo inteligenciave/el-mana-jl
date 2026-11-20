@@ -5,11 +5,12 @@ export {siguiente, one, all, run, lote} from '../ventas/repo.js';
 const bind = (db, sql, a = []) => db.prepare(sql).bind(...a);
 
 /* ---------- Enlaces ---------- */
-export const stNuevoEnlace = (db, e) => bind(db, 'INSERT INTO cliente_enlaces (id_cliente, token_hash, token_fin, creado_ts, creado_rol, vence_ts) VALUES (?1,?2,?3,?4,?5,?6)', [e.id_cliente, e.token_hash, e.token_fin, Date.now(), e.creado_rol, e.vence_ts ?? null]);
+export const stNuevoEnlace = (db, e) => bind(db, 'INSERT INTO cliente_enlaces (id_cliente, token_hash, token_fin, creado_ts, creado_rol, vence_ts, token_claro) VALUES (?1,?2,?3,?4,?5,?6,?7)', [e.id_cliente, e.token_hash, e.token_fin, Date.now(), e.creado_rol, e.vence_ts ?? null, e.token_claro ?? null]);
 export const stRevocarActivos = (db, idCliente, rol) => bind(db, 'UPDATE cliente_enlaces SET revocado_ts = ?2, revocado_rol = ?3 WHERE id_cliente = ?1 AND revocado_ts IS NULL', [idCliente, Date.now(), rol]);
 export const enlacePorHash = (db, h) => one(db, 'SELECT * FROM cliente_enlaces WHERE token_hash = ?1', [h]);
 export const tocarUso = (db, id) => run(db, 'UPDATE cliente_enlaces SET ultimo_uso_ts = ?2 WHERE id = ?1', [id, Date.now()]);
-export const enlacesDe = (db, idCliente) => all(db, 'SELECT id, token_fin, creado_ts, creado_rol, vence_ts, revocado_ts, revocado_rol, ultimo_uso_ts FROM cliente_enlaces WHERE id_cliente = ?1 ORDER BY id DESC LIMIT 10', [idCliente]);
+export const enlaceActivoDe = (db, idCliente) => one(db, 'SELECT id, token_claro, vence_ts FROM cliente_enlaces WHERE id_cliente = ?1 AND revocado_ts IS NULL AND (vence_ts IS NULL OR vence_ts > ?2) ORDER BY id DESC LIMIT 1', [idCliente, Date.now()]);
+export const enlacesDe = (db, idCliente) => all(db, 'SELECT id, token_fin, (token_claro IS NOT NULL) AS copiable, creado_ts, creado_rol, vence_ts, revocado_ts, revocado_rol, ultimo_uso_ts FROM cliente_enlaces WHERE id_cliente = ?1 ORDER BY id DESC LIMIT 10', [idCliente]);
 
 /* ---------- Intentos con código inválido (por IP, en D1: valen entre instancias del Worker) ---------- */
 export async function intentos(db, ip, ventana) { const r = await one(db, 'SELECT n FROM portal_intentos WHERE ip = ?1 AND ventana = ?2', [ip, ventana]); return r ? r.n : 0; }

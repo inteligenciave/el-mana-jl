@@ -16,6 +16,13 @@ function vCobUsd() {
   if (!(bs > 0) || !(t > 0)) return 0;
   return Math.round(Math.round(bs * 100) / t) / 100;
 }
+/* Reparto automático: el pago se reparte solo a las facturas más antiguas, hasta que la persona cambie un monto a mano */
+function vCobAutoRepartir() {
+  const C = vCob(), usd = vCobUsd(); if (C.manual || !C.prev || !C.prev.documentos) return;
+  const r = usd > 0 ? VD.repartirAntiguoPrimero(Math.round(usd * 100), C.prev.documentos.filter(d => !d.error && d.restante_cents > 0).map(d => ({id_documento: d.id_documento, fecha_emision: d.fecha_emision, pendiente_cents: d.restante_cents}))) : {aplicaciones: []};
+  C.apl = Object.fromEntries(r.aplicaciones.map(a => [a.id_documento, String(a.usd_cents / 100)]));
+  document.querySelectorAll('#v-docs [data-apl]').forEach(i => { i.value = C.apl[i.dataset.apl] ?? ''; }); vCobRefrescarRes();
+}
 const vCobAplicado = () => Object.values(vCob().apl).reduce((a, x) => a + (vNum(x) > 0 ? Math.round(vNum(x) * 100) : 0), 0) / 100;
 function vCobResumenHTML() {
   const usdp = vCobUsd(), apl = vCobAplicado(), resto = Math.round((usdp - apl) * 100) / 100;
@@ -35,17 +42,17 @@ function vCobDocs() {
     {h: 'Aplicar este pago ($)', f: d => d.error ? '' : `<div class="v-apl"><input type="text" inputmode="decimal" class="v-dec" data-apl="${d.id_documento}" value="${esc(C.apl[d.id_documento] ?? '')}" aria-label="Monto a aplicar a ${esc(d.nro || '')}" ${d.restante <= 0 ? 'disabled' : ''}><button type="button" class="btn sm ghost" data-act="vAplTodo" data-id="${d.id_documento}" ${d.restante <= 0 ? 'disabled' : ''}>Todo</button></div>`}
   ], pv.documentos, {empty: 'Sin notas pendientes.'});
   return `${tabla}${hayMora ? `<label class="toggle v-exo"><input type="checkbox" data-act-change="vCobExo" ${C.exonerar ? 'checked' : ''}><span>Exonerar el recargo por mora (exige el PIN de gerencia y queda en la auditoría)</span></label>` : ''}
-    <div class="btnrow"><button type="button" class="btn" data-act="vAplRepartir">${ic('compare', 16)}Repartir el pago (más antigua primero)</button><button type="button" class="btn ghost" data-act="vAplLimpiar">Limpiar</button></div>`;
+    <div class="btnrow"><button type="button" class="btn" data-act="vAplRepartir">${ic('compare', 16)}Repartir otra vez</button><button type="button" class="btn ghost" data-act="vAplLimpiar">Limpiar</button></div>`;
 }
 async function vCobCargar() {
   const C = vCob(); if (!C.cid) return;
   try { C.prev = await vApi('GET', '/clientes/' + C.cid + '/pendientes' + vQS({fecha: C.fecha || vHoy(), exonerar: C.exonerar ? 1 : ''})); } catch (e) { vErr(e); C.prev = {documentos: []}; }
-  vCobPintar();
+  vCobAutoRepartir(); vCobPintar();
 }
 async function vCobElegir(id) {
   const C = vCob();
   try { const r = await vApi('GET', '/clientes/' + id + '/precios'); C.cli = r.cliente; } catch (e) { return vErr(e); }
-  C.cid = id; C.prev = null; C.apl = {}; C.fecha = C.fecha || vHoy(); vCobPintar(); vCobCargar();
+  C.cid = id; C.prev = null; C.apl = {}; C.manual = false; C.fecha = C.fecha || vHoy(); vCobPintar(); vCobCargar();
 }
 /* Formulario del pago: lo usan la pantalla «Cobrar y liquidar» y la ventana de cobro de «Quién debe» */
 function vCobForm() {
@@ -65,7 +72,7 @@ function scrCobro() {
     const C = vCob(), hoy = vHoy();
     const form = vCobForm();
     return `${vph('Ventas y liquidación · Fase 2', 'Cobrar y liquidar', 'Escribe el pago una sola vez. Verás qué caso corresponde por los días transcurridos y qué documento se emite.')}
-    ${card('1 · Cliente', C.cli ? `<div class="v-cli-b"><div><p class="v-cli-n">${vtxt(C.cli.razon_social)}</p><p class="mono">${vtxt(C.cli.rif_id || 'sin RIF')} · debe ${vusd(C.cli.deuda_cents / 100)}</p></div><button type="button" class="btn sm ghost" data-act="vCobOtro">Cambiar cliente</button></div>` : vPicker('cob', null, C.q))}
+    ${card('1 · Cliente', C.cli ? `<div class="v-cli-b"><div><p class="v-cli-n">${vtxt(C.cli.razon_social)}</p><p class="mono">${vtxt(C.cli.rif_id || 'sin RIF')} · debe ${vusd(C.cli.deuda_cents / 100)}</p><p class="v-ref">${vRefCli(C.cli)}</p></div><button type="button" class="btn sm ghost" data-act="vCobOtro">Cambiar cliente</button></div>` : vPicker('cob', null, C.q))}
     ${C.cli ? card('2 · Notas y facturas pendientes (al ' + vfecha(C.fecha || hoy) + ')', `<div id="v-docs">${vCobDocs()}</div>`, {}) : ''}
     ${C.cli ? card('3 · Datos del pago', form) : ''}`;
   });
@@ -90,7 +97,7 @@ async function vCobEnviar(pin) {
   try {
     const r = await vApi('POST', '/cobros', cuerpo); closeModal();
     toast('Pago ' + esc(r.recibo) + ' registrado: ' + vusd(r.usd) + '.');
-    Object.assign(C, {monto: '', banco: '', id_banco: '', ref: '', obs: '', apl: {}, exonerar: false, fecha: vHoy()}); const cid = C.cid;
+    Object.assign(C, {monto: '', banco: '', id_banco: '', ref: '', obs: '', apl: {}, manual: false, exonerar: false, fecha: vHoy()}); const cid = C.cid;
     V.clientes = null; V.deuda.data = null; V.deuda.base = null; await vBoot(true); await vCobElegir(cid);
     vCobExito(r);
   } catch (e) {

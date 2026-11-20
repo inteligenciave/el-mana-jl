@@ -1,0 +1,21 @@
+const {abrir} = require('./cap.js');
+(async () => {
+  const {browser, page, U, errores} = await abrir('Ventas', 'ventas-');
+  await U.ir('#v-pedido'); await U.marcar('css:input[placeholder^="Nombre o RIF"]'); await U.foto('01');
+  await page.locator('text=Abasto El Puente (EJEMPLO)').first().click(); await page.waitForTimeout(500);
+  await page.locator('button:has-text("+")').first().click(); await page.waitForTimeout(500);
+  await U.borroso(); await U.marcar('css:button:has-text("+")'); await U.foto('02');
+  await U.marcar('"A crédito"', 'REGISTRAR PEDIDO · NOTA'); await U.foto('03');
+  for (let i = 0; i < 4; i++) await page.locator('button:has-text("+")').first().click();
+  await U.borroso(); await U.marcar('El pedido supera el crédito disponible. No se'); await U.foto('09');
+  await page.evaluate(() => { Object.keys(localStorage).filter(k => /pedido-en-curso|borr:d:/.test(k)).forEach(k => localStorage.removeItem(k)); });
+  await page.reload(); await page.waitForTimeout(1200);
+  await U.clic('Existencias'); await U.foto('04');
+  await U.ir('#v-clientes'); await U.clic('Cliente nuevo'); await U.foto('05');
+  await U.ir('#v-deuda'); await U.marcar('WhatsApp', 'Llamar'); await U.foto('06');
+  await U.clic('Cobros hechos'); await U.marcar('Descargar CSV'); await U.foto('07');
+  await U.clic('Registro de ventas'); await U.marcar('Por rubro'); await U.foto('08');
+  await U.ir('#v-pedido'); await page.locator('text=Autorización').first().click(); await page.waitForTimeout(600);
+  await page.locator('text=Pedir autorización').first().click().catch(() => {}); await page.waitForTimeout(600); await U.foto('10');
+  console.log('errores consola:', errores.length, errores.slice(0, 3)); await browser.close();
+})();

@@ -5,7 +5,6 @@ import * as P from './dominio.js';
 import * as R from './repo.js';
 import * as E from '../entregas/dominio.js';
 import {ROL_TXT, nomRol} from '../ventas/permisos.js';
-import * as VD from '../ventas/dominio.js';
 
 export const err = (status, message, extra = {}) => Object.assign(new Error(message), {status, message, extra});
 const rolTxt = ctx => nomRol(ctx.rol);
@@ -30,63 +29,58 @@ async function guardarPendiente(ctx, c, auditoria) {
 const SIN_CAMBIOS = {estado: 'SIN_CAMBIOS', mensaje: 'No hay nada que cambiar: el valor es el mismo.'};
 const PENDIENTE = {estado: 'PENDIENTE', mensaje: 'Cambio de precio enviado al Gerente para aprobar. Mientras tanto sigue vigente el precio anterior.'};
 
-/* ---------- a) Precio por bulto de una lista (A/B) y modalidad (contado/crédito) ---------- */
+/* ---------- a) Precio por bulto de una categoría (Minorista, Mayorista, Gran Mayor) y modalidad (contado/crédito) ---------- */
 export async function listasPrecios(ctx) {
   if (!P.puedeVerCambios(ctx.rol)) throw err(403, P.MSG_SIN_PERMISO);
-  const filas = await R.listarPreciosLista(ctx.db), por = new Map();
-  for (const f of filas) {
-    const x = por.get(f.id_producto) || por.set(f.id_producto, {id_producto: f.id_producto, codigo_sku: f.codigo_sku, nombre: f.nombre, gramaje: f.gramaje, listas: {}}).get(f.id_producto);
-    x.listas[f.lista] = {contado_cents: f.contado_cents, credito_cents: f.credito_cents};
-  }
-  const mapa = await R.leerEstadosLista(ctx.db), nombres = await R.nombresListas(ctx.db);
-  const estados = VD.ESTADOS.map(e => ({estado: e, zona: VD.zonaDeEstado(e), lista: mapa[e] || null}));
-  const listas = nombres.map(n => ({nombre: n, propia: !['A', 'B'].includes(n), estados: estados.filter(x => x.lista === n).map(x => x.estado)}));
-  return {productos: [...por.values()], listas, estados};
+  const [prods, filas, cli, arch] = await Promise.all([R.listarProductos(ctx.db), R.listarPreciosLista(ctx.db), R.clientesPorCategoria(ctx.db), R.listarArchivo(ctx.db)]);
+  const por = new Map(prods.map(p => [p.id_producto, {id_producto: p.id_producto, codigo_sku: p.codigo_sku, nombre: p.nombre, gramaje: p.gramaje, listas: {}}]));
+  for (const f of filas) { const x = por.get(f.id_producto); if (x) x.listas[f.lista] = {contado_cents: f.contado_cents, credito_cents: f.credito_cents}; }
+  const listas = P.LISTAS.map(n => ({nombre: n, clientes: cli.por[n] || 0, productos_con_precio: filas.filter(f => f.lista === n).length}));
+  return {productos: [...por.values()], listas, clientes_sin_categoria: cli.sin, archivadas: {listas: [...new Set(arch.map(f => f.lista))], filas: arch.length}};
 }
-async function estadosDeLista(db, lista) { const m = await R.leerEstadosLista(db); return Object.keys(m).filter(e => m[e] === lista).sort(); }
-const soloDueno = ctx => { if (ctx.rol !== 'dueno') throw err(403, 'Solo el Gerente asigna listas de precios a los estados.'); };
-/* El Gerente apunta un estado a una lista que ya existe (o lo deja sin precios con lista = null) */
-export async function asignarListaEstado(ctx, b) {
-  soloDueno(ctx); b = b || {};
-  const estado = VD.estadoReal(b.estado); if (!estado) throw err(400, 'Elige un estado de Venezuela.');
-  const lista = b.lista == null || b.lista === '' ? null : String(b.lista);
-  if (lista && !(await R.nombresListas(ctx.db)).includes(lista)) throw err(400, 'Esa lista de precios no existe.');
-  const antes = (await R.leerEstadosLista(ctx.db))[estado] || null;
-  if (antes === lista) return SIN_CAMBIOS;
-  await R.lote(ctx.db, [R.stEstadoLista(ctx.db, estado, lista), ...audit(ctx, 'precio', estado, 'Estado ' + estado, lista ? 'asignó la lista ' + lista : 'dejó el estado sin lista de precios', {antes, despues: lista})]);
-  return {estado: 'APLICADO', mensaje: lista ? `${estado} ahora usa la lista ${lista}. Las ventas ya emitidas no cambian.` : `${estado} quedó sin precios: no se vende hasta que le asignes una lista.`};
-}
-/* El Gerente le da precios propios a un estado: se crea una lista nueva copiando otra y el estado pasa a usarla */
-export async function darPreciosPropios(ctx, b) {
-  soloDueno(ctx); b = b || {};
-  const estado = VD.estadoReal(b.estado); if (!estado) throw err(400, 'Elige un estado de Venezuela.');
-  const nombres = await R.nombresListas(ctx.db), actual = (await R.leerEstadosLista(ctx.db))[estado] || null;
-  const origen = b.copiar_de ? String(b.copiar_de) : actual;
-  if (!origen || !nombres.includes(origen)) throw err(400, 'Elige de qué lista copiar los precios de partida (por ejemplo A o B).');
-  if (actual && actual.startsWith('Propia · ' + estado)) throw err(409, estado + ' ya tiene precios propios.');
-  let nueva = 'Propia · ' + estado, n = 2; while (nombres.includes(nueva)) nueva = 'Propia · ' + estado + ' ' + n++;
-  await R.lote(ctx.db, [R.stCopiarLista(ctx.db, nueva, origen), R.stEstadoLista(ctx.db, estado, nueva), ...audit(ctx, 'precio', estado, 'Estado ' + estado, 'le dio precios propios (lista ' + nueva + ', copiada de ' + origen + ')', {antes: actual, despues: nueva, copiada_de: origen})]);
-  return {estado: 'APLICADO', lista: nueva, mensaje: `${estado} ahora tiene su propia lista (${nueva}), copiada de ${origen}. Edítala en Precios por lista sin afectar a los demás estados.`};
+/* Las listas por zona archivadas (A, B, «Propia · estado»): solo para consultar o copiar a mano a las categorías */
+export async function listasArchivadas(ctx) {
+  if (!P.puedeVerCambios(ctx.rol)) throw err(403, P.MSG_SIN_PERMISO);
+  const [filas, estados] = await Promise.all([R.listarArchivo(ctx.db), R.estadosArchivo(ctx.db)]);
+  const por = new Map();
+  for (const f of filas) { const x = por.get(f.lista) || por.set(f.lista, {nombre: f.lista, estados: estados.filter(e => e.lista === f.lista).map(e => e.estado), precios: []}).get(f.lista); x.precios.push({producto: ((f.nombre || '') + ' ' + (f.gramaje || '')).trim(), contado_cents: f.contado_cents, credito_cents: f.credito_cents}); }
+  return {listas: [...por.values()]};
 }
 export async function cambiarPrecioLista(ctx, b) {
   const modo = modoOExigir(ctx);
   b = b || {};
+  const nuevaFila = b.modalidad === 'ambos';
   const e0 = P.validarLista(b.lista, b.modalidad); if (e0) throw err(400, e0);
-  const v = P.validarPrecioBulto(b.precio); if (v.error) throw err(400, v.error);
   const id = Number(b.id_producto); if (!Number.isInteger(id) || id < 1) throw err(400, 'Elige un producto.');
-  const fila = await R.getPrecioLista(ctx.db, id, b.lista); if (!fila) throw err(404, 'Ese producto no tiene precio en la lista ' + b.lista + '.');
-  const p = await R.getProducto(ctx.db, id), campo = P.campoLista(b.modalidad), antes = b.modalidad === 'contado' ? fila.contado_cents : fila.credito_cents;
+  const p = await R.getProducto(ctx.db, id); if (!p) throw err(404, 'Producto no encontrado.');
+  const fila = await R.getPrecioLista(ctx.db, id, b.lista), nombre = `${nomProd(p)} · ${b.lista}`;
+  /* Producto sin precio en la categoría: se cargan los dos precios juntos (contado y crédito) */
+  if (!fila || nuevaFila) {
+    if (fila) throw err(409, 'Ese producto ya tiene precio en ' + b.lista + '. Cambia el de contado o el de crédito.');
+    const co = P.validarPrecioBulto(b.precio_contado), cr = P.validarPrecioBulto(b.precio_credito);
+    if (co.error || cr.error) throw err(400, 'Este producto todavía no tiene precio en ' + b.lista + ': escribe el precio de contado y el de crédito por bulto. ' + (co.error ? 'Contado: ' + co.error : 'Crédito: ' + cr.error));
+    const clave = P.claveLista(id, b.lista, 'ambos'), campos = {lista_contado_cents: {antes: null, despues: co.cents}, lista_credito_cents: {antes: null, despues: cr.cents}};
+    const det = {lista: b.lista, modalidad: 'ambos', contado: co.cents / 100, credito: cr.cents / 100};
+    if (modo === 'directo') {
+      await R.lote(ctx.db, [R.stUpsertPrecioLista(ctx.db, id, b.lista, co.cents, cr.cents), R.stCerrarPendiente(ctx.db, clave, rolTxt(ctx), 'El Gerente fijó el precio directamente.'), ...audit(ctx, 'precio', p.codigo_sku, nombre, 'cargó el precio por bulto de la categoría', det)]);
+      return {estado: 'APLICADO', mensaje: 'Precio cargado: ya rige para los clientes ' + b.lista + '.'};
+    }
+    await guardarPendiente(ctx, {tipo: 'PRODUCTO', clave, titulo: nombre, detalle: {items: [{id, nombre, lista: b.lista, modalidad: 'ambos', campos}]}}, audit(ctx, 'precio', p.codigo_sku, nombre, 'pidió cargar el precio por bulto de la categoría (pendiente de aprobar)', det));
+    return PENDIENTE;
+  }
+  const v = P.validarPrecioBulto(b.precio); if (v.error) throw err(400, v.error);
+  const campo = P.campoLista(b.modalidad), antes = b.modalidad === 'contado' ? fila.contado_cents : fila.credito_cents;
   if (antes === v.cents) return SIN_CAMBIOS;
-  const nombre = `${nomProd(p)} · lista ${b.lista}`, clave = P.claveLista(id, b.lista, b.modalidad), campos = {[campo]: {antes, despues: v.cents}};
+  const clave = P.claveLista(id, b.lista, b.modalidad), campos = {[campo]: {antes, despues: v.cents}};
   const det = {lista: b.lista, modalidad: b.modalidad, antes: antes / 100}, que = b.modalidad === 'contado' ? 'de contado' : 'a crédito';
   if (modo === 'directo') {
     await R.lote(ctx.db, [R.stPrecioLista(ctx.db, id, b.lista, b.modalidad, v.cents), R.stCerrarPendiente(ctx.db, clave, rolTxt(ctx), 'El Gerente fijó el precio directamente.'),
       ...audit(ctx, 'precio', p.codigo_sku, nombre, `cambió el precio ${que} por bulto`, {...det, despues: v.cents / 100})]);
-    return {estado: 'APLICADO', mensaje: 'Precio cambiado: ya rige.', estados_afectados: await estadosDeLista(ctx.db, b.lista)};
+    return {estado: 'APLICADO', mensaje: 'Precio cambiado: ya rige.'};
   }
   await guardarPendiente(ctx, {tipo: 'PRODUCTO', clave, titulo: nombre, detalle: {items: [{id, nombre, lista: b.lista, modalidad: b.modalidad, campos}]}},
     audit(ctx, 'precio', p.codigo_sku, nombre, `pidió cambiar el precio ${que} por bulto (pendiente de aprobar)`, {...det, nuevo: v.cents / 100}));
-  return {...PENDIENTE, estados_afectados: await estadosDeLista(ctx.db, b.lista)};
+  return PENDIENTE;
 }
 
 /* ---------- b) Precios especiales de un cliente (precios por bulto y porcentajes de su regla) ---------- */
@@ -150,7 +144,7 @@ export async function cantidadPendientes(ctx) {
 
 function sentenciasDeAplicar(db, c, detalle, rol) {
   const it = detalle.items || [];
-  if (c.tipo === 'PRODUCTO') return it.map(i => i.lista ? R.stPrecioLista(db, i.id, i.lista, i.modalidad, i.campos[P.campoLista(i.modalidad)].despues) : R.stPrecioProducto(db, i.id, i.campos.precio_ref_cents.despues));
+  if (c.tipo === 'PRODUCTO') return it.map(i => i.lista && i.modalidad === 'ambos' ? R.stUpsertPrecioLista(db, i.id, i.lista, i.campos.lista_contado_cents.despues, i.campos.lista_credito_cents.despues) : i.lista ? R.stPrecioLista(db, i.id, i.lista, i.modalidad, i.campos[P.campoLista(i.modalidad)].despues) : R.stPrecioProducto(db, i.id, i.campos.precio_ref_cents.despues));
   if (c.tipo === 'CLIENTE') { const idCli = Number(c.clave.slice(2)); return it.map(i => i.regla ? R.stUpsertRegla(db, idCli, i.regla) : R.stBorrarRegla(db, idCli, i.id)); }
   if (c.tipo === 'CREDITO') return it.map(i => R.stAjustes(db, i.ajustes, rol));
   throw err(500, 'Tipo de cambio desconocido.');

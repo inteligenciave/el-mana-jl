@@ -36,3 +36,28 @@ wrangler-dev.log
 *.sqlite-shm
 
 respaldo-*.sql
+
+# --- Control de versiones (ver PUBLICAR.md): nunca se suben respaldos de la base ---
+# (tienen nómina y datos de clientes). Las migraciones y su reversa SÍ se suben.
+respaldo*
+*-respaldo*
+*respaldo*.sql
+*.dump
+*.sql.gz
+*.sql.zip
+.dev.vars*
+*.pfx
+*.p12
+id_rsa*
+secrets*
+# Imágenes de trabajo y archivos pesados en la raíz (no son parte del sistema)
+/*.png
+/*.jpg
+/qr-*
+/fotos-productos/
+/iconos-roles/
+# Excepciones: migraciones y reversa siempre entran
+!cloudflare/migrations/
+!cloudflare/migrations/*.sql
+!cloudflare/reversa/
+!cloudflare/reversa/*.sql

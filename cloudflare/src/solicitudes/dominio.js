@@ -3,7 +3,7 @@ export const puedeResolver = rol => rol === 'dueno';
 export const MSG_SIN_PERMISO = 'Solo el Gerente responde las solicitudes.';
 export const ESTADOS = {PENDIENTE: 'Pendiente', APROBADA: 'Aprobada', RECHAZADA: 'Rechazada'};
 /* Lista corta de qué se puede pedir cambiar (también se acepta un texto breve) */
-export const ASUNTOS = ['Una meta o su ajuste', 'Una regla de pago de nómina', 'Un porcentaje o una tasa', 'Un permiso de mi puesto', 'Una política o ajuste del sistema', 'Otro cambio'];
+export const ASUNTOS = ['Una meta o su ajuste', 'Una regla de pago de nómina', 'Un porcentaje o una tasa', 'Corregir algo ya pagado o con bono aplicado', 'Un permiso de mi puesto', 'Una política o ajuste del sistema', 'Otro cambio'];
 const t = (v, n) => (v == null ? '' : String(v)).replace(/\s+/g, ' ').trim().slice(0, n);
 /* Pedido como llega de la pantalla. Devuelve {s:{pantalla, asunto, motivo}} o {error} */
 export function validarSolicitud(b) {

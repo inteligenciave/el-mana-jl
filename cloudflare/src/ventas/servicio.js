@@ -7,6 +7,8 @@ import * as PR from '../precios/repo.js';
 import * as PD from '../precios/dominio.js';
 import * as BS from '../bancos/servicio.js';
 import * as PRD from '../produccion/repo.js';
+import * as RHD from '../rrhh/dominio.js';
+import * as RHR from '../rrhh/repo.js';
 
 export const err = (status, message, extra = {}) => Object.assign(new Error(message), {status, message, extra});
 const pad = (n, w = 6) => String(n).padStart(w, '0');
@@ -34,13 +36,31 @@ const dol = c => c == null ? null : c / 100;
 
 /* ---------- Arranque: todo lo que la pantalla necesita para empezar ---------- */
 export async function arranque(db) {
-  const estadosLista = await cargarMapaListas(db);
   const [productos, vendedores, listas, cfg, ej] = await Promise.all([R.listarProductos(db), R.listarVendedores(db), R.listarListas(db), R.leerConfig(db), R.contarEjemplo(db)]);
   const {pin_hash, pin_sal, ...cfgPublica} = cfg;
   /* Inventario único: stock_entero = bultos en bodega; disponible = lo que se puede vender (sin lo apartado por pedidos) */
   for (const p of productos) p.disponible = Math.max(0, (p.stock_entero || 0) - (p.stock_apartado || 0));
-  return {hoy: D.hoyVE(), estados_lista: estadosLista, productos, vendedores, listas, config: cfgPublica, pinConfigurado: !!pin_hash, ejemplo: ej,
+  return {hoy: D.hoyVE(), categorias: D.CATEGORIAS, productos, vendedores, vendedores_empleados: await vendedoresDeEmpleados(db, vendedores), listas, config: cfgPublica, pinConfigurado: !!pin_hash, ejemplo: ej,
     secuencias: {factura: await R.leerSecuencia(db, 'factura_fiscal'), nc: await R.leerSecuencia(db, 'nc_fiscal'), nd: await R.leerSecuencia(db, 'nd_fiscal')}};
+}
+
+/* ---------- Vendedores unificados (2.1) ----------
+   Una sola lista al agregar clientes: los vendedores de siempre + las personas de Nómina con cargo «Vendedor» que aún no estén en esa lista.
+   Elegir a una persona de Nómina crea (o enlaza) su fila en vendedores; la comisión la fija después el Gerente. */
+export async function vendedoresDeEmpleados(db, vendedores) {
+  const vs = vendedores || await R.listarVendedores(db);
+  const enlazados = new Set(vs.filter(v => v.empleado_id).map(v => v.empleado_id)), nombres = new Set(vs.map(v => D.normNombre(v.nombre)));
+  return (await RHR.empleados(db)).filter(e => RHD.activo(e) && RHD.esCargoVendedor(e.cargo) && !enlazados.has(e.id) && !nombres.has(D.normNombre(e.n)))
+    .map(e => ({empleado_id: e.id, nombre: e.n})).sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+}
+async function vendedorDeEmpleado(ctx, idEmp) {
+  const {db} = ctx, ya = await R.vendedorDeEmpleado(db, String(idEmp)); if (ya) return ya.id;
+  const e = await RHR.empleado(db, String(idEmp));
+  if (!e || !RHD.activo(e) || !RHD.esCargoVendedor(e.cargo)) throw err(400, 'Esa persona no está en Nómina como Vendedor.');
+  const nombre = txt(e.n, 80), igual = await R.vendedorPorNombre(db, nombre);
+  if (igual) { if (!igual.empleado_id) await enLote(db, [R.stVincularVendedor(db, igual.id, String(idEmp))]); return igual.id; }
+  await enLote(db, [R.stInsertarVendedor(db, {nombre, comision_pct: null, empleado_id: String(idEmp)}), ...audit(ctx, 'vendedor', nombre, nombre, 'agregó (desde Nómina)', {empleado_id: idEmp})]);
+  return (await R.vendedorDeEmpleado(db, String(idEmp))).id;
 }
 
 /* ---------- Catálogo ---------- */
@@ -114,10 +134,12 @@ function leerCliente(b, prev, permitidoCondiciones) {
     rif_id: txt(b.rif_id, 20).toUpperCase() || null, razon_social: txt(b.razon_social, 150), modalidad_despacho_pref: b.modalidad_despacho_pref === 'FACTURA_DIRECTA' ? 'FACTURA_DIRECTA' : 'NOTA_ENTREGA',
     id_vendedor: b.id_vendedor ? +b.id_vendedor : null, zona: D.estadoReal(b.zona), telefono: txt(b.telefono, 30) || null,
     direccion_entrega: b.direccion_entrega === undefined ? (prev ? prev.direccion_entrega : null) : (txt(b.direccion_entrega, 200) || null),
-    lista_regional: null
+    lista_regional: null   // columna vieja de las listas A/B: ya no se usa
   };
   if (!c.zona) throw err(400, D.MSG_ELEGIR_ZONA);
-  c.lista_regional = D.listaRegional(c.zona);   // solo referencia: la lista que rige sale siempre del estado
+  /* Categoría de precio: obligatoria al crear; al editar, si no llega se conserva (clientes viejos sin categoría) */
+  if (b.categoria_precio === undefined && prev) c.categoria_precio = prev.categoria_precio || null;
+  else { c.categoria_precio = D.categoriaReal(b.categoria_precio); if (!c.categoria_precio && (!prev || (b.categoria_precio != null && b.categoria_precio !== ''))) throw err(400, D.MSG_ELEGIR_CATEGORIA); if (!c.categoria_precio) c.categoria_precio = null; }
   if (!c.razon_social) throw err(400, 'La razón social es obligatoria.');
   if (String(b.razon_social).trim().length > 150) throw err(400, 'El nombre del cliente es muy largo: usa 150 letras o menos.');
   c.razon_norm = D.normNombre(c.razon_social);
@@ -131,10 +153,9 @@ function leerCliente(b, prev, permitidoCondiciones) {
   } else Object.assign(c, prev ? {id_lista_base: prev.id_lista_base, descuento_fijo_pct: prev.descuento_fijo_pct, dias_pronto_pago: prev.dias_pronto_pago, dias_credito_normal: prev.dias_credito_normal, limite_credito_cents: prev.limite_credito_cents} : {id_lista_base: null, descuento_fijo_pct: null, dias_pronto_pago: null, dias_credito_normal: null, limite_credito_cents: null});
   return c;
 }
-export async function cargarMapaListas(db) { const m = await R.leerEstadosLista(db); D.setMapaListas(m); return m; }
 export async function guardarCliente(ctx, id, b) {
-  await cargarMapaListas(ctx.db);
   exigir(ctx, 'editarCliente', 'Tu rol no registra clientes.');
+  if (b.vendedor_empleado_id) b = {...b, id_vendedor: await vendedorDeEmpleado(ctx, b.vendedor_empleado_id)};
   const prev = id ? await R.getCliente(ctx.db, id) : null; if (id && !prev) throw err(404, 'Cliente no encontrado.');
   const c = leerCliente(b, prev, puede(ctx.rol, 'condiciones', ctx.matriz));
   if (!id) { const dup = await R.clientePorNorm(ctx.db, c.razon_norm); if (dup) throw err(409, 'Ya existe un cliente con ese nombre: ' + dup.razon_social, {codigo: 'CLIENTE_REPETIDO', existente: dup.id_cliente}); }
@@ -143,14 +164,14 @@ export async function guardarCliente(ctx, id, b) {
     const cambios = {}; for (const k of Object.keys(c)) if (k !== 'razon_norm' && String(prev[k] ?? '') !== String(c[k] ?? '')) cambios[k] = [prev[k] ?? '', c[k] ?? ''];
     await enLote(ctx.db, [R.stActualizarCliente(ctx.db, id, c), ...(Object.keys(cambios).length ? audit(ctx, 'cliente', id, c.razon_social, 'modificó', cambios) : [])]);
     const nuevo = await R.getCliente(ctx.db, id), antes = D.listaDeCliente(prev), ahora = D.listaDeCliente(nuevo);
-    return antes !== ahora ? {...nuevo, aviso_lista: `Ahora usa la lista ${ahora} (zona ${nuevo.zona}). Sus ventas nuevas usan esa lista; las ventas ya emitidas no cambian.`} : nuevo;
+    return antes !== ahora ? {...nuevo, aviso_lista: `Ahora es cliente ${ahora || 'sin categoría'}. Sus ventas nuevas usan los precios de esa categoría; las ventas ya emitidas no cambian.`} : nuevo;
   }
   await enLote(ctx.db, [R.stInsertarCliente(ctx.db, c), ...audit(ctx, 'cliente', c.razon_social, c.razon_social, 'agregó', {})]);
   const nuevo = await R.clientePorNorm(ctx.db, c.razon_norm); return R.getCliente(ctx.db, nuevo.id_cliente);
 }
 /* Los precios especiales por cliente (reglas) se cambian en src/precios/servicio.js: el Gerente rige de una vez, Administración deja un cambio pendiente. */
-/* Precio de un producto para un cliente según su lista regional (A o B). Si el producto tiene lista y el cliente no la tiene, no se vende. */
-export async function contextoPrecios(db, cli) { await cargarMapaListas(db); const lista = D.listaDeCliente(cli); return {lista, ...await R.contextoListas(db, lista)}; }
+/* Precio de un producto para un cliente según su categoría (Minorista, Mayorista o Gran Mayor); su precio especial manda. Si el producto tiene lista y el cliente no la tiene, no se vende. */
+export async function contextoPrecios(db, cli) { const lista = D.listaDeCliente(cli); return {lista, ...await R.contextoListas(db, lista)}; }
 export function precioDe(p, regla, cx) {
   const tiene = cx.conLista.has(p.id_producto);
   if (tiene && !cx.lista && !(regla && regla.precio_base_credito_cents != null)) return {sinLista: true};
@@ -162,7 +183,7 @@ export async function preciosCliente(db, idCliente) {
   const [prods, reglas, cx] = await Promise.all([R.listarProductos(db), R.reglasDeCliente(db, idCliente), contextoPrecios(db, cli)]);
   const rm = new Map(reglas.map(r => [r.id_producto, r]));
   const compC = (await PRD.comprometidoCliente(db, idCliente)).reduce((a, f) => a + D.totalesLineas([{cantidad: f.pend, precio_base_cents: f.precio_base_cents, precio_pp_cents: f.precio_base_cents, precio_mora_cents: f.precio_base_cents, alicuota: f.alicuota}], 0, f.descuento_pct).total, 0);
-  return {comprometido: dol(compC), cliente: cli, lista: cx.lista, sin_lista: !cx.lista && prods.some(p => cx.conLista.has(p.id_producto)), mensaje_sin_lista: !cx.lista ? D.mensajeSinLista(cli) : null, reglas, precios: prods.map(p => { const x = precioDe(p, rm.get(p.id_producto), cx).pr || {}; return {id_producto: p.id_producto, regla: rm.has(p.id_producto), base: dol(x.base ?? null), pp: dol(x.pp ?? null), mora: dol(x.mora ?? null)}; })};
+  return {comprometido: dol(compC), cliente: cli, lista: cx.lista, sin_lista: !cx.lista && prods.some(p => cx.conLista.has(p.id_producto)), mensaje_sin_lista: !cx.lista ? D.mensajeSinLista(cli) : null, categoria: cx.lista, reglas, precios: prods.map(p => { const x = precioDe(p, rm.get(p.id_producto), cx).pr || {}; return {id_producto: p.id_producto, regla: rm.has(p.id_producto), base: dol(x.base ?? null), pp: dol(x.pp ?? null), mora: dol(x.mora ?? null)}; })};
 }
 
 /* ---------- Fase 1: vender ---------- */
@@ -519,13 +540,12 @@ export async function guardarConfig(ctx, b) {
 
 /* ---------- Importación única desde el Excel de cobranza (llega ya limpia y confirmada desde la pantalla) ---------- */
 export async function importarLote(ctx, b) {
-  await cargarMapaListas(ctx.db);
   exigir(ctx, 'importar', 'Tu rol no importa datos.');
   const {db} = ctx, ej = b.ejemplo ? 1 : 0, cfg = await R.leerConfig(db), max = +cfg.ref_corta_max || 6;
   if (!Array.isArray(b.notas) || b.notas.length > 40) throw err(400, 'Envía hasta 40 notas por lote.');
   const res = {notas: 0, notasOmitidas: [], pagos: 0, pagosOmitidos: [], clientesNuevos: 0, sinReferencia: 0}, vcache = new Map(), ccache = new Map();
   const vend = async n => { const k = D.normNombre(n); if (!k) return null; if (vcache.has(k)) return vcache.get(k); let v = await R.vendedorPorNombre(db, n.trim()); if (!v) { await R.lote(db, [R.stInsertarVendedor(db, {nombre: n.trim(), ejemplo: ej})]); v = await R.vendedorPorNombre(db, n.trim()); } vcache.set(k, v.id); return v.id; };
-  const cli = async (nombre, vid, zona) => { const norm = D.normNombre(nombre); if (ccache.has(norm)) return ccache.get(norm); let c = await R.clientePorNorm(db, norm); if (!c) { await R.lote(db, [R.stInsertarCliente(db, {razon_social: nombre.trim(), razon_norm: norm, id_vendedor: vid, zona, lista_regional: D.listaRegional(zona), origen: 'importado', ejemplo: ej})]); c = await R.clientePorNorm(db, norm); res.clientesNuevos++; } ccache.set(norm, c.id_cliente); return c.id_cliente; };
+  const cli = async (nombre, vid, zona) => { const norm = D.normNombre(nombre); if (ccache.has(norm)) return ccache.get(norm); let c = await R.clientePorNorm(db, norm); if (!c) { await R.lote(db, [R.stInsertarCliente(db, {razon_social: nombre.trim(), razon_norm: norm, id_vendedor: vid, zona, lista_regional: null, categoria_precio: null, origen: 'importado', ejemplo: ej})]); c = await R.clientePorNorm(db, norm); res.clientesNuevos++; } ccache.set(norm, c.id_cliente); return c.id_cliente; };
   const claves = [];
   for (const n of b.notas) for (const p of n.pagos || []) { const bsC = D.aCents(p.bs), k = D.dupKey(p.banco, p.ref, bsC, max); if (k) claves.push(k); }
   const existentes = await R.clavesExistentes(db, claves), vistas = new Set();
@@ -566,7 +586,6 @@ const EJ_PROD = [['Papas Naturales', '150 g', 'PAPAS'], ['Papas Onduladas', '150
   ['Papas Naturales', '35 g', 'PAPAS'], ['Papas Naturales', '60 g', 'PAPAS'], ['Papas Naturales', '1 kg', 'PAPAS'], ['Salsa Queso Cheddar', '200 g', 'SALSAS'], ['Salsa BBQ Ahumada', '200 g', 'SALSAS'], ['Salsa de Maíz', '200 g', 'SALSAS'],
   ['Salsa Tocineta', '200 g', 'SALSAS'], ['Salsa de Ajo', '200 g', 'SALSAS'], ['Salsa Mostaza', '200 g', 'SALSAS'], ['Salsa Mayonesa', '200 g', 'SALSAS'], ['Salsa de Tomate', '200 g', 'SALSAS']];
 export async function cargarEjemplo(ctx) {
-  await cargarMapaListas(ctx.db);
   exigir(ctx, 'ejemplo', 'Solo el Gerente carga los datos de ejemplo.');
   const {db} = ctx, hoy = D.hoyVE();
   if ((await R.contarEjemplo(db)).clientes > 0) throw err(409, 'Los datos de ejemplo ya están cargados.');
@@ -577,11 +596,11 @@ export async function cargarEjemplo(ctx) {
   const prods = await R.listarProductos(db);
   await enLote(db, [...prods.map(p => R.stStock(db, p.id_producto, 500)), ...prods.map(p => R.stMovimiento(db, {id_producto: p.id_producto, cantidad: 500, tipo: 'ENTRADA_EJEMPLO', fecha: hoy, ejemplo: 1}))]);
   const clientes = [
-    {n: 'Bodega La Esquina (EJEMPLO)', rif: 'J-00000101-0', mod: 'NOTA_ENTREGA', pp: 8, cr: 21, lim: 2000, v: V(1), zona: 'Lara'},
-    {n: 'Supermercado Los Pinos (EJEMPLO)', rif: 'J-00000102-0', mod: 'FACTURA_DIRECTA', pp: 8, cr: 21, lim: 2000, v: V(1), zona: 'Trujillo'},
-    {n: 'Abasto El Puente (EJEMPLO)', rif: 'J-00000103-0', mod: 'NOTA_ENTREGA', pp: 5, cr: 15, lim: 150, v: V(2), zona: 'Distrito Capital'},
-    {n: 'Distribuidora Centro (EJEMPLO)', rif: 'J-00000104-0', mod: 'NOTA_ENTREGA', pp: null, cr: null, lim: null, v: V(3), zona: 'Anzoátegui'}];
-  await enLote(db, clientes.map(c => R.stInsertarCliente(db, {rif_id: c.rif, razon_social: c.n, razon_norm: D.normNombre(c.n), modalidad_despacho_pref: c.mod, id_lista_base: lista.id, dias_pronto_pago: c.pp, dias_credito_normal: c.cr, limite_credito_cents: c.lim == null ? null : c.lim * 100, id_vendedor: c.v, zona: c.zona, lista_regional: D.listaRegional(c.zona), direccion_entrega: 'Dirección de ejemplo, ' + c.zona, ejemplo: 1})));
+    {n: 'Bodega La Esquina (EJEMPLO)', rif: 'J-00000101-0', mod: 'NOTA_ENTREGA', pp: 8, cr: 21, lim: 2000, v: V(1), zona: 'Lara', cat: 'Minorista'},
+    {n: 'Supermercado Los Pinos (EJEMPLO)', rif: 'J-00000102-0', mod: 'FACTURA_DIRECTA', pp: 8, cr: 21, lim: 2000, v: V(1), zona: 'Trujillo', cat: 'Minorista'},
+    {n: 'Abasto El Puente (EJEMPLO)', rif: 'J-00000103-0', mod: 'NOTA_ENTREGA', pp: 5, cr: 15, lim: 150, v: V(2), zona: 'Distrito Capital', cat: 'Mayorista'},
+    {n: 'Distribuidora Centro (EJEMPLO)', rif: 'J-00000104-0', mod: 'NOTA_ENTREGA', pp: null, cr: null, lim: null, v: V(3), zona: 'Anzoátegui', cat: 'Gran Mayor'}];
+  await enLote(db, clientes.map(c => R.stInsertarCliente(db, {rif_id: c.rif, razon_social: c.n, razon_norm: D.normNombre(c.n), modalidad_despacho_pref: c.mod, id_lista_base: lista.id, dias_pronto_pago: c.pp, dias_credito_normal: c.cr, limite_credito_cents: c.lim == null ? null : c.lim * 100, id_vendedor: c.v, zona: c.zona, lista_regional: null, categoria_precio: c.cat, direccion_entrega: 'Dirección de ejemplo, ' + c.zona, ejemplo: 1})));
   const cl = Object.fromEntries((await R.buscarClientes(db, {q: 'EJEMPLO', limite: 20})).map(c => [c.rif_id, c]));
   const pk = k => prods.find(p => p.codigo_sku === k).id_producto;
   const reglas = [];

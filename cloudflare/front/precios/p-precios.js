@@ -50,65 +50,73 @@ function pPaginar(k, total, porPag) {
 const pLineaHTML = l => `<li><span>${ptxt(l.que)}${l.que ? ': ' : ''}${ptxt(l.campo)}</span> <s class="muted">${ptxt(l.antes)}</s> → <b>${ptxt(l.despues)}</b></li>`;
 const pChip = c => c.estado === 'PENDIENTE' ? '<span class="chip c-warn">Cambio de precio pendiente de aprobar</span>' : c.estado === 'RECHAZADO' ? '<span class="chip c-crit">Rechazado</span>' : '<span class="chip c-ok">Aprobado</span>';
 
-/* ---------- Administración / Gerente: precios por lista (A y B), contado y crédito, todo POR BULTO ---------- */
+/* ---------- Administración / Gerente: precios por categoría (Minorista, Mayorista, Gran Mayor), contado y crédito, todo POR BULTO ----------
+   La categoría se asigna a cada cliente en su ficha. Las listas por zona (A, B, «Propia · estado») ya no se cargan: están archivadas y se pueden consultar. */
 const P_MOD = {contado: 'de contado', credito: 'a crédito'};
 const pCentsATxt = c => N2.format(c / 100);
 const pBs = c => { const t = S.tasaInfo && S.tasaInfo.valor; return t ? 'Bs ' + N2.format(c / 100 * t) : ''; };
-const pCargarListas = () => pCargar('listas', async () => { const r = await pApi('GET', '/listas'); PP.listas = r.productos; PP.lm = {listas: r.listas, estados: r.estados}; });
+const pCargarListas = () => pCargar('listas', async () => { const r = await pApi('GET', '/listas'); PP.listas = r.productos; PP.lm = {listas: r.listas, sinCat: r.clientes_sin_categoria, archivadas: r.archivadas}; });
 function pCelda(p, lista, mod) {
   const x = (p.listas || {})[lista]; if (!x) return '<td class="r muted">—</td>';
   const c = mod === 'contado' ? x.contado_cents : x.credito_cents, cam = pUltimo('L:' + p.id_producto + ':' + lista + ':' + mod);
   const pend = cam && cam.estado === 'PENDIENTE', rech = cam && cam.estado === 'RECHAZADO';
   const nuevo = pend && cam.lineas[0] ? cam.lineas[0].despues.replace(' por bulto', '') : '';
-  return `<td class="r p-cel"><button type="button" class="p-cbtn" data-act="pEditar" data-id="${p.id_producto}" data-l="${lista}" data-m="${mod}" aria-label="Cambiar precio ${P_MOD[mod]} por bulto de ${pNom(p)}, lista ${lista}"><b>$ ${pCentsATxt(c)}</b><span class="p-bs">${pBs(c)}</span>${pend ? `<span class="chip c-warn">Pendiente de aprobar: ${ptxt(nuevo)}</span>` : ''}${rech ? `<span class="chip c-crit" title="${ptxt(cam.motivo || '')}">Rechazado${cam.motivo ? ': ' + ptxt(cam.motivo.slice(0, 40)) : ''}</span>` : ''}</button></td>`;
+  return `<td class="r p-cel"><button type="button" class="p-cbtn" data-act="pEditar" data-id="${p.id_producto}" data-l="${lista}" data-m="${mod}" aria-label="Cambiar precio ${P_MOD[mod]} por bulto de ${pNom(p)}, categoría ${lista}"><b>$ ${pCentsATxt(c)}</b><span class="p-bs">${pBs(c)}</span>${pend ? `<span class="chip c-warn">Pendiente de aprobar: ${ptxt(nuevo)}</span>` : ''}${rech ? `<span class="chip c-crit" title="${ptxt(cam.motivo || '')}">Rechazado${cam.motivo ? ': ' + ptxt(cam.motivo.slice(0, 40)) : ''}</span>` : ''}</button></td>`;
 }
-const pEstadosDe = n => (((PP.lm && PP.lm.listas) || []).find(l => l.nombre === n) || {}).estados || [];
-const pTxtEstados = n => { const e = pEstadosDe(n); return e.length ? e.join(', ') : 'ningún estado'; };
+/* Producto sin precio en la categoría: un solo botón que pide los dos precios juntos */
+function pCeldaVacia(p, lista) {
+  const cam = pUltimo('L:' + p.id_producto + ':' + lista + ':ambos'), pend = cam && cam.estado === 'PENDIENTE';
+  return `<td class="r p-cel" colspan="2"><button type="button" class="btn sm" data-act="pNuevo" data-id="${p.id_producto}" data-l="${lista}" ${pend ? 'disabled' : ''}>${pend ? 'Pendiente de aprobar' : 'Cargar precios'}</button> <span class="muted">sin precio en ${ptxt(lista)}</span></td>`;
+}
 function scrPrecios() {
   return pPantalla(() => {
     if (!PP.listas || !PP.lm) { pCargarListas(); return card('', emptyState('Cargando…', 'Un momento.')); }
     if (!PP.cambios) pCargarCambios();
-    const t = S.tasaInfo && S.tasaInfo.valor, ls = PP.lm.listas, sel = ls.find(l => l.nombre === PP.sel) ? PP.sel : (ls[0] && ls[0].nombre), sinPrecios = PP.lm.estados.filter(e => !e.lista).length;
-    return `${ph('Precios', 'Precios por lista')}
-    
-    <div class="p-tabs" role="tablist">${ls.map(l => `<button type="button" role="tab" class="btn sm ${l.nombre === sel ? 'pri' : ''}" aria-selected="${l.nombre === sel}" data-act="pLista" data-n="${ptxt(l.nombre)}">Lista ${ptxt(l.nombre)}</button>`).join('')}<button type="button" class="btn sm" data-act="pEstados">Estados y listas${sinPrecios ? ' <span class="chip c-warn">' + sinPrecios + ' sin precios</span>' : ''}</button></div>
-    <p class="hint">Estados con la lista ${ptxt(sel)}: <b>${ptxt(pTxtEstados(sel))}</b> · ${t ? 'Bs: referencia a tasa BCV de hoy (Bs ' + N2.format(t) + ' por $)' : 'Sin tasa BCV hoy'}</p>
+    const t = S.tasaInfo && S.tasaInfo.valor, ls = PP.lm.listas, sel = ls.find(l => l.nombre === PP.sel) ? PP.sel : (ls[0] && ls[0].nombre), actual = ls.find(l => l.nombre === sel) || {clientes: 0};
+    const arch = PP.lm.archivadas && PP.lm.archivadas.filas ? '<button type="button" class="btn sm" data-act="pArchivo">Listas archivadas (' + PP.lm.archivadas.listas.length + ')</button>' : '';
+    return `${ph('Precios', 'Precios por categoría')}
+    <div class="p-tabs" role="tablist">${ls.map(l => `<button type="button" role="tab" class="btn sm ${l.nombre === sel ? 'pri' : ''}" aria-selected="${l.nombre === sel}" data-act="pLista" data-n="${ptxt(l.nombre)}">${ptxt(l.nombre)}</button>`).join('')}${arch}</div>
+    <p class="hint">Clientes ${ptxt(sel)}: <b>${actual.clientes}</b>${PP.lm.sinCat ? ' · <span class="chip c-warn">' + PP.lm.sinCat + ' cliente(s) sin categoría: no se les puede vender hasta asignarla en su ficha</span>' : ''} · ${t ? 'Bs: referencia a tasa BCV de hoy (Bs ' + N2.format(t) + ' por $)' : 'Sin tasa BCV hoy'}</p>
     ${card('', `<div class="tw"><table class="p-listas"><thead><tr><th>Producto</th><th class="r">Contado · por bulto</th><th class="r">Crédito · por bulto</th></tr></thead><tbody>
-      ${PP.listas.filter(p => (p.listas || {})[sel]).map(p => `<tr><td><b>${pNom(p)}</b></td>${pCelda(p, sel, 'contado')}${pCelda(p, sel, 'credito')}</tr>`).join('')}</tbody></table></div>`)}`;
+      ${PP.listas.map(p => `<tr><td><b>${pNom(p)}</b></td>${(p.listas || {})[sel] ? pCelda(p, sel, 'contado') + pCelda(p, sel, 'credito') : pCeldaVacia(p, sel)}</tr>`).join('')}</tbody></table></div>`)}`;
   });
 }
-/* Estados y listas: cada estado usa UNA lista; varios pueden compartirla. Solo el Gerente cambia la asignación. */
-function pEstadosModal() {
-  const dueno = pDueno(), ls = PP.lm.listas;
-  modal('Estados y listas de precios', `
-    <div class="p-est"><table class="p-listas"><thead><tr><th>Estado</th><th>Zona</th><th>Lista</th><th></th></tr></thead><tbody>${PP.lm.estados.map(e => `<tr><td><b>${ptxt(e.estado)}</b></td><td>${ptxt(e.zona)}</td>
-      <td><select data-estado="${ptxt(e.estado)}" aria-label="Lista de ${ptxt(e.estado)}" ${dueno ? '' : 'disabled'}><option value="" ${e.lista ? '' : 'selected'}>Sin precios</option>${ls.map(l => `<option value="${ptxt(l.nombre)}" ${l.nombre === e.lista ? 'selected' : ''}>Lista ${ptxt(l.nombre)}</option>`).join('')}</select></td>
-      <td>${dueno ? `<button type="button" class="btn sm" data-act="pPropios" data-e="${ptxt(e.estado)}" ${e.lista && /^Propia/.test(e.lista) ? 'disabled' : ''}>Precios propios</button>` : ''}</td></tr>`).join('')}</tbody></table></div>
-    <div class="btnrow"><button type="button" class="btn" data-act="closeModal">Cerrar</button></div>`);
-}
-const pRefrescarEstados = async () => { pRecargar(); await pCargarListas(); if (typeof vBoot === 'function') vBoot(true); pEstadosModal(); render(); };
-async function pEstadoLista(estado, lista) {
-  try { const r = await pApi('PUT', '/estado', {estado, lista: lista || null}); toast(esc(r.mensaje)); await pRefrescarEstados(); }
-  catch (er) { toast(esc(er.message)); }
-}
-async function pPropios(estado) {
-  const act = (PP.lm.estados.find(e => e.estado === estado) || {}).lista;
-  try { const r = await pApi('POST', '/estado/propios', {estado, copiar_de: act || 'A'}); toast(esc(r.mensaje)); PP.sel = r.lista; await pRefrescarEstados(); }
-  catch (er) { toast(esc(er.message)); }
+async function pArchivoModal() {
+  try {
+    const r = await pApi('GET', '/archivo');
+    modal('Listas por zona archivadas', `<div class="form"><p class="hint">Estas listas ya no se usan para vender. Se conservan solo para consultar o para copiar sus precios a una categoría.</p>
+      ${r.listas.map(l => `<h3 class="v-h3">Lista ${ptxt(l.nombre)}${l.estados.length ? ' <span class="muted">(estados: ' + ptxt(l.estados.join(', ')) + ')</span>' : ''}</h3><ul class="p-lin">${l.precios.map(x => `<li><span>${ptxt(x.producto)}</span> contado <b>$ ${pCentsATxt(x.contado_cents)}</b> · crédito <b>$ ${pCentsATxt(x.credito_cents)}</b></li>`).join('')}</ul>`).join('') || '<p class="hint">No hay listas archivadas.</p>'}
+      <div class="btnrow"><button type="button" class="btn" data-act="closeModal">Cerrar</button></div></div>`);
+  } catch (e) { pErr(e); }
 }
 function pEditarModal(id, lista, mod) {
   const p = (PP.listas || []).find(x => x.id_producto === id); if (!p) return;
   const x = p.listas[lista], c = mod === 'contado' ? x.contado_cents : x.credito_cents, dueno = pDueno(), cam = pUltimo('L:' + id + ':' + lista + ':' + mod), bloqueado = !dueno && cam && cam.estado === 'PENDIENTE';
-  modal(`Precio ${P_MOD[mod]} por bulto · lista ${lista}`, `<div class="form"><p><b>${pNom(p)}</b><br>Precio vigente: <b>$ ${pCentsATxt(c)} por bulto</b> <span class="muted">(${pBs(c) || 'sin tasa BCV'})</span></p>
+  const n = ((PP.lm.listas || []).find(l => l.nombre === lista) || {}).clientes || 0;
+  modal(`Precio ${P_MOD[mod]} por bulto · ${lista}`, `<div class="form"><p><b>${pNom(p)}</b><br>Precio vigente: <b>$ ${pCentsATxt(c)} por bulto</b> <span class="muted">(${pBs(c) || 'sin tasa BCV'})</span></p>
     ${bloqueado ? '<p class="v-alerta v-aviso" role="status">Ya hay un cambio pendiente de aprobar para este precio. Espera la respuesta del Gerente.</p>' : ''}
     <label class="fld">Precio nuevo por bulto ($)<input type="text" inputmode="decimal" id="p-nuevo" placeholder="Ej.: 45,00" ${bloqueado ? 'disabled' : ''}></label>
-    <p class="hint"><b>Este cambio aplica a: ${ptxt(pTxtEstados(lista))}.</b></p>
+    <p class="hint"><b>Este cambio aplica a los clientes ${ptxt(lista)} (${n}).</b> Los precios especiales de cada cliente siguen mandando.</p>
     <p class="err" id="p-e" role="alert" hidden></p><div class="btnrow"><button type="button" class="btn pri" data-act="pEditarOk" data-id="${id}" data-l="${lista}" data-m="${mod}" ${bloqueado ? 'disabled' : ''}>${dueno ? 'Cambiar precio' : 'Enviar para aprobar'}</button><button type="button" class="btn" data-act="closeModal">Cancelar</button></div></div>`);
   const i = $('#p-nuevo'); if (i && !bloqueado) i.focus();
 }
 async function pEditarOk(id, lista, mod) {
   const e = $('#p-e'); e.hidden = true; if (PP.busy.cambiar) return; PP.busy.cambiar = true;
   try { const r = await pApi('PUT', '/lista', {id_producto: id, lista, modalidad: mod, precio: $('#p-nuevo').value}); closeModal(); toast(esc(r.mensaje)); pRecargar(); render(); }
+  catch (er) { e.textContent = er.message; e.hidden = false; }
+  finally { delete PP.busy.cambiar; }
+}
+function pNuevoModal(id, lista) {
+  const p = (PP.listas || []).find(x => x.id_producto === id); if (!p) return; const dueno = pDueno();
+  modal(`Cargar precios · ${lista}`, `<div class="form"><p><b>${pNom(p)}</b> todavía no tiene precio para los clientes ${ptxt(lista)}. Escribe los dos precios por bulto.</p>
+    <label class="fld">Precio de contado por bulto ($)<input type="text" inputmode="decimal" id="p-nco" placeholder="Ej.: 40,00"></label>
+    <label class="fld">Precio a crédito por bulto ($)<input type="text" inputmode="decimal" id="p-ncr" placeholder="Ej.: 45,00"></label>
+    <p class="err" id="p-e" role="alert" hidden></p><div class="btnrow"><button type="button" class="btn pri" data-act="pNuevoOk" data-id="${id}" data-l="${lista}">${dueno ? 'Cargar precios' : 'Enviar para aprobar'}</button><button type="button" class="btn" data-act="closeModal">Cancelar</button></div></div>`);
+  const i = $('#p-nco'); if (i) i.focus();
+}
+async function pNuevoOk(id, lista) {
+  const e = $('#p-e'); e.hidden = true; if (PP.busy.cambiar) return; PP.busy.cambiar = true;
+  try { const r = await pApi('PUT', '/lista', {id_producto: id, lista, modalidad: 'ambos', precio_contado: $('#p-nco').value, precio_credito: $('#p-ncr').value}); closeModal(); toast(esc(r.mensaje)); pRecargar(); render(); }
   catch (er) { e.textContent = er.message; e.hidden = false; }
   finally { delete PP.busy.cambiar; }
 }
@@ -194,17 +202,17 @@ function pRechazarModal(id) {
 /* ---------- Registro en la aplicación ---------- */
 Object.assign(PERM_DEF, {'p-precios': 'adm:2', 'p-clientes': 'adm:2', 'p-estado': 'adm:1', 'p-aprobar': ''});
 Object.assign(SCREENS, {
-  'p-precios':  {mod: 'adm', g: 'Precios', t: 'Precios por lista', s: 'Por lista', ic: 'tag', r: scrPrecios},
+  'p-precios':  {mod: 'adm', g: 'Precios', t: 'Precios por categoría', s: 'Por categoría', ic: 'tag', r: scrPrecios},
   'p-clientes': {mod: 'adm', g: 'Precios', t: 'Precios por cliente', s: 'Por cliente', ic: 'users', r: scrPreciosCliente},
   'p-estado':   {mod: 'adm', g: 'Precios', t: 'Mis cambios de precio', s: 'Mis cambios', ic: 'receipt', r: scrEstadoCambios},
   'p-aprobar':  {mod: 'adm', g: 'Gerencia', t: 'Cambios de precio por aprobar', s: 'Por aprobar', ic: 'check', r: scrAprobar}
 });
 S.perm = permInit();
-const PACT_REQ = {pEstadoLista: ['p-precios', 3], pPropios: ['p-precios', 3], pEditarOk: ['p-precios', 2], pReglasOk: ['p-clientes', 2], pAprobar: ['p-aprobar', 3], pRechazarOk: ['p-aprobar', 3]};
-const PACT_LBL = {pEstadoLista: 'asignar listas a estados', pPropios: 'dar precios propios a un estado', pEditarOk: 'cambiar precios', pReglasOk: 'cambiar precios por cliente', pAprobar: 'aprobar cambios de precio', pRechazarOk: 'rechazar cambios de precio'};
+const PACT_REQ = {pEditarOk: ['p-precios', 2], pNuevoOk: ['p-precios', 2], pReglasOk: ['p-clientes', 2], pAprobar: ['p-aprobar', 3], pRechazarOk: ['p-aprobar', 3]};
+const PACT_LBL = {pEditarOk: 'cambiar precios', pNuevoOk: 'cargar precios de una categoría', pReglasOk: 'cambiar precios por cliente', pAprobar: 'aprobar cambios de precio', pRechazarOk: 'rechazar cambios de precio'};
 Object.assign(ACT_REQ, PACT_REQ); Object.assign(ACT_LBL, PACT_LBL); Object.keys(PACT_REQ).forEach(k => WRITE_ACTS.add(k));
 Object.assign(ACT, {
-  pLista: el => { PP.sel = el.dataset.n; render(); }, pEstados: () => pEstadosModal(), pPropios: el => pPropios(el.dataset.e),
+  pLista: el => { PP.sel = el.dataset.n; render(); }, pArchivo: () => pArchivoModal(), pNuevo: el => pNuevoModal(+el.dataset.id, el.dataset.l), pNuevoOk: el => pNuevoOk(+el.dataset.id, el.dataset.l),
   pPag: el => { if (el.disabled) return; PP.pag[el.dataset.k] = Math.max(0, (PP.pag[el.dataset.k] || 0) + (+el.dataset.d)); render(); },
   pFiltro: el => { PP.filtro = el.dataset.v; PP.pag.est = 0; render(); },
   pEditar: el => pEditarModal(+el.dataset.id, el.dataset.l, el.dataset.m), pEditarOk: el => pEditarOk(+el.dataset.id, el.dataset.l, el.dataset.m),
@@ -222,4 +230,3 @@ badges = function () {
 window.pPendientesN = () => pPendientes().length;
 window.pCambiosCargados = () => !!PP.cambios;
 
-document.addEventListener('change', e => { const t = e.target; if (t && t.dataset && t.dataset.estado && t.tagName === 'SELECT') pEstadoLista(t.dataset.estado, t.value); });

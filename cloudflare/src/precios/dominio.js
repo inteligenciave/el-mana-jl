@@ -110,12 +110,13 @@ export const claveProducto = id => 'P:' + id;
 export const claveCliente = id => 'C:' + id;
 export const CLAVE_CREDITO = 'CRED';
 
-/* Listas de precios (A y B): precio por bulto de contado y a crédito. La clave es única por producto + lista + modalidad. */
-export const LISTAS = ['A', 'B'] /* listas de partida; el Gerente puede crear listas propias de un estado */, MODALIDADES = ['contado', 'credito'];
+/* Listas de precios = categorías del cliente (Minorista, Mayorista, Gran Mayor): precio por bulto de contado y a crédito. La clave es única por producto + lista + modalidad.
+   Las listas por zona (A, B, «Propia · estado») ya no se cargan: quedaron archivadas. */
+export const LISTAS = ['Minorista', 'Mayorista', 'Gran Mayor'], MODALIDADES = ['contado', 'credito'];
 export const claveLista = (id, lista, mod) => 'L:' + id + ':' + lista + ':' + mod;
 export const campoLista = mod => 'lista_' + mod + '_cents';
 export function validarLista(lista, mod) {
-  if (typeof lista !== 'string' || !lista.trim() || lista.length > 40 || lista.includes(':')) return 'Elige una lista de precios.';
-  if (!MODALIDADES.includes(mod)) return 'Elige si es el precio de contado o a crédito.';
+  if (!LISTAS.includes(lista)) return 'Elige la categoría de precio: Minorista, Mayorista o Gran Mayor.';
+  if (mod !== 'ambos' && !MODALIDADES.includes(mod)) return 'Elige si es el precio de contado o a crédito.';
   return null;
 }

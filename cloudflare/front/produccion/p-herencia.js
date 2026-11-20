@@ -141,7 +141,7 @@ function prCargaOk() {
   const e = $('#pr-e'); e.hidden = true; const s = PR.cargaSal; let falta = 0;
   const lineas = [...document.querySelectorAll('.pr-cg')].map(i => { const n = parseInt(String(i.value).replace(/\D/g, ''), 10) || 0; falta += Math.max(0, +i.dataset.b - n); return {id_linea: +i.dataset.l, bultos: n}; });
   const enviar = extra => prApi('POST', '/salidas/' + s.id_salida + '/cargar', Object.assign({lineas}, extra || {}));
-  const ok = () => { toast('Carga contada.'); prRefrescar('sals', 'zdata', 'dif'); PR.cntTs = 0; };
+  const ok = () => { toast('Carga contada.'); prRefrescar('sals', 'zdata', 'dif', 'lin', 'ldata'); PR.cntTs = 0; };
   if (PR.busy) return; PR.busy = true;
   enviar().then(() => { closeModal(); ok(); }).catch(er => {
     if (er.codigo === 'FALTA_RESOLVER') { const j = er.datos || {}; prResolver({titulo: 'Faltan bultos en la carga', kg: falta, unidad: 'bultos', motivos: j.motivos || [], sub: 'Lo que no subió queda pendiente en el pedido.', fn: async (f, id, tx) => { await enviar({faltante: f, id_motivo: id, texto: tx}); ok(); }}); }
@@ -152,8 +152,8 @@ function prCargaCard() {
   if (!(S.rol === 'dueno' || S.rol === 'empaque') || !window.__EM_HTTP) return '';
   if (PR.rol !== S.rol) { PR.rol = S.rol; PR.tab = PR.turno = PR.proc = PR.inv = PR.aj = PR.z = PR.sals = null; }
   if (!PR.sals) { prCargar('sals', '/salidas?estado=ARMANDO', 'sals'); return card('Contar la carga de las salidas', '<p class="hint">Cargando…</p>'); }
-  const L0 = Array.isArray(PR.sals) ? PR.sals : [], zf = PR.zonaDesp, L = zf ? L0.filter(s => s.zona === zf) : L0;
-  return card(zf ? 'Zona ' + prT(zf) + ': contar la carga' : 'Contar la carga de las salidas', L.length ? `<ul class="pr-lin">${L.map(s => `<li><span><b>${prT(s.nro)}</b> · ${prT(s.zona)} · ${prN(s.bultos)} bultos</span>${s.cargada_ts ? '<span class="chip c-ok">Carga contada</span>' : `<button type="button" class="btn pri sm" data-act="prCargaAbrir" data-id="${s.id_salida}">Contar la carga</button>`}</li>`).join('')}</ul>` : '<p class="muted">' + (zf ? 'No hay salidas armadas por cargar en esta zona.' : 'No hay salidas armadas por cargar.') + '</p>', zf ? {act: '<button type="button" class="btn sm" data-act="emzTodas">Ver todas las zonas</button>'} : {});
+  const L0 = Array.isArray(PR.sals) ? PR.sals : [], zf = PR.zonaDesp, ln = PR.linDesp, zn = ln ? ln.nombre : zf, L = ln ? L0.filter(s => s.id_linea === ln.id || (s.id_linea == null && ln.zonas.includes(s.zona))) : zf ? L0.filter(s => s.zona === zf) : L0;
+  return card(zn ? (ln ? 'Línea ' : 'Zona ') + prT(zn) + ': contar la carga' : 'Contar la carga de las salidas', L.length ? `<ul class="pr-lin">${L.map(s => `<li><span><b>${prT(s.nro)}</b> · ${prT(s.zona)} · ${prN(s.bultos)} bultos</span>${s.cargada_ts ? '<span class="chip c-ok">Carga contada</span>' : `<button type="button" class="btn pri sm" data-act="prCargaAbrir" data-id="${s.id_salida}">Contar la carga</button>`}</li>`).join('')}</ul>` : '<p class="muted">' + (zn ? 'No hay salidas armadas por cargar en ' + (ln ? 'esta línea.' : 'esta zona.') : 'No hay salidas armadas por cargar.') + '</p>', zn ? {act: '<button type="button" class="btn sm" data-act="emzTodas">Ver todas las salidas</button>'} : {});
 }
 
 /* ---------- Papa de recepciones validadas ---------- */
@@ -202,7 +202,7 @@ Object.assign(ACT, {
   prDifAprobar: el => prDecidir(el.dataset.id, 'aprobar', ''), prDifRechazar: el => prRechazoModal(el.dataset.id),
   prDifRechazarOk: el => { const n = ($('#pr-nota').value || '').trim(); if (n.length < 3) { const e = $('#pr-e'); e.textContent = 'Escribe por qué la rechazas.'; e.hidden = false; return; } prDecidir(el.dataset.id, 'rechazar', n); },
   prCargaAbrir: el => prCargaAbrir(+el.dataset.id), prCargaOk: () => prCargaOk(),
-  prRecTomar: () => prAccion(async () => { await prApi('POST', '/turno/recepcion', {id_recepcion: $('#pr-rec').value, kilos: $('#pr-rec-k').value.replace(/\./g, '').replace(',', '.')}); PR.libres = null; prRefrescar('turno', 'proc'); }, 'Papa tomada para este turno.'),
+  prRecTomar: () => prAccion(async () => { await prApi('POST', '/turno/recepcion', {id_recepcion: $('#pr-rec').value, kilos: $('#pr-rec-k').value.replace(/\./g, '').replace(',', '.')}); PR.libres = null; if (PR.paso === 1) PR.paso = 3; prRefrescar('turno', 'proc'); }, 'Papa tomada para este turno.'),
   prMotNombre: el => prAccion(async () => { await prApi('POST', '/motivos-merma/' + el.dataset.id, {nombre: el.value}); prRefrescar('mot'); }, 'Guardado.'),
   prMotActivo: el => prAccion(async () => { await prApi('POST', '/motivos-merma/' + el.dataset.id, {activo: el.dataset.a === '1'}); prRefrescar('mot'); }, 'Guardado.'),
   prMotNuevo: () => prAccion(async () => { await prApi('POST', '/motivos-merma', {nombre: $('#pr-mot-n').value}); prRefrescar('mot'); }, 'Motivo agregado.')

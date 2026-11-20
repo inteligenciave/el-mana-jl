@@ -18,9 +18,9 @@ export async function comprometidoCliente(db, idCliente) {
 }
 /* Líneas pendientes de todos los pedidos abiertos (opcionalmente de una zona), con datos del pedido, el cliente y lo ya puesto en salidas armándose */
 export function lineasPendientes(db, zona = null) {
-  return all(db, `SELECT l.*, p.nro, p.zona, p.fecha, p.estado AS estado_pedido, p.id_cliente, p.descuento_pct, p.tipo, p.creado_rol, p.pago_json IS NOT NULL AS paga_ahora, c.razon_social,
+  return all(db, `SELECT l.*, pr.categoria, p.nro, p.zona, p.fecha, p.estado AS estado_pedido, p.id_cliente, p.descuento_pct, p.tipo, p.creado_rol, p.pago_json IS NOT NULL AS paga_ahora, c.razon_social,
     COALESCE((SELECT SUM(sl.bultos) FROM salida_lineas sl JOIN salidas s ON s.id_salida = sl.id_salida WHERE sl.id_linea = l.id AND s.estado = 'ARMANDO'), 0) AS en_salida
-    FROM pedido_venta_lineas l JOIN pedidos_venta p ON p.id_pedido = l.id_pedido JOIN clientes c ON c.id_cliente = p.id_cliente
+    FROM pedido_venta_lineas l JOIN pedidos_venta p ON p.id_pedido = l.id_pedido JOIN clientes c ON c.id_cliente = p.id_cliente LEFT JOIN productos pr ON pr.id_producto = l.id_producto
     WHERE p.estado IN ('PENDIENTE','PARCIAL') AND l.bultos - l.bultos_despachados - l.bultos_anulados > 0 AND (?1 IS NULL OR p.zona = ?1) ORDER BY p.fecha, p.id_pedido, l.id`, [zona]);
 }
 export const lineaConPedido = (db, idLinea) => one(db, `SELECT l.*, p.zona, p.estado AS estado_pedido, p.nro, p.id_cliente, p.fecha, p.descuento_pct, p.tipo, p.creado_rol, p.creado_rol_cod, p.pago_json, p.metodo_pago, p.observaciones, p.lista_precios, p.id_vendedor,
@@ -43,10 +43,26 @@ export const salidasArmandoDePedido = (db, idPedido) => one(db, "SELECT COUNT(*)
 /* ---------- Ajustes (tabla config de Ventas) ---------- */
 export const stConfig = (db, clave, valor) => bind(db, 'INSERT INTO config (clave, valor) VALUES (?1, ?2) ON CONFLICT(clave) DO UPDATE SET valor = ?2', [clave, valor == null ? '' : String(valor)]);
 export async function leerAjustes(db) {
-  const r = await all(db, "SELECT clave, valor FROM config WHERE clave IN ('meta_zona_kg','semaforo_ambar_kg','tolerancia_cierre_kg','conteo_inicial_ts','herencia_desde_ts','carga_desde_ts')");
+  const r = await all(db, "SELECT clave, valor FROM config WHERE clave IN ('meta_zona_kg','cap_papa_kg','cap_salsa_kg','semaforo_ambar_kg','tolerancia_cierre_kg','conteo_inicial_ts','herencia_desde_ts','carga_desde_ts')");
   const c = Object.fromEntries(r.map(x => [x.clave, x.valor]));
-  return {herenciaDesde: +c.herencia_desde_ts || 0, cargaDesde: +c.carga_desde_ts || 0, meta: +c.meta_zona_kg || 0, corteAmbar: +c.semaforo_ambar_kg || 0, tolerancia: +c.tolerancia_cierre_kg || 0, conteoInicialTs: +c.conteo_inicial_ts || 0};
+  return {herenciaDesde: +c.herencia_desde_ts || 0, cargaDesde: +c.carga_desde_ts || 0, meta: +c.meta_zona_kg || 0, capPapa: +c.cap_papa_kg || 0, capSalsa: +c.cap_salsa_kg || 0, corteAmbar: +c.semaforo_ambar_kg || 0, tolerancia: +c.tolerancia_cierre_kg || 0, conteoInicialTs: +c.conteo_inicial_ts || 0};
 }
+
+/* ---------- Líneas de despacho ---------- */
+export const listarLineas = db => all(db, 'SELECT * FROM lineas_despacho ORDER BY orden, nombre COLLATE NOCASE');
+export const getLinea = (db, id) => one(db, 'SELECT * FROM lineas_despacho WHERE id_linea = ?1', [id]);
+export const zonasAsignadas = db => all(db, 'SELECT zona, id_linea FROM linea_zonas ORDER BY zona');
+export const stCrearLinea = (db, nombre, rol, ejemplo = 0) => bind(db, 'INSERT INTO lineas_despacho (nombre, orden, creado_ts, creado_rol, ejemplo) VALUES (?1, (SELECT COALESCE(MAX(orden), 0) + 1 FROM lineas_despacho), ?2, ?3, ?4)', [nombre, Date.now(), rol, ejemplo ? 1 : 0]);
+export const stRenombrarLinea = (db, id, nombre) => bind(db, 'UPDATE lineas_despacho SET nombre = ?2, actualizado_ts = ?3 WHERE id_linea = ?1', [id, nombre, Date.now()]);
+export const stBorrarLinea = (db, id) => bind(db, 'DELETE FROM lineas_despacho WHERE id_linea = ?1', [id]);
+export const stAsignarZona = (db, zona, id, rol) => bind(db, 'INSERT OR REPLACE INTO linea_zonas (zona, id_linea, desde_ts, rol) VALUES (?1, ?2, ?3, ?4)', [zona, id, Date.now(), rol]);
+export const stAsignarZonaANueva = (db, zona, nombre, rol) => bind(db, 'INSERT OR REPLACE INTO linea_zonas (zona, id_linea, desde_ts, rol) VALUES (?1, (SELECT id_linea FROM lineas_despacho WHERE nombre = ?2 COLLATE NOCASE), ?3, ?4)', [zona, nombre, Date.now(), rol]);
+export const stQuitarZonasDeLinea = (db, id) => bind(db, 'DELETE FROM linea_zonas WHERE id_linea = ?1', [id]);
+export const stQuitarZona = (db, zona) => bind(db, 'DELETE FROM linea_zonas WHERE zona = ?1', [zona]);
+export const zonasConocidas = db => all(db, "SELECT DISTINCT zona FROM (SELECT zona FROM pedidos_venta UNION SELECT zona FROM salidas UNION SELECT zona FROM zona_pausas) WHERE zona IS NOT NULL AND zona <> ''");
+/* Pedidos metidos en salidas armadas (ARMANDO) de una línea: sirven para no mover una zona mientras haya salida armada con sus pedidos */
+export const zonasEnSalidasDeLinea = (db, idLinea) => all(db, "SELECT DISTINCT p.zona, s.nro FROM salidas s JOIN salida_lineas sl ON sl.id_salida = s.id_salida JOIN pedidos_venta p ON p.id_pedido = sl.id_pedido WHERE s.id_linea = ?1 AND s.estado = 'ARMANDO'", [idLinea]);
+export const salidasArmandoDeGrupo = (db, idLinea, zona) => all(db, "SELECT * FROM salidas WHERE estado = 'ARMANDO' AND ((?1 IS NOT NULL AND id_linea = ?1) OR (?1 IS NULL AND id_linea IS NULL AND zona = ?2))", [idLinea ?? null, zona ?? null]);
 
 /* ---------- Pausas ---------- */
 export const pausasActivas = db => all(db, 'SELECT * FROM zona_pausas WHERE reanudada_ts IS NULL ORDER BY id');
@@ -54,7 +70,7 @@ export const stPausar = (db, zona, motivo, rol) => bind(db, 'INSERT INTO zona_pa
 export const stReanudar = (db, zona, rol) => bind(db, 'UPDATE zona_pausas SET reanudada_ts = ?2, reanuda_rol = ?3 WHERE zona = ?1 AND reanudada_ts IS NULL', [zona, Date.now(), rol]);
 
 /* ---------- Salidas ---------- */
-export const stInsertarSalida = (db, s) => bind(db, "INSERT INTO salidas (id_salida, nro, zona, estado, kilos, meta_kg, motivo, creado_ts, creado_rol) VALUES (?1,?2,?3,'ARMANDO',?4,?5,?6,?7,?8)", [s.id_salida, s.nro, s.zona, s.kilos, s.meta_kg ?? null, s.motivo ?? null, Date.now(), s.creado_rol ?? null]);
+export const stInsertarSalida = (db, s) => bind(db, "INSERT INTO salidas (id_salida, nro, zona, estado, kilos, meta_kg, motivo, creado_ts, creado_rol, id_linea, kg_papa, kg_salsa, ocupacion_pct, cap_papa_kg, cap_salsa_kg) VALUES (?1,?2,?3,'ARMANDO',?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14)", [s.id_salida, s.nro, s.zona, s.kilos, s.meta_kg ?? null, s.motivo ?? null, Date.now(), s.creado_rol ?? null, s.id_linea ?? null, s.kg_papa ?? null, s.kg_salsa ?? null, s.ocupacion_pct ?? null, s.cap_papa_kg ?? null, s.cap_salsa_kg ?? null]);
 export const stInsertarSalidaLinea = (db, idSalida, l) => bind(db, 'INSERT INTO salida_lineas (id_salida, id_pedido, id_linea, id_producto, bultos, kilos) VALUES (?1,?2,?3,?4,?5,?6)', [idSalida, l.id_pedido, l.id_linea, l.id_producto, l.bultos, l.kilos]);
 export const getSalida = (db, id) => one(db, 'SELECT * FROM salidas WHERE id_salida = ?1', [id]);
 export const lineasDeSalida = (db, id) => all(db, `SELECT sl.*, l.nombre, l.sku, l.kg_por_bulto, l.precio_base_cents, l.precio_pp_cents, l.precio_mora_cents, l.alicuota, p.nro AS nro_pedido, p.id_cliente, c.razon_social FROM salida_lineas sl JOIN pedido_venta_lineas l ON l.id = sl.id_linea JOIN pedidos_venta p ON p.id_pedido = sl.id_pedido JOIN clientes c ON c.id_cliente = p.id_cliente WHERE sl.id_salida = ?1 ORDER BY sl.id_pedido, sl.id`, [id]);
@@ -124,8 +140,8 @@ export const motivoPorNombre = (db, nombre) => one(db, 'SELECT * FROM motivos_me
 export const stMotivoNuevo = (db, nombre) => bind(db, 'INSERT INTO motivos_merma (nombre, activo, es_otra, orden, creado_ts) VALUES (?1, 1, 0, (SELECT COALESCE(MAX(orden), 0) + 1 FROM motivos_merma WHERE es_otra = 0), ?2)', [nombre, Date.now()]);
 export const stMotivoEditar = (db, id, nombre, activo, orden) => bind(db, 'UPDATE motivos_merma SET nombre = ?2, activo = ?3, orden = ?4 WHERE id = ?1', [id, nombre, activo ? 1 : 0, orden]);
 /* m = {id_turno, etapa, origen, clase, kilos, unidad, motivo:{id,nombre}|null, texto, ref, rol} */
-export const stMerma = (db, m) => bind(db, "INSERT INTO mermas_etapa (id_turno, etapa, origen, clase, kilos, unidad, id_motivo, motivo_nombre, texto, ref, estado, ts, rol) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,'VIGENTE',?11,?12)",
-  [m.id_turno ?? null, m.etapa, m.origen, m.clase, m.kilos, m.unidad || 'kg', m.motivo ? m.motivo.id : null, m.motivo ? m.motivo.nombre : null, m.texto || null, m.ref != null ? String(m.ref) : null, Date.now(), m.rol ?? null]);
+export const stMerma = (db, m) => bind(db, "INSERT INTO mermas_etapa (id_turno, etapa, origen, clase, kilos, unidad, id_motivo, motivo_nombre, texto, ref, estado, ts, rol, persona) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,'VIGENTE',?11,?12,?13)",
+  [m.id_turno ?? null, m.etapa, m.origen, m.clase, m.kilos, m.unidad || 'kg', m.motivo ? m.motivo.id : null, m.motivo ? m.motivo.nombre : null, m.texto || null, m.ref != null ? String(m.ref) : null, Date.now(), m.rol ?? null, m.persona || null]);
 export const stAnularMermasDeSalida = (db, idSalida) => bind(db, "UPDATE mermas_etapa SET estado = 'ANULADA' WHERE origen = 'carga' AND ref = ?1", [String(idSalida)]);
 /* Merma ya justificada entre la etapa anterior y cada etapa (resta lo que falta por llegar) */
 export async function mermasTransicion(db, desde) {
@@ -137,3 +153,47 @@ export const mermasOtras = (db, desde, hasta) => all(db, "SELECT etapa, texto, S
 export const siguenPorEtapa = (db, desde, hasta) => all(db, "SELECT etapa, SUM(kilos) AS kg FROM mermas_etapa WHERE clase = 'SIGUE' AND estado = 'VIGENTE' AND ts >= ?1 AND ts <= ?2 GROUP BY etapa", [desde, hasta]);
 export const entradasPeriodo = (db, desde, hasta) => all(db, "SELECT etapa, SUM(kilos) AS kg FROM movimientos_proceso WHERE sentido = 'ENTRA' AND ajuste = 0 AND estado = 'VIGENTE' AND ts >= ?1 AND ts <= ?2 GROUP BY etapa", [desde, hasta]);
 export const mermasTransPeriodo = (db, desde, hasta) => all(db, "SELECT etapa, SUM(kilos) AS kg FROM mermas_etapa WHERE origen = 'transicion' AND clase = 'MERMA' AND estado = 'VIGENTE' AND ts >= ?1 AND ts <= ?2 GROUP BY etapa", [desde, hasta]);
+
+/* ---------- Fase 5: catálogo de etapas, jornada del turno, avance, merma consolidada, arranque y panel ---------- */
+export const listarEtapas = db => all(db, 'SELECT clave, nombre, orden, padre, kilos, activo FROM etapas_proceso ORDER BY orden, clave');
+export const getEtapa = (db, clave) => one(db, 'SELECT * FROM etapas_proceso WHERE clave = ?1', [clave]);
+export const stEtapaEditar = (db, clave, nombre, orden, kilos, activo) => bind(db, 'UPDATE etapas_proceso SET nombre = ?2, orden = ?3, kilos = ?4, activo = ?5 WHERE clave = ?1', [clave, nombre, orden, kilos ? 1 : 0, activo ? 1 : 0]);
+export const stEtapaNueva = (db, clave, nombre, orden, padre, kilos) => bind(db, 'INSERT INTO etapas_proceso (clave, nombre, orden, padre, kilos, activo) VALUES (?1,?2,?3,?4,?5,1)', [clave, nombre, orden, padre || null, kilos ? 1 : 0]);
+export const stAbrirTurnoJornada = (db, fecha, rol, obs, j = {}) => bind(db, "INSERT INTO turnos (fecha, estado, abierto_ts, abierto_rol, observaciones, jornada, fecha_jornada, grupo_id) VALUES (?1,'ABIERTO',?2,?3,?4,?5,?6,?7)", [fecha, Date.now(), rol, obs || null, j.jornada || null, j.fecha_jornada || null, j.grupo_id ?? null]);
+export const avanceDeTurno = (db, idTurno) => all(db, 'SELECT etapa, ts, rol FROM etapa_avance WHERE id_turno = ?1', [idTurno]);
+export const stMarcarAvance = (db, idTurno, etapa, rol) => bind(db, 'INSERT OR IGNORE INTO etapa_avance (id_turno, etapa, ts, rol) VALUES (?1,?2,?3,?4)', [idTurno, etapa, Date.now(), rol]);
+export const stQuitarAvance = (db, idTurno, etapa) => bind(db, 'DELETE FROM etapa_avance WHERE id_turno = ?1 AND etapa = ?2', [idTurno, etapa]);
+export const kilosPapaTomada = async (db, idTurno) => (await one(db, "SELECT COALESCE(SUM(kilos), 0) AS kg FROM movimientos_proceso WHERE id_turno = ?1 AND etapa = 'recepcion' AND sentido = 'ENTRA' AND estado = 'VIGENTE'", [idTurno])).kg;
+export const kilosAEmpaque = async (db, idTurno) => (await one(db, "SELECT COALESCE(SUM(CASE WHEN sentido = 'ENTRA' AND ajuste IN (0,1) THEN kilos WHEN sentido = 'SALE' AND ajuste IN (1,2) THEN -kilos ELSE 0 END), 0) AS kg FROM movimientos_proceso WHERE id_turno = ?1 AND etapa = 'empacado' AND estado = 'VIGENTE'", [idTurno])).kg;
+export const getMermaConsolidada = (db, idTurno) => one(db, 'SELECT * FROM merma_consolidada WHERE id_turno = ?1', [idTurno]);
+export const stMermaConsolidada = (db, m) => bind(db, 'INSERT INTO merma_consolidada (id_turno, tomados_kg, a_empaque_kg, calculada_kg, kilos, nota, desglose, descontado_inv_kg, ts, rol) VALUES (?1,?2,?3,?4,?5,?6,?7,0,?8,?9)',
+  [m.id_turno, m.tomados_kg, m.a_empaque_kg, m.calculada_kg, m.kilos, m.nota || null, JSON.stringify(m.desglose || []), Date.now(), m.rol ?? null]);
+export const turnosRecientes = (db, limite = 800) => all(db, 'SELECT * FROM turnos ORDER BY id_turno DESC LIMIT ?1', [limite]);
+export const consumosPorTurno = (db, ids) => ids.length ? all(db, `SELECT id_turno, articulo, SUM(cantidad) AS cantidad FROM inv_movimientos WHERE origen = 'consumo' AND id_turno IN (${ids.map(() => '?').join(',')}) GROUP BY id_turno, articulo`, ids) : Promise.resolve([]);
+export const kilosProducidosPorTurno = (db, ids) => ids.length ? all(db, `SELECT id_turno, COALESCE(SUM(CASE WHEN sentido = 'ENTRA' AND ajuste IN (0,1) THEN kilos WHEN sentido = 'SALE' AND ajuste IN (1,2) THEN -kilos ELSE 0 END), 0) AS kg FROM movimientos_proceso WHERE etapa = 'empacado' AND estado = 'VIGENTE' AND id_turno IN (${ids.map(() => '?').join(',')}) GROUP BY id_turno`, ids) : Promise.resolve([]);
+export const papaTomadaPorTurno = (db, ids) => ids.length ? all(db, `SELECT id_turno, COALESCE(SUM(kilos), 0) AS kg FROM movimientos_proceso WHERE etapa = 'recepcion' AND sentido = 'ENTRA' AND estado = 'VIGENTE' AND id_turno IN (${ids.map(() => '?').join(',')}) GROUP BY id_turno`, ids) : Promise.resolve([]);
+export const mermasConsolidadasPorTurno = (db, ids) => ids.length ? all(db, `SELECT id_turno, kilos FROM merma_consolidada WHERE id_turno IN (${ids.map(() => '?').join(',')})`, ids) : Promise.resolve([]);
+export const mermasViejasPorTurno = (db, ids) => ids.length ? all(db, `SELECT id_turno, COALESCE(SUM(kilos), 0) AS kg FROM mermas_etapa WHERE clase = 'MERMA' AND estado = 'VIGENTE' AND unidad = 'kg' AND etapa <> 'carga' AND id_turno IN (${ids.map(() => '?').join(',')}) GROUP BY id_turno`, ids) : Promise.resolve([]);
+export const empaquePorTurno = (db, ids) => ids.length ? all(db, `SELECT e.id_turno, p.id_producto, p.nombre, p.categoria, SUM(e.bultos) AS cantidad FROM empaque_turno e JOIN productos p ON p.id_producto = e.id_producto WHERE e.estado = 'VIGENTE' AND e.id_turno IN (${ids.map(() => '?').join(',')}) GROUP BY e.id_turno, p.id_producto`, ids) : Promise.resolve([]);
+export const mermasEtapaPorTurno = (db, ids) => ids.length ? all(db, `SELECT id_turno, etapa, COALESCE(SUM(kilos), 0) AS kg FROM mermas_etapa WHERE clase = 'MERMA' AND estado = 'VIGENTE' AND unidad = 'kg' AND etapa <> 'carga' AND id_turno IN (${ids.map(() => '?').join(',')}) GROUP BY id_turno, etapa`, ids) : Promise.resolve([]);
+/* ---------- Merma por etapas al cierre (filas en mermas_etapa, origen 'cierre', ref MC-<turno>; cabecera en merma_consolidada) ---------- */
+export const mermasCierreDeTurno = (db, id) => all(db, "SELECT * FROM mermas_etapa WHERE origen = 'cierre' AND ref = ?1 AND estado = 'VIGENTE' AND clase = 'MERMA' ORDER BY id", ['MC-' + id]);
+export const mermasCierrePorTurnos = (db, ids) => ids.length ? all(db, `SELECT id_turno, etapa, kilos, motivo_nombre, texto, rol, persona, ts FROM mermas_etapa WHERE origen = 'cierre' AND ref LIKE 'MC-%' AND estado = 'VIGENTE' AND clase = 'MERMA' AND id_turno IN (${ids.map(() => '?').join(',')}) ORDER BY id_turno, id`, ids) : Promise.resolve([]);
+export const cabecerasPorTurnos = (db, ids) => ids.length ? all(db, `SELECT id_turno, kilos, calculada_kg, tomados_kg, por_etapas, sin_explicar_kg, nota, corregido_ts, corregido_rol, ts, rol FROM merma_consolidada WHERE id_turno IN (${ids.map(() => '?').join(',')})`, ids) : Promise.resolve([]);
+export const stMermaConsolidadaEtapas = (db, m) => bind(db, 'INSERT INTO merma_consolidada (id_turno, tomados_kg, a_empaque_kg, calculada_kg, kilos, nota, desglose, descontado_inv_kg, ts, rol, por_etapas, sin_explicar_kg) VALUES (?1,?2,?3,?4,?5,?6,?7,0,?8,?9,1,?10)',
+  [m.id_turno, m.tomados_kg, m.a_empaque_kg, m.calculada_kg, m.kilos, m.nota || null, JSON.stringify(m.desglose || []), Date.now(), m.rol ?? null, m.sin_explicar_kg]);
+export const stAnularMermasCierre = (db, id) => bind(db, "UPDATE mermas_etapa SET estado = 'ANULADA' WHERE origen = 'cierre' AND ref = ?1 AND estado = 'VIGENTE'", ['MC-' + id]);
+export const stActualizarCabecera = (db, id, m) => bind(db, 'UPDATE merma_consolidada SET kilos = ?2, nota = ?3, desglose = ?4, sin_explicar_kg = ?5, por_etapas = 1, corregido_ts = ?6, corregido_rol = ?7 WHERE id_turno = ?1',
+  [id, m.kilos, m.nota || null, JSON.stringify(m.desglose || []), m.sin_explicar_kg, m.corregido_rol ? Date.now() : null, m.corregido_rol ?? null]);
+export const sumasEntraSale = async (db, id) => { const o = {}; for (const x of await all(db, "SELECT etapa, sentido, SUM(kilos) AS kg FROM movimientos_proceso WHERE id_turno = ?1 AND estado = 'VIGENTE' GROUP BY etapa, sentido", [id])) (o[x.etapa] = o[x.etapa] || {entra: 0, sale: 0})[x.sentido === 'ENTRA' ? 'entra' : 'sale'] = x.kg; return o; };
+/* Turno activo: la producción se inicia una sola vez (sin vuelta atrás) */
+export const stIniciarProduccion = (db, idTurno, rol, grupo) => bind(db, "UPDATE turnos SET inicio_ts = ?2, inicio_rol = ?3, grupo_id = COALESCE(?4, grupo_id) WHERE id_turno = ?1 AND estado = 'ABIERTO' AND inicio_ts IS NULL", [idTurno, Date.now(), rol, grupo ?? null]);
+export const turnoPorId = (db, id) => one(db, 'SELECT * FROM turnos WHERE id_turno = ?1', [id]);
+
+/* ---------- Empaque libre de Logística (papa a granel disponible) ---------- */
+export const kilosTerminadosTodos = async db => (await one(db, "SELECT COALESCE(SUM(CASE WHEN sentido = 'ENTRA' AND ajuste IN (0,1) THEN kilos WHEN sentido = 'SALE' AND ajuste IN (1,2) THEN -kilos ELSE 0 END), 0) AS kg FROM movimientos_proceso WHERE etapa = 'empacado' AND estado = 'VIGENTE'", [])).kg;
+export const kgEmpacadosEnTurnos = async db => (await one(db, "SELECT COALESCE(SUM(e.bultos * p.kg_por_bulto), 0) AS kg FROM empaque_turno e JOIN productos p ON p.id_producto = e.id_producto WHERE e.estado = 'VIGENTE'", [])).kg;
+export const kgLibres = async (db, tipo) => (await one(db, "SELECT COALESCE(SUM(kg), 0) AS kg FROM empaque_libre WHERE tipo = ?1 AND estado = 'VIGENTE'", [tipo])).kg;
+export const stEmpaqueLibre = (db, tipo, idProducto, bultos, kg, motivo, rol) => bind(db, 'INSERT INTO empaque_libre (tipo, id_producto, bultos, kg, motivo, ts, rol) VALUES (?1,?2,?3,?4,?5,?6,?7)', [tipo, idProducto, bultos, kg, motivo, Date.now(), rol]);
+export const stEntradaEmpaque = (db, idProducto, bultos, fecha) => bind(db, "INSERT INTO movimientos_inventario (id_producto, cantidad, tipo, fecha, ts, nota) VALUES (?1,?2,'ENTRADA_CIERRE_TURNO',?3,?4,'Empaque de Logística')", [idProducto, bultos, fecha, Date.now()]);
+export const empaquesLibresRecientes = db => all(db, "SELECT e.tipo, e.bultos, e.kg, e.motivo, e.ts, p.nombre FROM empaque_libre e LEFT JOIN productos p ON p.id_producto = e.id_producto WHERE e.estado = 'VIGENTE' ORDER BY e.id DESC LIMIT 12", []);

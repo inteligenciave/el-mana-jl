@@ -56,18 +56,18 @@ const VACT = {
   vAdmTab: el => { V.adm.tab = el.dataset.v; render(); }, vAdmQ: el => { V.adm.q = el.value; render(); },
   /* cobro */
   vCobOtro: () => { V.cob = null; render(); },
-  vCobFecha: el => { const C = vCob(); C.fecha = el.value || vHoy(); C.apl = {}; C.prev = null; vCobPintar(); vCobCargar(); },
-  vCobExo: el => { const C = vCob(); C.exonerar = el.checked; C.apl = {}; C.prev = null; vCobPintar(); vCobCargar(); },
+  vCobFecha: el => { const C = vCob(); C.fecha = el.value || vHoy(); C.apl = {}; C.manual = false; C.prev = null; vCobPintar(); vCobCargar(); },
+  vCobExo: el => { const C = vCob(); C.exonerar = el.checked; C.apl = {}; C.manual = false; C.prev = null; vCobPintar(); vCobCargar(); },
   vAplTodo: el => {
     const C = vCob(), d = C.prev.documentos.find(x => x.id_documento === vElId(el)), usd = vCobUsd(), otros = Object.entries(C.apl).filter(([k]) => +k !== d.id_documento).reduce((t, [, v]) => t + (vNum(v) > 0 ? vNum(v) : 0), 0);
-    const tope = usd > 0 ? Math.max(0, Math.round((usd - otros) * 100) / 100) : d.restante; C.apl[d.id_documento] = String(Math.min(d.restante, tope || d.restante)); vCobPintar();
+    const tope = usd > 0 ? Math.max(0, Math.round((usd - otros) * 100) / 100) : d.restante; C.manual = true; C.apl[d.id_documento] = String(Math.min(d.restante, tope || d.restante)); vCobPintar();
   },
   vAplRepartir: () => {
-    const C = vCob(), usd = vCobUsd(); if (!(usd > 0)) return toast('Escribe primero el monto en bolívares (y que haya tasa BCV para la fecha).', 'warn');
+    const C = vCob(), usd = vCobUsd(); C.manual = false; if (!(usd > 0)) return toast('Escribe primero el monto en bolívares (y que haya tasa BCV para la fecha).', 'warn');
     const r = VD.repartirAntiguoPrimero(Math.round(usd * 100), C.prev.documentos.filter(d => !d.error && d.restante_cents > 0).map(d => ({id_documento: d.id_documento, fecha_emision: d.fecha_emision, pendiente_cents: d.restante_cents})));
     C.apl = Object.fromEntries(r.aplicaciones.map(a => [a.id_documento, String(a.usd_cents / 100)])); vCobPintar();
   },
-  vAplLimpiar: () => { vCob().apl = {}; vCobPintar(); },
+  vAplLimpiar: () => { vCob().manual = true; vCob().apl = {}; vCobPintar(); },
   vCobrar: () => {
     const C = vCob(), b = vCobArmar(); if (V.busy.cobrar) return;
     if (!(b.monto_bs > 0)) return toast('Escribe el monto en bolívares.', 'warn'); if (!(vCobTasa() > 0)) return toast('No hay tasa BCV para esa fecha: pide que la consulten antes de cobrar.', 'warn');
@@ -104,8 +104,8 @@ document.addEventListener('input', e => {
   const t = e.target; if (!t || !t.classList) return;
   if (t.classList.contains('v-q')) { vPedPonerCantidad(+t.dataset.id, vSoloDigitos(t)); return; }
   if (t.classList.contains('v-int')) { vSoloDigitos(t); return; }
-  if (t.dataset.apl) { vCob().apl[t.dataset.apl] = t.value; vCobRefrescarRes(); return; }
-  if (t.dataset.vk) { vSet(V, t.dataset.vk, t.value); if (t.dataset.vk.indexOf('ped.') === 0) vPedGuardar(); if (/^cob\.monto$/.test(t.dataset.vk)) vCobRefrescarRes(); }
+  if (t.dataset.apl) { vCob().manual = true; vCob().apl[t.dataset.apl] = t.value; vCobRefrescarRes(); return; }
+  if (t.dataset.vk) { vSet(V, t.dataset.vk, t.value); if (t.dataset.vk.indexOf('ped.') === 0) vPedGuardar(); if (/^cob\.monto$/.test(t.dataset.vk)) { vCobRefrescarRes(); vCobAutoRepartir(); } }
 });
 
 /* Altura disponible para la pantalla de Nueva venta (sin deslizar la página) */

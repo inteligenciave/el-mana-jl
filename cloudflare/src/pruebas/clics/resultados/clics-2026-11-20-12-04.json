@@ -1,0 +1,123 @@
+{
+ "meta": {
+  "fecha": "2026-11-20T12:04:04.763Z",
+  "url": "http://localhost:8811",
+  "vista": "375x812",
+  "tareas": 1
+ },
+ "resultados": [
+  {
+   "id": "rrhh-grupo-turno",
+   "nombre": "Asignar el turno de la semana siguiente a un grupo",
+   "puesto": "rrhh",
+   "frecuencia": "semanal",
+   "pasos": 3,
+   "ideal": {
+    "clics": 2,
+    "teclas": 0,
+    "desglose": "1 entrar al puesto + 1 abrir la tarea + 0 elecciones + 0 confirmar"
+   },
+   "estado": "fallo",
+   "nota": "",
+   "error": "No encontré en pantalla: «[data-act=hgAsignar][data-g=\"1\"][data-t=Nocturno]»",
+   "vista": {
+    "ruta": "#rh-grupos",
+    "modal": false,
+    "botones": [
+     "Opciones",
+     "En planta hoy",
+     "Grupos de turno",
+     "Personas",
+     "Asistencia",
+     "Importar del lector",
+     "Bonos",
+     "Turnos",
+     "Parámetros",
+     "Pagar nómina",
+     "Préstamos",
+     "Nómina anterior (solo consulta)",
+     "[hgSem] ‹ Semana anterior",
+     "[hgSem] Semana siguiente ›",
+     "[hgSem] Volver a hoy",
+     "[solPedir] Pedir autorización",
+     "[hgMiembros] Quiénes son",
+     "[hgAsignar] Diurno esta semana",
+     "[hgAsignar] Nocturno esta semana",
+     "[hgExcepcion] Pasar al Grupo 2 esta semana",
+     "[hgExcepcion] Pasar al Grupo 2 esta semana",
+     "[hgExcepcion] Pasar al Grupo 2 esta semana",
+     "[hgExcepcion] Pasar al Grupo 2 esta semana",
+     "[hgExcepcion] Pasar al Grupo 2 esta semana",
+     "[hgExcepcion] Pasar al Grupo 2 esta semana",
+     "[hgExcepcion] Pasar al Grupo 2 esta semana",
+     "[hgExcepcion] Pasar al Grupo 2 esta semana",
+     "[hgExcepcion] Pasar al Grupo 2 esta semana",
+     "[hgExcepcion] Pasar al Grupo 2 esta semana",
+     "[hgExcepcion] Pasar al Grupo 2 esta semana",
+     "[hgExcepcion] Pasar al Grupo 2 esta semana",
+     "[hgMiembros] Quiénes son",
+     "[hgAsignar] Diurno esta semana",
+     "[hgAsignar] Nocturno esta semana",
+     "[hgExcepcion] Pasar al Grupo 1 esta semana",
+     "[hgExcepcion] Pasar al Grupo 1 esta semana",
+     "[hgExcepcion] Pasar al Grupo 1 esta semana",
+     "[hgExcepcion] Pasar al Grupo 1 esta semana",
+     "[hgExcepcion] Pasar al Grupo 1 esta semana",
+     "[hgExcepcion] Pasar al Grupo 1 esta semana",
+     "[hgExcepcion] Pasar al Grupo 1 esta semana",
+     "[hgExcepcion] Pasar al Grupo 1 esta semana",
+     "[hgExcepcion] Pasar al Grupo 1 esta semana",
+     "[hgExcepcion] Pasar al Grupo 1 esta semana",
+     "[hgExcepcion] Pasar al Grupo 1 esta semana",
+     "[hgExcepcion] Pasar al Grupo 1 esta semana"
+    ],
+    "campos": [],
+    "avisos": []
+   },
+   "real": {
+    "clics": 3,
+    "teclas": 0,
+    "campos": 0,
+    "pantallas": 2,
+    "ventanas": 0,
+    "desplazamientos": 1,
+    "listas": 0,
+    "archivos": 0,
+    "focos": 0,
+    "reintentos": 0
+   },
+   "exceso": 1,
+   "bitacora": [
+    {
+     "paso": "{\"clic\":{\"css\":\".v-tabs a.v-tab\",\"t\":\"Grupos de turno\"}}",
+     "clics": 1,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 1,
+     "ventanas": 0,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"clic\":\"Semana siguiente\"}",
+     "clics": 1,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"baja\":\"[data-act=hgAsignar][data-g=\\\"1\\\"][data-t=Nocturno]\"}",
+     "clics": 0,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 1
+    }
+   ],
+   "hitos": [],
+   "avisos": []
+  }
+ ]
+}

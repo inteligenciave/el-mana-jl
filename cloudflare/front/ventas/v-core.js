@@ -38,8 +38,7 @@ async function vBoot(forzar) {
   V.boot = V.boot === 'ok' ? 'ok' : 'cargando';
   try {
     const a = await vApi('GET', '/arranque');
-    if (a.estados_lista) VD.setMapaListas(a.estados_lista);
-    Object.assign(V, {productos: a.productos, vendedores: a.vendedores, listas: a.listas, cfg: a.config, pin: a.pinConfigurado, ejemplo: a.ejemplo, hoy: a.hoy, seq: a.secuencias, boot: 'ok', err: null});
+    Object.assign(V, {productos: a.productos, vendedores: a.vendedores, vendedoresEmp: a.vendedores_empleados || [], categorias: a.categorias || VD.CATEGORIAS, listas: a.listas, cfg: a.config, pin: a.pinConfigurado, ejemplo: a.ejemplo, hoy: a.hoy, seq: a.secuencias, boot: 'ok', err: null});
   } catch (e) { V.boot = 'error'; V.err = e; }
   render();
 }
@@ -62,9 +61,11 @@ function vPicker(clave, seleccionado, filtro) {
   return `<div class="v-pick"><label class="fld">Buscar cliente por nombre o RIF<input type="search" class="v-pk-in" data-pk="${clave}" ${Busca.atr('v-cli', clave)} value="${esc(filtro || '')}" placeholder="Nombre o RIF del cliente"></label>
     <ul class="v-pk-list" id="v-pk-${clave}">${vPickerItems(clave, lista)}</ul></div>`;
 }
+/* Referencia de un cliente en cualquier operación: su Vendedor y su Zona (la zona es solo logística) */
+const vRefCli = c => 'Vendedor: <b>' + vtxt(c.vendedor_nombre || c.vendedor || 'sin vendedor') + '</b> · Zona: <b>' + vtxt(VD.zonaDeEstado(c.zona) || c.zona || 'sin zona') + '</b>';
 /* Clientes que coinciden (sin tildes ni mayúsculas) por nombre o RIF: lo usan la lista de la pantalla y las sugerencias */
 const vCliFiltrar = (q, max) => Busca.filtrar(V.clientes || [], q, c => [c.razon_social, c.rif_id]).sort((a, b) => Busca.puntaje(q, b.razon_social) - Busca.puntaje(q, a.razon_social)).slice(0, max);
-const vPickerItems = (clave, lista) => lista.length ? lista.map(c => `<li><button type="button" class="v-pk-b" data-act="vElegirCliente" data-pk="${clave}" data-id="${c.id_cliente}"><b>${vtxt(c.razon_social)}</b><span>${vtxt(c.rif_id || 'sin RIF')} · debe ${vusd(c.deuda)}</span></button></li>`).join('') : '<li class="hint" style="padding:8px">No hay clientes con ese texto.</li>';
+const vPickerItems = (clave, lista) => lista.length ? lista.map(c => `<li><button type="button" class="v-pk-b" data-act="vElegirCliente" data-pk="${clave}" data-id="${c.id_cliente}"><b>${vtxt(c.razon_social)}</b><span>${vtxt(c.rif_id || 'sin RIF')} · debe ${vusd(c.deuda)}</span><span class="v-ref">${vRefCli(c)}</span></button></li>`).join('') : '<li class="hint" style="padding:8px">No hay clientes con ese texto.</li>';
 
 /* ---------- Entradas de números enteros: solo dígitos ---------- */
 const V_AVISO_ENTERO = 'Los bultos se cuentan completos: escribe un número entero, sin comas ni puntos.';

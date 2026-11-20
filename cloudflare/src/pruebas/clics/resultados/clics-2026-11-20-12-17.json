@@ -1,0 +1,88 @@
+{
+ "meta": {
+  "fecha": "2026-11-20T12:17:52.340Z",
+  "url": "http://localhost:8811",
+  "vista": "1366x768",
+  "tareas": 1
+ },
+ "resultados": [
+  {
+   "id": "adm-bonos-aplicar",
+   "nombre": "Aplicar un bono",
+   "puesto": "adm",
+   "frecuencia": "semanal",
+   "pasos": 5,
+   "ideal": {
+    "clics": 4,
+    "teclas": 0,
+    "desglose": "1 entrar al puesto + 1 abrir la tarea + 1 elecciones + 1 confirmar"
+   },
+   "estado": "ok",
+   "nota": "",
+   "real": {
+    "clics": 5,
+    "teclas": 0,
+    "campos": 0,
+    "pantallas": 2,
+    "ventanas": 1,
+    "desplazamientos": 1,
+    "listas": 0,
+    "archivos": 0,
+    "focos": 0,
+    "reintentos": 0
+   },
+   "exceso": 1,
+   "bitacora": [
+    {
+     "paso": "{\"clic\":\"#ptBtn\"}",
+     "clics": 1,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 0,
+     "ventanas": 1,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"clic\":{\"css\":\"#ptPan .pt-op[href=\\\"#rh-bonos\\\"]\"}}",
+     "clics": 1,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 1,
+     "ventanas": 0,
+     "scrolls": 1
+    },
+    {
+     "paso": "{\"clic\":\"Bonos y metas\"}",
+     "clics": 1,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"clic\":\"Aplicar ahora\"}",
+     "clics": 1,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 0
+    },
+    {
+     "paso": "{\"aviso\":\"Bono aplicado\"}",
+     "clics": 0,
+     "teclas": 0,
+     "campos": 0,
+     "pantallas": 0,
+     "ventanas": 0,
+     "scrolls": 0
+    }
+   ],
+   "hitos": [],
+   "avisos": [
+    "ok|Bono aplicado."
+   ]
+  }
+ ]
+}

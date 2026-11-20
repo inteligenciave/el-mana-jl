@@ -19,6 +19,7 @@ export function nuevoCodigo() {
   const u = crypto.getRandomValues(new Uint8Array(32));
   return btoa(String.fromCharCode(...u)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
+export const rutaEnlace = codigo => '/cliente.html#t=' + codigo;
 export async function huella(codigo) {
   const h = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(String(codigo)));
   return [...new Uint8Array(h)].map(x => x.toString(16).padStart(2, '0')).join('');

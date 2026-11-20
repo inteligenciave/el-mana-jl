@@ -113,10 +113,12 @@ function scrReportes(solo) {
   return vPantalla(() => {
     const R = V.rep; if (solo === 'auditoria' && R.tab !== 'auditoria') { R.tab = 'auditoria'; R.data = null; R.csv = ''; }
     if (!solo && R.tab === 'auditoria' && !(lvl('v-clientes') >= 3)) { R.tab = 'comisiones'; R.data = null; R.csv = ''; }
-    const d = R.data; if (!d) vRepCargar();
-    const tabs = [['comisiones', 'Comisiones'], ['asientos', 'Asientos contables'], ['inventario', 'Movimientos de inventario'], ...(lvl('v-clientes') >= 3 ? [['auditoria', 'Auditoría']] : [])];
+    const local = R.tab === 'cambios-inv' || R.tab === 'solicitudes', d = R.data; if (!d && !local) vRepCargar();
+    const tabs = [['comisiones', 'Comisiones'], ['asientos', 'Asientos contables'], ['inventario', 'Movimientos de inventario'], ...(lvl('v-clientes') >= 3 ? [['auditoria', 'Auditoría']] : []), ['cambios-inv', 'Cambios en existencias'], ['solicitudes', 'Solicitudes de compra']];
     let cuerpo = '<p class="hint">Cargando…</p>', csv = '';
-    if (d && R.tab === 'comisiones') {
+    if (R.tab === 'cambios-inv') cuerpo = window.invCambiosCard ? window.invCambiosCard() : '';
+    else if (R.tab === 'solicitudes') cuerpo = window.invSolicitudesCard ? window.invSolicitudesCard() : '';
+    else if (d && R.tab === 'comisiones') {
       const por = {}; d.forEach(c => { const k = c.vendedor_nombre || 'Sin vendedor'; (por[k] ||= {base: 0, monto: 0, sinPct: 0}); por[k].base += c.base_neta; if (c.monto != null) por[k].monto += c.monto; else por[k].sinPct++; });
       cuerpo = `${table([{h: 'Vendedor', f: ([k]) => vtxt(k)}, {h: 'Base neta cobrada', r: 1, f: ([, v]) => vusd(v.base)}, {h: 'Comisión', r: 1, f: ([, v]) => v.sinPct ? `${vusd(v.monto)} <span class="muted">(${v.sinPct} sin porcentaje)</span>` : `<b>${vusd(v.monto)}</b>`}], Object.entries(por), {empty: 'Todavía no hay comisiones.'})}
         <h3 class="v-h3">Detalle</h3>${table([{h: 'Fecha', f: c => vfecha(c.fecha)}, {h: 'Nota', f: c => vtxt(c.nro_control_interno)}, {h: 'Cliente', f: c => vtxt(c.razon_social)}, {h: 'Vendedor', f: c => vtxt(c.vendedor_nombre || '—')}, {h: 'Base neta', r: 1, f: c => vusd(c.base_neta)}, {h: '%', r: 1, f: c => c.pct == null ? 'sin definir' : N2.format(c.pct)}, {h: 'Comisión', r: 1, f: c => c.monto == null ? '—' : vusd(c.monto)}], d)}`;

@@ -9,25 +9,30 @@ function vClienteModal(c) {
   const dueno = lvl('v-clientes') >= 3, nuevo = !c; c = c || {modalidad_despacho_pref: 'NOTA_ENTREGA'};
   const cond = dueno ? `<h3 class="v-h3">Condiciones comerciales (las define el Gerente)</h3><div class="row2">${vFld('vc-desc', 'Descuento fijo (%)', c.descuento_fijo_pct, {inputmode: 'decimal', ph: 'ninguno'})}${vFld('vc-lim', 'Límite de crédito ($)', c.limite_credito_cents == null ? '' : c.limite_credito_cents / 100, {inputmode: 'decimal', ph: 'sin límite'})}</div>
       <div class="row2">${vFld('vc-pp', 'Días de pronto pago', c.dias_pronto_pago, {inputmode: 'numeric', ph: 'sin definir', sm: 'Pagando hasta este día desde la emisión se aplica el precio de pronto pago.'})}${vFld('vc-cr', 'Días de crédito normal', c.dias_credito_normal, {inputmode: 'numeric', ph: 'sin definir', sm: 'Pasado este día se aplica el precio de mora.'})}</div>` : '';
-  modal(nuevo ? 'Cliente nuevo' : 'Cliente: ' + vtxt(c.razon_social), `<div class="form">${vFld('vc-rs', 'Razón social o nombre', c.razon_social, {max: 150})}<div class="row2">${vFld('vc-rif', 'RIF o identificación', c.rif_id, {max: 20})}<label class="fld">Estado del cliente (obligatorio)<select id="vc-zona">${vZonaOpciones(c.zona)}</select></label></div>${vFld('vc-dir', 'Dirección de entrega', c.direccion_entrega, {max: 200})}<p class="hint" id="vc-lista-t">${vListaTxt(c.zona)}</p>
-    <div class="row3"><label class="fld">Vendedor<select id="vc-vend"><option value="">Sin vendedor</option>${V.vendedores.map(v => `<option value="${v.id}" ${c.id_vendedor === v.id ? 'selected' : ''}>${vtxt(v.nombre)}</option>`).join('')}</select></label>
+  modal(nuevo ? 'Cliente nuevo' : 'Cliente: ' + vtxt(c.razon_social), `<div class="form">${vFld('vc-rs', 'Razón social o nombre', c.razon_social, {max: 150})}<div class="row2">${vFld('vc-rif', 'RIF o identificación', c.rif_id, {max: 20})}<label class="fld">Estado del cliente (obligatorio)<select id="vc-zona">${vZonaOpciones(c.zona)}</select></label></div>${vFld('vc-dir', 'Dirección de entrega', c.direccion_entrega, {max: 200})}<p class="hint" id="vc-lista-t">${vZonaTxt(c.zona)}</p>
+    <label class="fld">Categoría de precio${nuevo ? ' (obligatoria)' : ''}<select id="vc-cat">${vCategoriaOpciones(c.categoria_precio)}</select><small>Minorista, Mayorista o Gran Mayor. Los precios especiales del cliente mandan sobre la categoría.${c.categoria_precio || nuevo ? '' : ' <b>Este cliente no tiene categoría: no se le puede vender hasta elegirla.</b>'}</small></label>
+    <div class="row3"><label class="fld">Vendedor<select id="vc-vend">${vVendedorOpciones(c)}</select></label>
     <label class="fld">Modalidad habitual<select id="vc-mod"><option value="NOTA_ENTREGA" ${c.modalidad_despacho_pref === 'NOTA_ENTREGA' ? 'selected' : ''}>Nota de entrega</option><option value="FACTURA_DIRECTA" ${c.modalidad_despacho_pref === 'FACTURA_DIRECTA' ? 'selected' : ''}>Factura directa</option></select></label>${vFld('vc-tel', 'Teléfono', c.telefono, {max: 30})}</div>
     ${cond}<p class="err" id="vc-e" role="alert" hidden></p><div class="btnrow"><button type="button" class="btn pri" data-act="vClienteGuardar" data-id="${c.id_cliente || ''}">Guardar</button><button type="button" class="btn" data-act="closeModal">Cancelar</button></div></div>`);
 }
-/* Estado → zona → lista de precios (automático). Los 24 estados se pueden elegir; los que no tienen lista salen marcados "sin precios". */
+/* Estado → zona (referencia logística: despacho y producción por zonas). El precio ya NO depende del estado: lo da la categoría del cliente. */
 function vZonaOpciones(actual) {
-  const real = VD.estadoReal(actual), op = n => { const l = VD.listaDeEstado(n); return '<option value="' + n + '" ' + (n === real ? 'selected' : '') + '>' + n + (l ? ' · Lista ' + esc(l) : ' · sin precios') + '</option>'; };
-  const con = VD.ESTADOS.filter(n => VD.listaDeEstado(n)), sin = VD.ESTADOS.filter(n => !VD.listaDeEstado(n));
+  const real = VD.estadoReal(actual);
   return '<option value="">Elige el estado…</option>' + (actual && !real ? '<option value="' + esc(actual) + '" selected>' + esc(actual) + ' (no es un estado: elige otro)</option>' : '') +
-    '<optgroup label="Con lista de precios">' + con.map(op).join('') + '</optgroup><optgroup label="Sin precios (no se vende hasta que el Gerente asigne lista)">' + sin.map(op).join('') + '</optgroup>';
+    VD.ESTADOS.map(n => '<option value="' + n + '" ' + (n === real ? 'selected' : '') + '>' + n + ' · ' + esc(VD.zonaDeEstado(n)) + '</option>').join('');
 }
-const vListaTxt = est => { const e = VD.estadoReal(est); if (!e) return 'Estado · Zona · Lista: <b>falta elegir el estado</b>. De ahí sale la lista de precios.'; const l = VD.listaDeEstado(e);
-  return 'Estado · Zona · Lista: <b>' + e + ' · ' + VD.zonaDeEstado(e) + ' · ' + (l ? 'Lista ' + esc(l) : 'sin precios') + '</b>' + (l ? '' : '<br><span class="v-alerta-i">' + VD.MSG_SIN_LISTA_ESTADO + '</span>'); };
+const vZonaTxt = est => { const e = VD.estadoReal(est); return e ? 'Estado · Zona: <b>' + e + ' · ' + esc(VD.zonaDeEstado(e)) + '</b> (solo para la entrega)' : 'Estado · Zona: <b>falta elegir el estado</b>.'; };
+/* Categoría de precio (Minorista, Mayorista, Gran Mayor): obligatoria en cliente nuevo; los clientes viejos sin categoría no se pueden vender hasta que se les asigne */
+const vCategoriaOpciones = actual => '<option value="">' + (actual ? 'Elige…' : 'Elige la categoría…') + '</option>' + (V.categorias || VD.CATEGORIAS).map(n => '<option value="' + n + '" ' + (n === actual ? 'selected' : '') + '>' + n + '</option>').join('');
+/* Una sola lista de vendedores: los de siempre + las personas de Nómina con cargo «Vendedor» que aún no están en ella */
+const vVendedorOpciones = c => '<option value="">Sin vendedor</option>' + V.vendedores.map(v => '<option value="' + v.id + '" ' + (c.id_vendedor === v.id ? 'selected' : '') + '>' + vtxt(v.nombre) + '</option>').join('') +
+  ((V.vendedoresEmp || []).length ? '<optgroup label="Personal de Nómina con cargo Vendedor">' + V.vendedoresEmp.map(v => '<option value="e:' + esc(v.empleado_id) + '">' + vtxt(v.nombre) + '</option>').join('') + '</optgroup>' : '');
 async function vClienteGuardar(id) {
-  const dueno = lvl('v-clientes') >= 3, b = {razon_social: vVal('vc-rs'), rif_id: vVal('vc-rif'), zona: vVal('vc-zona'), direccion_entrega: vVal('vc-dir'), telefono: vVal('vc-tel'), id_vendedor: vVal('vc-vend'), modalidad_despacho_pref: vVal('vc-mod')};
+  const dueno = lvl('v-clientes') >= 3, b = {razon_social: vVal('vc-rs'), rif_id: vVal('vc-rif'), zona: vVal('vc-zona'), direccion_entrega: vVal('vc-dir'), telefono: vVal('vc-tel'), id_vendedor: vVal('vc-vend'), modalidad_despacho_pref: vVal('vc-mod'), categoria_precio: vVal('vc-cat')};
+  if (/^e:/.test(b.id_vendedor)) { b.vendedor_empleado_id = b.id_vendedor.slice(2); b.id_vendedor = ''; }
   if (dueno) Object.assign(b, {descuento_fijo_pct: vDec('vc-desc'), limite_credito_usd: vDec('vc-lim'), dias_pronto_pago: vDec('vc-pp'), dias_credito_normal: vDec('vc-cr')});
   const e = $('#vc-e'); e.hidden = true;
-  try { const rc = await vApi(id ? 'PUT' : 'POST', '/clientes' + (id ? '/' + id : ''), b); closeModal(); toast(rc && rc.aviso_lista ? 'Cliente guardado. ' + esc(rc.aviso_lista) : 'Cliente guardado.'); V.clientes = null; await vAdmClientes(); if (V.ped && V.ped.cid) vPedElegir(V.ped.cid); }
+  try { const rc = await vApi(id ? 'PUT' : 'POST', '/clientes' + (id ? '/' + id : ''), b); closeModal(); toast(rc && rc.aviso_lista ? 'Cliente guardado. ' + esc(rc.aviso_lista) : 'Cliente guardado.'); V.clientes = null; vBoot(true); await vAdmClientes(); if (V.ped && V.ped.cid) vPedElegir(V.ped.cid); }
   catch (er) { e.textContent = er.message; e.hidden = false; }
 }
 async function vReglasModal(idCliente) {
@@ -169,7 +174,7 @@ function scrClientesVentas() {
       if (!A.clientes) vAdmClientes();
       const lista = Busca.filtrar(A.clientes || [], A.q, Busca.textosDe(V_DEF_CLI));
       cuerpo = `<div class="v-bar2"><label class="fld">Buscar<input type="search" aria-label="Buscar cliente" ${Busca.atr('adm-cli')} value="${esc(A.q)}" placeholder="Nombre o RIF del cliente"></label>${reg ? `<button type="button" class="btn pri" data-act="vNuevoCliente">${ic('plus', 16)}Cliente nuevo</button>` : ''}</div>
-        ${A.clientes ? table([{h: 'Cliente', f: c => `<b>${vtxt(c.razon_social)}</b>${c.ejemplo ? ' <span class="chip c-warn">EJEMPLO</span>' : ''}${c.estado_cliente === 'inactivo' ? ' <span class="chip">Inactivo</span>' : ''}${VD.listaDeCliente(c) ? ' <span class="chip">Lista ' + esc(VD.listaDeCliente(c)) + '</span>' : VD.estadoReal(c.zona) ? ' <span class="chip c-crit">Sin precios</span>' : ' <span class="chip c-crit">Falta estado</span>'}<br><span class="muted mono">${vtxt(c.rif_id || 'sin RIF')}</span>`}, {h: 'Vendedor', f: c => vtxt(c.vendedor_nombre || '—')}, {h: 'Modalidad', f: c => vModTxt(c.modalidad_despacho_pref)},
+        ${A.clientes ? table([{h: 'Cliente', f: c => `<b>${vtxt(c.razon_social)}</b>${c.ejemplo ? ' <span class="chip c-warn">EJEMPLO</span>' : ''}${c.estado_cliente === 'inactivo' ? ' <span class="chip">Inactivo</span>' : ''}${VD.listaDeCliente(c) ? ' <span class="chip">' + esc(VD.listaDeCliente(c)) + '</span>' : ' <span class="chip c-crit">Sin categoría</span>'}${VD.estadoReal(c.zona) ? '' : ' <span class="chip c-crit">Falta estado</span>'}<br><span class="muted mono">${vtxt(c.rif_id || 'sin RIF')}</span>`}, {h: 'Vendedor', f: c => vtxt(c.vendedor_nombre || '—')}, {h: 'Zona', f: c => vtxt(VD.zonaDeEstado(c.zona) || '—')}, {h: 'Modalidad', f: c => vModTxt(c.modalidad_despacho_pref)},
           {h: 'Pronto pago · crédito', f: c => (c.dias_pronto_pago ?? '—') + ' · ' + (c.dias_credito_normal ?? '—') + ' días'}, {h: 'Límite', r: 1, f: c => c.limite_credito_usd == null ? 'sin límite' : vusd(c.limite_credito_usd)}, {h: 'Debe', r: 1, f: c => vusd(c.deuda)},
           {h: '', f: c => `<div class="btnrow">${reg ? `<button type="button" class="btn sm" data-act="vEditarCliente" data-id="${c.id_cliente}">Editar</button>` : ''}${dueno ? `<button type="button" class="btn sm" data-act="vReglas" data-id="${c.id_cliente}">Precios</button>` : ''}</div>`}], lista, {empty: 'No hay clientes todavía. Crea uno o importa el Excel de cobranza.'}) : '<p class="hint">Cargando…</p>'}`;
     } else if (A.tab === 'productos') {
@@ -188,5 +193,5 @@ function scrClientesVentas() {
   });
 }
 
-/* Al elegir la zona del cliente se muestra la lista de precios que le toca */
-document.addEventListener('change', e => { if (e.target && e.target.id === 'vc-zona') { const t = $('#vc-lista-t'); if (t) t.innerHTML = vListaTxt(e.target.value); } });
+/* Al elegir el estado del cliente se muestra su zona de entrega */
+document.addEventListener('change', e => { if (e.target && e.target.id === 'vc-zona') { const t = $('#vc-lista-t'); if (t) t.innerHTML = vZonaTxt(e.target.value); } });

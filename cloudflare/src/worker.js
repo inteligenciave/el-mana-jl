@@ -8,14 +8,17 @@ import {rutasPrecios} from './precios/rutas.js';
 import {rutasProduccion} from './produccion/rutas.js';
 import {rutasBancos} from './bancos/rutas.js';
 import {rutasCompras} from './compras/rutas.js';
+import {rutasInventario} from './inventario/rutas.js';
 import {rutasFlota} from './flota/rutas.js';
 import {rutasRrhh} from './rrhh/rutas.js';
+import * as RHD from './rrhh/dominio.js';
 import * as Sentry from '@sentry/cloudflare';
 import {rutasSolicitudes} from './solicitudes/rutas.js';
 import {rutasPantallas} from './pantallas/rutas.js';
 import * as Tasa from './tasa/servicio.js';
 import {ROL_TXT, ROL_ALIAS} from './ventas/permisos.js';
-import {rolDe, puedeLeer, puedeEscribir, filtrarDoc, cambiaCamposDueno} from './acceso.js';
+import {costoMerma} from './costo-merma.js';
+import {rolDe, puedeLeer, puedeEscribir, filtrarDoc, cambiaCamposDueno, conservarOcultos} from './acceso.js';
 const COLS = new Set(['ajustes', 'meta', 'proveedores', 'productos', 'partidas', 'recepciones', 'compras', 'cxp', 'pagos', 'movimientos', 'lotes', 'salsas_lotes',
   'empaques', 'reposiciones', 'bultos', 'despachos', 'flota', 'empleados', 'caja_gastos', 'caja_reposiciones', 'caja_arqueos', 'prestamos', 'gestion', 'mermas', 'asistencia', 'clientes', 'auditoria', 'solicitudes_compra']);
 const ID_RE = /^[A-Za-z0-9_.~:@+-]{1,120}$/;
@@ -97,9 +100,12 @@ async function apply(db, op, ctx = {}) {
     if (await previo(db, c, op.id, ctx)) throw {status: 409, message: MSG_AUD};
   }
   if (op.op === 'set') {
-    const s = checkDoc(op.c, op.id, {...op.d, id: op.id});
-    const ant = auditar ? await previo(db, c, op.id, ctx) : null;
-    pend(ctx, c, op.id, {...op.d, id: op.id});
+    const ant = auditar || c === 'empleados' || (ctx.rol && (c === 'proveedores' || c === 'ajustes')) ? await previo(db, c, op.id, ctx) : null;
+    let nuevo = ctx.rol ? conservarOcultos(ctx.rol, c, {...op.d, id: op.id}, ant) : {...op.d, id: op.id};
+    if (c === 'mermas' && (ctx.rol === 'produccion' || ctx.rol === 'empaque') && !ant) nuevo = {...nuevo, usd: await costoMerma(db, nuevo)};   // costo calculado aquí: esos puestos no ven precios   // lo que el puesto no ve no se pierde al guardar
+    const s = checkDoc(op.c, op.id, nuevo);
+    if (c === 'empleados') RHD.validarEmpleado(ant, op.d || {});
+    pend(ctx, c, op.id, nuevo);
     if (auditar) sql.push(stAud(db, ctx, c, op.id, ant ? 'cambiar' : 'agregar', {antes: ant ? resumir(ant) : null, despues: resumir(op.d)}));
     return [db.prepare('INSERT INTO docs (col, id, data, updated) VALUES (?1, ?2, ?3, ?4) ON CONFLICT(col, id) DO UPDATE SET data = ?3, updated = ?4').bind(op.c, op.id, s, now), ...sql];
   }
@@ -121,8 +127,9 @@ async function apply(db, op, ctx = {}) {
     checkDoc(op.c, op.id, op.d || {});
     const ant = await previo(db, c, op.id, ctx);
     if (!ant) throw {status: 404, message: 'El documento no existe.'};
-    const s = checkDoc(op.c, op.id, {...ant, ...op.d, id: op.id});
-    pend(ctx, c, op.id, {...ant, ...op.d, id: op.id});
+    const s = checkDoc(op.c, op.id, conservarOcultos(ctx.rol, c, {...ant, ...op.d, id: op.id}, ant) || {});
+    if (c === 'empleados') RHD.validarEmpleado(ant, {...ant, ...op.d});
+    pend(ctx, c, op.id, conservarOcultos(ctx.rol, c, {...ant, ...op.d, id: op.id}, ant));
     if (auditar) sql.push(stAud(db, ctx, c, op.id, 'cambiar', {antes: resumir(ant, Object.keys(op.d || {})), despues: resumir(op.d)}));
     return [db.prepare('UPDATE docs SET data = ?3, updated = ?4 WHERE col = ?1 AND id = ?2').bind(op.c, op.id, s, now), ...sql];
   }
@@ -172,6 +179,7 @@ async function handle(req, env, url) {
   if (p === '/api/s' || p.startsWith('/api/s/')) return rutasSolicitudes(req, env, url);                         // solicitudes de autorización al Gerente
   if (p === '/api/h' || p.startsWith('/api/h/')) return rutasRrhh(req, env, url);                                 // marcas de entrada y salida (En planta hoy)
   if (p === '/api/v/compras' || p.startsWith('/api/v/compras/')) return rutasCompras(req, env, url);              // hacer una compra al proveedor (pedidos)
+  if (p === '/api/v/inventario' || p.startsWith('/api/v/inventario/')) return rutasInventario(req, env, url);    // inventario general de materia prima e insumos
   if (p === '/api/v/bancos' || p.startsWith('/api/v/bancos/')) return rutasBancos(req, env, url);                // bancos de la empresa
   if (p === '/api/v/precios' || p.startsWith('/api/v/precios/')) return rutasPrecios(req, env, url);          // cambios de precio con aprobación del Gerente
   if (p === '/api/v/tasa' || p.startsWith('/api/v/tasa/')) return rutasTasa(req, env, url);
@@ -188,7 +196,7 @@ async function handle(req, env, url) {
     if (!isObj(b) || !Array.isArray(b.ops)) return err(400, 'Falta la lista de operaciones.');
     if (b.ops.length > MAX_OPS) return err(413, 'Demasiadas operaciones en un lote.');
     
-    const ctx = {rolTxt: ROL_TXT[rol], purga: false, masivo: false};
+    const ctx = {rol, rolTxt: ROL_TXT[rol], purga: false, masivo: false};
     if (req.headers.get('x-purga') === '1') {   // reinicio de datos de ejemplo: solo en desarrollo local y solo Gerencia
       if (!esLocal(url)) return err(403, 'Empezar en limpio y volver a cargar el ejemplo solo están disponibles en el equipo de desarrollo, no en el sitio real.');
       if (rol !== 'dueno') return err(403, 'Solo Gerencia puede hacer esto.');
@@ -223,7 +231,7 @@ async function handle(req, env, url) {
     if (m === 'GET' && !puedeLeer(rol, c, id)) return err(403, 'Tu puesto no puede ver esta información.');
     if (m === 'PUT' || m === 'PATCH') {
       const d = await readJson(req); if (!isObj(d)) return err(400, 'El documento debe ser un objeto.');
-      if (c === 'ajustes' && id === 'politicas' && cambiaCamposDueno(rol, {op: m === 'PUT' ? 'set' : 'update', c, id, d}, await polActual(db, null))) return err(403, 'Tu puesto no puede modificar esta información.'); const st = await apply(db, {op: m === 'PUT' ? 'set' : 'update', c, id, d}, {rolTxt: ROL_TXT[rol]});
+      if (c === 'ajustes' && id === 'politicas' && cambiaCamposDueno(rol, {op: m === 'PUT' ? 'set' : 'update', c, id, d}, await polActual(db, null))) return err(403, 'Tu puesto no puede modificar esta información.'); const st = await apply(db, {op: m === 'PUT' ? 'set' : 'update', c, id, d}, {rol, rolTxt: ROL_TXT[rol]});
       await db.batch([...st, bump(db)]); return json({ok: true, ver: await curVer(db)});
     }
     if (m === 'DELETE') {
@@ -231,7 +239,7 @@ async function handle(req, env, url) {
       if (purga && !esLocal(url)) return err(403, 'Esta acción solo está disponible en el equipo de desarrollo, no en el sitio real.');
       if (purga && rol !== 'dueno') return err(403, 'Solo Gerencia puede hacer esto.');
       const hm = req.headers.get('x-motivo'); let mot = url.searchParams.get('motivo'); if (!mot && hm) { try { mot = decodeURIComponent(hm); } catch (e) { mot = hm; } }
-      const st = await apply(db, {op: 'del', c, id, motivo: mot}, {rolTxt: ROL_TXT[rol], purga}); await db.batch([...st, bump(db)]); return json({ok: true, ver: await curVer(db)}); }
+      const st = await apply(db, {op: 'del', c, id, motivo: mot}, {rol, rolTxt: ROL_TXT[rol], purga}); await db.batch([...st, bump(db)]); return json({ok: true, ver: await curVer(db)}); }
     if (m === 'GET') { checkDoc(c, id); const r = await db.prepare('SELECT data FROM docs WHERE col = ?1 AND id = ?2').bind(c, id).first(); return r ? json(filtrarDoc(rol, c, JSON.parse(r.data))) : err(404, 'No existe.'); }
   }
   return err(404, 'Ruta no encontrada.');

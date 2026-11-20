@@ -42,10 +42,11 @@ function cFichaHTML() {
   return `<div class="cp-ficha"><div class="cp-fh"><div><h2>${esc(c.razon_social)}</h2><p class="hint">${c.ejemplo ? '<span class="chip c-n">EJEMPLO</span> ' : ''}${esc(c.telefono || 'sin teléfono')}</p></div><div>${cEstadoEnlace(f)}</div></div>
     <dl class="cp-kv"><div><dt>RIF</dt><dd>${esc(c.rif_id || '—')}</dd></div><div><dt>Zona</dt><dd>${esc(c.zona || '—')}</dd></div><div><dt>Límite de crédito</dt><dd>${cusd(c.limite_credito_usd)}</dd></div><div><dt>Debe hoy</dt><dd>${cusd(c.deuda)}</dd></div>
       <div><dt>Nivel de precio</dt><dd>${esc(c.nivel_precio || '—')}</dd></div><div><dt>Vendedor</dt><dd>${esc(c.vendedor || '—')}</dd></div></dl>
-    ${cod ? `<div class="cp-codigo" role="status"><p><b>Código nuevo.</b> ${esc(cod.aviso)}</p><label class="fld">Enlace para enviar al cliente<input type="text" readonly id="cp-link" value="${esc(linkCompleto)}" onfocus="this.select()"></label>
+    ${cod ? `<div class="cp-codigo" role="status"><p><b>Enlace nuevo.</b> ${esc(cod.aviso)}</p><label class="fld">Enlace para enviar al cliente<input type="text" readonly id="cp-link" value="${esc(linkCompleto)}" onfocus="this.select()"></label>
       <div class="btnrow"><button type="button" class="btn pri" data-act="cCopiar">${ic('clip', 16)}Copiar enlace</button><button type="button" class="btn" data-act="cOcultar">Ya lo envié</button></div></div>` : ''}
     ${puede ? `<div class="cp-acc"><label class="fld cp-dias">Vigencia en días (vacío = no vence)<input type="text" inputmode="numeric" id="cp-dias" maxlength="4" placeholder="Ej.: 30"></label>
-      <button type="button" class="btn pri" data-act="cEnlaceGen" ${CP.busy.enl ? 'disabled' : ''}>${f.enlace_activo ? 'Generar uno nuevo (anula el anterior)' : 'Generar enlace'}</button>
+      ${f.enlace_copiable ? `<button type="button" class="btn pri" data-act="cCopiarEnlace" ${CP.busy.enl ? 'disabled' : ''}>${ic('clip', 16)}Copiar enlace del portal</button>` : ''}
+      <button type="button" class="btn ${f.enlace_copiable ? '' : 'pri'}" data-act="cEnlaceGen" ${CP.busy.enl ? 'disabled' : ''}>${f.enlace_activo ? 'Generar enlace nuevo' : 'Generar enlace'}</button>
       ${f.enlace_activo ? `<button type="button" class="btn" data-act="cEnlaceRev" ${CP.busy.enl ? 'disabled' : ''}>Revocar enlace</button>` : ''}</div>` : '<p class="hint">Tu rol puede ver la ficha pero no generar ni revocar enlaces.</p>'}
     <div class="cp-dos"><div><h3>Pedidos por confirmar (${f.pedidos.length})</h3>${f.pedidos.length ? f.pedidos.map(p => `<p class="cp-li"><b>${esc(p.codigo)}</b> · ${cusd(p.total)}<br><span class="mini">${p.lineas.map(l => esc(l.cantidad + ' × ' + l.nombre)).join(', ')}</span></p>`).join('') : '<p class="hint">Ninguno.</p>'}</div>
       <div><h3>Pagos por verificar (${f.pagos.length})</h3>${f.pagos.length ? f.pagos.map(p => `<p class="cp-li"><b>${esc(p.codigo)}</b> · ${cbs(p.monto_bs)}<br><span class="mini">${esc(p.banco)} · ref. ${esc(p.referencia)} · ${fdl(p.fecha_pago)}</span></p>`).join('') : '<p class="hint">Ninguno.</p>'}</div></div></div>`;
@@ -110,8 +111,8 @@ Object.assign(SCREENS, {
   'c-pagos':   {mod: 'adm', g: 'Portal de clientes', t: 'Pagos por verificar', s: 'Pagos', ic: 'receipt', r: scrCPagos}
 });
 S.perm = permInit();
-const CACT_REQ = {cEnlaceGen: ['c-ficha', 2], cEnlaceRev: ['c-ficha', 2], cPedAprobar: ['c-pedidos', 2], cPedRechazar: ['c-pedidos', 2], cPagConfirmar: ['c-pagos', 2], cPagRechazar: ['c-pagos', 2]};
-const CACT_LBL = {cEnlaceGen: 'generar enlaces de clientes', cEnlaceRev: 'revocar enlaces de clientes', cPedAprobar: 'aprobar pedidos', cPedRechazar: 'rechazar pedidos', cPagConfirmar: 'confirmar pagos', cPagRechazar: 'rechazar pagos'};
+const CACT_REQ = {cCopiarEnlace: ['c-ficha', 2], cEnlaceGen: ['c-ficha', 2], cEnlaceRev: ['c-ficha', 2], cPedAprobar: ['c-pedidos', 2], cPedRechazar: ['c-pedidos', 2], cPagConfirmar: ['c-pagos', 2], cPagRechazar: ['c-pagos', 2]};
+const CACT_LBL = {cCopiarEnlace: 'copiar enlaces de clientes', cEnlaceGen: 'generar enlaces de clientes', cEnlaceRev: 'revocar enlaces de clientes', cPedAprobar: 'aprobar pedidos', cPedRechazar: 'rechazar pedidos', cPagConfirmar: 'confirmar pagos', cPagRechazar: 'rechazar pagos'};
 Object.assign(ACT_REQ, CACT_REQ); Object.assign(ACT_LBL, CACT_LBL); Object.keys(CACT_REQ).forEach(k => WRITE_ACTS.add(k));
 
 function cMotivo(titulo, texto, btn, cb) {
@@ -126,12 +127,19 @@ Object.assign(ACT, {
   cElegir: el => cCargarFicha(cId(el)),
   cOcultar: () => { CP.fich.codigo = null; render(); },
   cCopiar: async () => { const i = $('#cp-link'); if (!i) return; try { await navigator.clipboard.writeText(i.value); toast('Enlace copiado.'); } catch (e) { i.select(); toast('Selecciona y copia el enlace con Ctrl+C.', 'warn'); } },
+  cCopiarEnlace: async () => {
+    const id = CP.fich.sel; const r = await cRun('enl', () => cApi('GET', '/clientes/' + id + '/enlace'), null); if (!r) return;
+    const url = location.origin + r.ruta;
+    try { await navigator.clipboard.writeText(url); toast('Enlace del portal copiado. Envíaselo solo a este cliente.'); } catch (e) { CP.fich.codigo = {ruta: r.ruta, aviso: 'Selecciona el enlace y cópialo con Ctrl+C.'}; render(); }
+  },
   cEnlaceGen: async el => {
     const id = CP.fich.sel, d = ($('#cp-dias') || {}).value || '';
-    const r = await cRun('enl', () => cApi('POST', '/clientes/' + id + '/enlace', {dias: d.trim() === '' ? null : +d}), 'Enlace generado. Cópialo ahora: no se vuelve a mostrar.');
+    if (CP.fich.ficha && CP.fich.ficha.enlace_activo && !el.dataset.ok) { modal('Generar enlace nuevo', `<div class="form"><p>El enlace que tiene hoy este cliente <b>dejará de funcionar</b> y tendrás que enviarle el nuevo. ¿Continuar?</p><div class="btnrow"><button type="button" class="btn pri" id="cp-gen-ok">Sí, generar enlace nuevo</button><button type="button" class="btn" data-act="closeModal">Cancelar</button></div></div>`);
+      $('#cp-gen-ok').addEventListener('click', () => { closeModal(); ACT.cEnlaceGen({dataset: {ok: '1'}}); }); return; }
+    const r = await cRun('enl', () => cApi('POST', '/clientes/' + id + '/enlace', {dias: d.trim() === '' ? null : +d}), 'Enlace nuevo generado. El anterior ya no sirve.');
     if (r) { CP.fich.codigo = r; CP.fich.lista = null; cCargarFicha(id); CP.fich.codigo = r; render(); }
   },
-  cEnlaceRev: () => { const id = CP.fich.sel; modal('Revocar el enlace', `<div class="form"><p>El cliente no podrá entrar con su código actual. Podrás generar uno nuevo cuando quieras.</p><div class="btnrow"><button type="button" class="btn pri" id="cp-rev-ok">Sí, revocar</button><button type="button" class="btn" data-act="closeModal">Cancelar</button></div></div>`);
+  cEnlaceRev: () => { const id = CP.fich.sel; modal('Revocar el enlace', `<div class="form"><p>El cliente no podrá entrar con su enlace actual. Podrás generar uno nuevo cuando quieras.</p><div class="btnrow"><button type="button" class="btn pri" id="cp-rev-ok">Sí, revocar</button><button type="button" class="btn" data-act="closeModal">Cancelar</button></div></div>`);
     $('#cp-rev-ok').addEventListener('click', async () => { closeModal(); const r = await cRun('enl', () => cApi('POST', '/clientes/' + id + '/enlace/revocar', {}), 'Enlace revocado.'); if (r) { CP.fich.lista = null; CP.fich.codigo = null; cCargarFicha(id); } }); },
   cPedAprobar: async el => {
     const id = cId(el), t = ($('#cp-tipo-' + id) || {}).value, bs = $('#cp-banco-' + id), banco = bs ? bs.value : '';

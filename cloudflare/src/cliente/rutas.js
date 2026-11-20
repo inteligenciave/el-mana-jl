@@ -1,5 +1,5 @@
 /* Rutas HTTP del portal del cliente.
-   · /api/c/portal/*  → el CLIENTE, con su código personal en la cabecera x-token. Nunca recibe ni acepta un id de cliente.
+   · /api/c/portal/*  → el CLIENTE, con su enlace personal (el código del enlace) en la cabecera x-token. Nunca recibe ni acepta un id de cliente.
    · /api/v/portal/*  → el EQUIPO, con su rol en x-rol (igual que el resto de Ventas). */
 import * as S from './servicio.js';
 import * as VR from '../ventas/repo.js';
@@ -56,6 +56,7 @@ export async function rutasEquipo(req, env, url) {
       if (p === '/resumen') return json(await S.resumenEquipo(ctx));
       if (p === '/clientes') return json(await S.listaClientes(ctx, {q: q.get('q') || '', limite: Math.min(+q.get('limite') || 100, 500)}));
       if ((r = p.match(/^\/clientes\/(\d+)$/))) return json(await S.fichaCliente(ctx, +r[1]));
+      if ((r = p.match(/^\/clientes\/(\d+)\/enlace$/))) return json(await S.enlaceCopiable(ctx, +r[1]));
       if (p === '/pedidos') return json(await S.pedidosEquipo(ctx, q.get('estado') || undefined));
       if (p === '/pagos') return json(await S.pagosEquipo(ctx, q.get('estado') || undefined));
       if ((r = p.match(/^\/pagos\/(\d+)\/comprobante$/))) return json(await S.comprobantePago(ctx, +r[1]));

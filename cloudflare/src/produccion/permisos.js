@@ -4,6 +4,8 @@
    Aprobar o rechazar diferencias, anular pedidos y los ajustes: solo el Gerente. */
 export const PUEDE = {
   verTurno: ['dueno', 'produccion', 'empaque'],
+  verPanel: ['dueno', 'adm', 'produccion', 'empaque'],
+  minimos: ['dueno', 'adm'],
   verSalidas: ['dueno', 'empaque'],
   turno: ['dueno', 'produccion'],
   empacar: ['dueno', 'empaque'],
@@ -11,6 +13,7 @@ export const PUEDE = {
   aprobar: ['dueno'],
   verDif: ['dueno', 'produccion', 'empaque'],
   cargar: ['dueno', 'empaque'],
+  lineas: ['dueno'],   // crear, cambiar y borrar líneas de despacho
   dueno: ['dueno']
 };
 /* Puestos que NUNCA reciben dinero de /api/p (precios, montos, totales): se quita en el servidor antes de responder */

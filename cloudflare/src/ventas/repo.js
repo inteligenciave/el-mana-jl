@@ -65,7 +65,9 @@ export const stMovimiento = (db, m) => bind(db, 'INSERT INTO movimientos_inventa
 export const listarVendedores = db => all(db, 'SELECT * FROM vendedores WHERE activo = 1 ORDER BY nombre');
 export const getVendedor = (db, id) => one(db, 'SELECT * FROM vendedores WHERE id = ?1', [id]);
 export const vendedorPorNombre = (db, n) => one(db, 'SELECT * FROM vendedores WHERE UPPER(nombre) = UPPER(?1)', [n]);
-export const stInsertarVendedor = (db, v) => bind(db, 'INSERT INTO vendedores (nombre, comision_pct, ejemplo) VALUES (?1, ?2, ?3)', [v.nombre, v.comision_pct ?? null, v.ejemplo ? 1 : 0]);
+export const stInsertarVendedor = (db, v) => bind(db, 'INSERT INTO vendedores (nombre, comision_pct, ejemplo, empleado_id) VALUES (?1, ?2, ?3, ?4)', [v.nombre, v.comision_pct ?? null, v.ejemplo ? 1 : 0, v.empleado_id ?? null]);
+export const vendedorDeEmpleado = (db, idEmp) => one(db, 'SELECT * FROM vendedores WHERE empleado_id = ?1', [idEmp]);
+export const stVincularVendedor = (db, id, idEmp) => bind(db, 'UPDATE vendedores SET empleado_id = ?2 WHERE id = ?1 AND empleado_id IS NULL', [id, idEmp]);
 export const stActualizarVendedor = (db, id, v) => bind(db, 'UPDATE vendedores SET nombre = ?2, comision_pct = ?3, ejemplo = 0 WHERE id = ?1', [id, v.nombre, v.comision_pct ?? null]);
 export const listarListas = db => all(db, 'SELECT * FROM listas_precio ORDER BY id');
 
@@ -84,17 +86,15 @@ export const getCliente = (db, id) => one(db, `SELECT ${COLS_CLI}, ${SQL_DEUDA_C
 export const clientePorNorm = (db, norm) => one(db, 'SELECT * FROM clientes WHERE razon_norm = ?1', [norm]);
 export const clientePorRif = (db, rif) => one(db, 'SELECT * FROM clientes WHERE rif_id = ?1', [rif]);
 const cliArgs = c => [c.rif_id || null, c.razon_social, c.razon_norm, c.modalidad_despacho_pref || 'NOTA_ENTREGA', c.id_lista_base ?? null, c.descuento_fijo_pct ?? null, c.dias_pronto_pago ?? null, c.dias_credito_normal ?? null, c.limite_credito_cents ?? null, c.id_vendedor ?? null, c.zona || null, c.telefono || null, c.lista_regional || null, c.direccion_entrega || null];
-export const stInsertarCliente = (db, c) => bind(db, 'INSERT INTO clientes (rif_id, razon_social, razon_norm, modalidad_despacho_pref, id_lista_base, descuento_fijo_pct, dias_pronto_pago, dias_credito_normal, limite_credito_cents, id_vendedor, zona, telefono, lista_regional, direccion_entrega, origen, ejemplo, creado_ts) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16,?17)',
-  [...cliArgs(c), c.origen || 'manual', c.ejemplo ? 1 : 0, Date.now()]);
-export const stActualizarCliente = (db, id, c) => bind(db, 'UPDATE clientes SET rif_id = ?2, razon_social = ?3, razon_norm = ?4, modalidad_despacho_pref = ?5, id_lista_base = ?6, descuento_fijo_pct = ?7, dias_pronto_pago = ?8, dias_credito_normal = ?9, limite_credito_cents = ?10, id_vendedor = ?11, zona = ?12, telefono = ?13, lista_regional = ?14, direccion_entrega = ?15 WHERE id_cliente = ?1', [id, ...cliArgs(c)]);
+export const stInsertarCliente = (db, c) => bind(db, 'INSERT INTO clientes (rif_id, razon_social, razon_norm, modalidad_despacho_pref, id_lista_base, descuento_fijo_pct, dias_pronto_pago, dias_credito_normal, limite_credito_cents, id_vendedor, zona, telefono, lista_regional, direccion_entrega, origen, ejemplo, creado_ts, categoria_precio) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16,?17,?18)',
+  [...cliArgs(c), c.origen || 'manual', c.ejemplo ? 1 : 0, Date.now(), c.categoria_precio || null]);
+export const stActualizarCliente = (db, id, c) => bind(db, 'UPDATE clientes SET rif_id = ?2, razon_social = ?3, razon_norm = ?4, modalidad_despacho_pref = ?5, id_lista_base = ?6, descuento_fijo_pct = ?7, dias_pronto_pago = ?8, dias_credito_normal = ?9, limite_credito_cents = ?10, id_vendedor = ?11, zona = ?12, telefono = ?13, lista_regional = ?14, direccion_entrega = ?15, categoria_precio = ?16 WHERE id_cliente = ?1', [id, ...cliArgs(c), c.categoria_precio || null]);
 export const stSaldoCliente = (db, id) => bind(db, `UPDATE clientes SET saldo_deuda_cents = (SELECT ${SQL_DEUDA_CLIENTE.replace(/c\.id_cliente/g, 'clientes.id_cliente')} ) WHERE id_cliente = ?1`, [id]);
-/* Listas regionales: conLista = ids de productos con precios de lista; lp = Map id -> fila de la lista pedida */
+/* Listas de precios por categoría (Minorista, Mayorista, Gran Mayor): conLista = ids de productos con precios de lista; lp = Map id -> fila de la lista pedida */
 export async function contextoListas(db, lista) {
   const rows = await all(db, 'SELECT * FROM precios_lista');
   return {conLista: new Set(rows.map(r => r.id_producto)), lp: new Map(rows.filter(r => r.lista === lista).map(r => [r.id_producto, r]))};
 }
-export const leerEstadosLista = async db => Object.fromEntries((await all(db, 'SELECT estado, lista FROM estados_lista')).map(r => [r.estado, r.lista]));
-export const stEstadoLista = (db, estado, lista) => lista ? bind(db, 'INSERT INTO estados_lista (estado, lista, actualizado_ts) VALUES (?1,?2,?3) ON CONFLICT(estado) DO UPDATE SET lista = ?2, actualizado_ts = ?3', [estado, lista, Date.now()]) : bind(db, 'DELETE FROM estados_lista WHERE estado = ?1', [estado]);
 export const reglasDeCliente = (db, id) => all(db, 'SELECT * FROM reglas_precio_tiempo_cliente WHERE id_cliente = ?1', [id]);
 export const stUpsertRegla = (db, idCliente, r) => bind(db, `INSERT INTO reglas_precio_tiempo_cliente (id_cliente, id_producto, precio_pronto_pago_cents, precio_base_credito_cents, precio_mora_vencido_cents, pct_descuento_pp, pct_recargo_mora, ejemplo) VALUES (?1,?2,?3,?4,?5,?6,?7,?8)
   ON CONFLICT(id_cliente, id_producto) DO UPDATE SET precio_pronto_pago_cents = ?3, precio_base_credito_cents = ?4, precio_mora_vencido_cents = ?5, pct_descuento_pp = ?6, pct_recargo_mora = ?7, ejemplo = ?8`,

@@ -13,10 +13,10 @@ export const reglasDeCliente = VR.reglasDeCliente;
 export const listarProductos = VR.listarProductos;
 export const getPrecioLista = (db, id, lista) => one(db, 'SELECT * FROM precios_lista WHERE id_producto = ?1 AND lista = ?2', [id, lista]);
 export const listarPreciosLista = db => all(db, 'SELECT l.*, p.nombre, p.gramaje, p.codigo_sku, p.orden FROM precios_lista l JOIN productos p ON p.id_producto = l.id_producto ORDER BY p.orden, p.id_producto, l.lista');
-export const stCopiarLista = (db, nueva, origen) => bind(db, 'INSERT INTO precios_lista (id_producto, lista, contado_cents, credito_cents, actualizado_ts) SELECT id_producto, ?1, contado_cents, credito_cents, ?3 FROM precios_lista WHERE lista = ?2', [nueva, origen, Date.now()]);
-export const leerEstadosLista = VR.leerEstadosLista;
-export const stEstadoLista = VR.stEstadoLista;
-export const nombresListas = async db => (await all(db, 'SELECT DISTINCT lista FROM precios_lista ORDER BY lista')).map(r => r.lista);
+export const clientesPorCategoria = async db => { const r = await all(db, "SELECT categoria_precio AS c, COUNT(*) AS n FROM clientes WHERE estado_cliente <> 'archivado' GROUP BY categoria_precio"); return {por: Object.fromEntries(r.filter(x => x.c).map(x => [x.c, x.n])), sin: (r.find(x => !x.c) || {n: 0}).n}; };
+/* Listas archivadas (A, B, «Propia · estado»): solo lectura */
+export const listarArchivo = db => all(db, 'SELECT a.*, p.nombre, p.gramaje, p.codigo_sku, p.orden FROM precios_lista_archivo a JOIN productos p ON p.id_producto = a.id_producto ORDER BY a.lista, p.orden, p.id_producto');
+export const estadosArchivo = db => all(db, 'SELECT estado, lista FROM estados_lista_archivo ORDER BY estado');
 export const leerAjustes = db => one(db, 'SELECT * FROM ajustes_credito WHERE id = 1');
 export const getCambio = (db, id) => one(db, 'SELECT * FROM cambios_precio WHERE id = ?1', [id]);
 export const listarCambios = (db, estado, limite = 200) => estado
@@ -35,6 +35,8 @@ export const stCerrarPendiente = (db, clave, rolTxt, motivo) => bind(db, "UPDATE
 /* Aplicar el valor nuevo (lo mismo que hace un cambio directo del Gerente) */
 export const stPrecioProducto = (db, id, cents) => bind(db, 'UPDATE productos SET precio_ref_cents = ?2 WHERE id_producto = ?1', [id, cents]);
 export const stPrecioLista = (db, id, lista, mod, cents) => bind(db, `UPDATE precios_lista SET ${mod === 'contado' ? 'contado_cents' : 'credito_cents'} = ?3, actualizado_ts = ?4 WHERE id_producto = ?1 AND lista = ?2`, [id, lista, cents, Date.now()]);
+/* Crea o cambia la fila de una categoría: contado y crédito siempre van juntos (la tabla exige los dos) */
+export const stUpsertPrecioLista = (db, id, lista, contado, credito) => bind(db, 'INSERT INTO precios_lista (id_producto, lista, contado_cents, credito_cents, actualizado_ts) VALUES (?1,?2,?3,?4,?5) ON CONFLICT(id_producto, lista) DO UPDATE SET contado_cents = ?3, credito_cents = ?4, actualizado_ts = ?5', [id, lista, contado, credito, Date.now()]);
 export const stUpsertRegla = VR.stUpsertRegla;
 export const stBorrarRegla = VR.stBorrarRegla;
 export const stAjustes = (db, a, rol) => bind(db, 'UPDATE ajustes_credito SET dias_tramo1 = ?1, dias_tramo2 = ?2, descuento1_pct = ?3, descuento2_pct = ?4, recargo_mora_pct = ?5, actualizado_ts = ?6, actualizado_rol = ?7 WHERE id = 1',

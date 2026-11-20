@@ -1011,7 +1011,7 @@ const SEED_SRC = {
      docs:['Factura de compra o nota de entrega del proveedor','Registro de recepción (REC) generado por el sistema'],
      ctrl:['Diferencia de peso mayor a la tolerancia (2 %) se informa a Administración antes de firmar.','Quien recibe no puede ser quien valida la compra.','Ningún saco entra al almacén sin número de recepción.']},
     {id:'compra-efectiva', t:'Validación y compra efectiva', resp:'Administración', frec:'Diaria, antes de las 3:00 p. m.',
-     pasos:['Abrir la bandeja «Recepciones por validar» en Compras de materia prima.','Cotejar kg recibidos contra kg facturados y la calidad registrada.','Confirmar precio unitario y condición (contado o crédito) según la factura de compra del proveedor.','Validar: el sistema crea la compra efectiva y la entrada al almacén de materia prima.','Si es a crédito, verificar que apareció en Cuentas por pagar con su fecha de vencimiento.'],
+     pasos:['Abrir «Diferencias» en Compras y ver lo que llegó distinto a lo comprado.','Cotejar kg recibidos contra kg facturados y la calidad registrada.','Confirmar precio unitario y condición (contado o crédito) según la factura de compra del proveedor.','Validar: el sistema crea la compra efectiva y la entrada al almacén de materia prima.','Si es a crédito, verificar que apareció en Cuentas por pagar con su fecha de vencimiento.'],
      docs:['Factura de compra original (proveedor)','Registro REC firmado por quien recibió'],
      ctrl:['Se paga sobre kg recibidos, no sobre kg facturados, cuando la diferencia supera la tolerancia.','Precio por encima del 5 % del histórico requiere visto bueno del Gerente.']},
     {id:'contado', t:'Compra de contado', resp:'Administración (caja chica si es menor a $ 100)', frec:'Según necesidad',
@@ -1047,8 +1047,14 @@ const logoImg = (c, h) => `<img class="${c}" src="${LOGO_SRC}" alt="Logo El Man�
 
 try { document.documentElement.setAttribute('data-theme', 'light'); } catch (e) {}
 /* ---------- Constantes de personal y quincenas (las usa la capa de datos y las pantallas) ---------- */
-const AREAS = ['Producción', 'Empaque', 'Línea salsera', 'Almacén', 'Logística', 'Administración y ventas'];
-const AREA_MAP = {'Freído y procesamiento': 'Producción', 'Almacén y recepción': 'Almacén', 'Logística (choferes y ayudantes)': 'Logística'};
+const CARGOS = ['Presidente', 'Vicepresidente', 'Gerente', 'Administrador', 'Vendedor', 'Supervisor de Planta', 'Supervisor de Producción', 'Supervisor de Cocina', 'Cocineros', 'Supervisor de Empaque', 'Almacén', 'Control de Calidad', 'Mecánicos Industriales', 'Mantenimiento'];
+/* Puestos y áreas de Personal: la MISMA lista está en src/rrhh/dominio.js (una prueba vigila que no se separen). `area` es el valor más específico; `puesto` se añadió aparte. */
+const PUESTOS_AREAS = {'Gerencia': ['Directiva'], 'Administración': ['Administración'], 'Ventas': ['Ventas'], 'Recursos humanos': ['Recursos humanos'], 'Producción': ['Cocina', 'Fritura', 'Mantenimiento', 'Línea salsera'], 'Logística': ['Empaque', 'Almacén', 'Despacho / Choferes']};
+const PUESTOS = Object.keys(PUESTOS_AREAS), PUESTOS_PLANTA = ['Producción', 'Logística'], AREA_SIN_DEFINIR = 'Sin definir';
+const AREAS = PUESTOS.flatMap(p => PUESTOS_AREAS[p]);
+const AREAS_ANTES = {'Producción': ['Producción', AREA_SIN_DEFINIR], 'Empaque': ['Logística', 'Empaque'], 'Línea salsera': ['Producción', 'Línea salsera'], 'Almacén': ['Logística', 'Almacén'], 'Logística': ['Logística', 'Despacho / Choferes'], 'Freído y procesamiento': ['Producción', AREA_SIN_DEFINIR], 'Almacén y recepción': ['Logística', 'Almacén'], 'Logística (choferes y ayudantes)': ['Logística', 'Despacho / Choferes'], 'Administración y ventas': ['Administración', 'Administración']};
+const puestoAreaDe = e => { const ar = String((e || {}).area || '').trim(); if (PUESTOS.includes((e || {}).puesto)) return {puesto: e.puesto, area: ar}; const p = PUESTOS.find(x => PUESTOS_AREAS[x].includes(ar)); if (p) return {puesto: p, area: ar}; const a = AREAS_ANTES[ar]; return a ? {puesto: a[0], area: a[1]} : {puesto: '', area: ar}; };
+const AREA_MAP = {'Freído y procesamiento': AREA_SIN_DEFINIR, 'Almacén y recepción': 'Almacén', 'Logística (choferes y ayudantes)': 'Despacho / Choferes'};
 const NOM_POL = {nomRecargo: 0, nomLey: 0, nomJornada: 8};
 const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
 const qKey = d => d.slice(0, 7) + (+d.slice(8, 10) <= 15 ? '-1' : '-2');
@@ -1110,17 +1116,17 @@ function makeHttpBackend() {
           if (!ch.length && !rm.length) return;
           const m = colMap(c); ch.forEach(d => { m[d.id] = d; }); rm.forEach(id => { delete m[id]; }); hubo.push(c);
         });
-        since = (a.now || Date.now()) - SOLAPE; hubo.forEach(emit);
+        since = (a.now || Date.now()) - SOLAPE; hubo.forEach(emit); if (window.Vivo) Vivo.tick();   // otro puesto cambió algo: las vistas que se leen del servidor se repiden
       } else {
         COLS.forEach(c => { const m = {}; (a.cols[c] || []).forEach(d => { m[d.id] = d; }); cache[c] = m; });
-        since = (a.now || Date.now()) - SOLAPE; lastFull = Date.now(); loaded = true; COLS.forEach(emit);
+        since = (a.now || Date.now()) - SOLAPE; lastFull = Date.now(); loaded = true; COLS.forEach(emit); if (window.Vivo) Vivo.tick();
       }
     } catch (e) { if (!loaded) errs.forEach(fn => fn(e)); }
     finally { busy = false; if (redo) { redo = false; pull(true); } }
   }
   const start = () => {
     if (timer) return;
-    timer = setInterval(() => { if (!document.hidden) pull(false); }, 10000);
+    timer = setInterval(() => { if (!document.hidden) pull(false); }, 5000);
     document.addEventListener('visibilitychange', () => { if (!document.hidden) pull(false); });
     pull(true);
   };
@@ -1299,7 +1305,7 @@ function hydrate() {
   const prodsAll = rows('productos').sort(byOrden), prods = prodsAll.filter(p => !p.arch); DATA.archProd = prodsAll.filter(p => p.arch).map(p => xo(p, ['n', 'k']));
   DATA.productosPapa = prods.filter(p => p.tipo === 'papa'); DATA.insumos = prods.filter(p => p.tipo === 'insumo');
   DATA.provAll = rows('proveedores').sort(byOrden).map(p => xo(p, ['nombre', 'rif', 'rubro', 'plazo', 'contacto'])); DATA.proveedores = DATA.provAll.filter(p => !p.arch);
-  DATA.empleadosAll = rows('empleados').sort(byOrden).map(e => xo({...e, area: AREA_MAP[e.area] || e.area}, ['n', 'area', 'cargo', 'cedula', 'tel'])); DATA.empleados = DATA.empleadosAll.filter(e => !e.arch);
+  DATA.empleadosAll = rows('empleados').sort(byOrden).map(e => { const pa = puestoAreaDe(e); return xo({...e, puesto: pa.puesto, area: pa.area || e.area}, ['n', 'area', 'cargo', 'cedula', 'tel']); }); DATA.empleados = DATA.empleadosAll.filter(e => !e.arch);
   const flat = rows('partidas').sort((a, b) => a.cod.localeCompare(b.cod, 'es', {numeric: true}));
   const nodes = {}; flat.forEach(p => { nodes[p.cod] = {...p}; });
   DATA.partidas = []; flat.forEach(p => { const n = nodes[p.cod]; if (p.parent && nodes[p.parent]) (nodes[p.parent].h ||= []).push(n); else DATA.partidas.push(n); });
@@ -1542,7 +1548,7 @@ const Svc = {
   /* Mermas por proceso */
   async regMerma(f) {
     const id = await nextId('MR', 4, 'MR');
-    await W.set('mermas', id, {fecha: HOY_ISO, etapa: f.etapa, lote: f.lote || '', rec: f.rec || '', ref: f.ref || '', prod: f.prod || '', pres: f.pres || '', cant: +f.cant, un: f.un, causa: f.causa, rol: S.rol, quien: ROLES[S.rol], obs: (f.obs || '').trim(), usd: round2(+f.usd || 0), estado: 'apr', auto: 0, ent: +f.ent || 0, ts: Date.now()});
+    await W.set('mermas', id, {fecha: HOY_ISO, etapa: f.etapa, lote: f.lote || '', rec: f.rec || '', ref: f.ref || '', prod: f.prod || '', pres: f.pres || '', cant: +f.cant, kg: +f.kg || 0, un: f.un, causa: f.causa, rol: S.rol, quien: ROLES[S.rol], obs: (f.obs || '').trim(), usd: round2(+f.usd || 0), estado: 'apr', auto: 0, ent: +f.ent || 0, ts: Date.now()});
     if (f.mov) await W.set('movimientos', 'MV-' + id, {almacen: f.mov.almacen, item: f.mov.item, tipo: 'salida', cant: +f.mov.cant, fecha: HOY_ISO, ref: id});
     return id;
   },
@@ -1726,6 +1732,14 @@ function buildMermasHist(hist) {
 
 /* ---------- Personal y asistencia de ejemplo (HIST_V = 5): 24 personas ficticias en 6 áreas y 8 quincenas ----------
    Sin azar: las variaciones salen de los índices, así que no altera el resto de la historia ni duplica al re-sembrar. */
+/* Datos de ejemplo: puesto y área de cada persona */
+function seedPuestoArea(a, cargo) {
+  if (a === 'Producción') return ['Producción', /freidora|fritur/i.test(cargo) ? 'Fritura' : /mantenim|mec[aá]nic/i.test(cargo) ? 'Mantenimiento' : 'Cocina'];
+  if (a === 'Línea salsera') return ['Producción', a];
+  if (a === 'Logística') return ['Logística', 'Despacho / Choferes'];
+  if (a === 'Empaque' || a === 'Almacén') return ['Logística', a];
+  return /ventas/i.test(cargo) ? ['Ventas', 'Ventas'] : ['Administración', 'Administración'];
+}
 function buildPersonalHist(out, sd) {
   const put = (c, id, d) => out.push([c, id, d]), hoy = todayISO();
   const EMP = [
@@ -1736,9 +1750,9 @@ function buildPersonalHist(out, sd) {
     ['EH04', 'Rosa F.', 'Producción', 'Sazonadora', 'dia', 520, 8], ['EH05', 'Wilmer G.', 'Producción', 'Ayudante de planta', 'dia', 480, 5], ['EH06', 'Ana B.', 'Producción', 'Control de calidad', 'dia', 620, 16],
     ['EH07', 'Gladys R.', 'Empaque', 'Operadora de empaque', 'dia', 520, 22], ['EH08', 'Omar H.', 'Empaque', 'Operador de selladora', 'dia', 540, 11], ['EH09', 'Nelly S.', 'Empaque', 'Operadora de empaque', 'dia', 520, 7],
     ['EH10', 'Iris T.', 'Línea salsera', 'Operadora de envasado', 'dia', 540, 15], ['EH11', 'Pablo C.', 'Línea salsera', 'Ayudante salsero', 'dia', 500, 6], ['EH12', 'Marisol V.', 'Línea salsera', 'Etiquetado', 'dia', 500, 10],
-    ['EH13', 'Eloy N.', 'Almacén', 'Montacarguista', 'hora', 70, 24], ['EH14', 'Franklin Q.', 'Logística', 'Ayudante de reparto', 'hora', 66, 13], ['EH15', 'Beatriz Z.', 'Administración y ventas', 'Asistente administrativa', 'dia', 600, 28], ['EH16', 'Héctor K.', 'Administración y ventas', 'Analista de ventas', 'dia', 640, 17]
+    ['EH13', 'Eloy N.', 'Almacén', 'Montacarguista', 'hora', 70, 24], ['EH14', 'Franklin Q.', 'Logística', 'Ayudante de reparto', 'hora', 66, 13], ['EH15', 'Beatriz Z.', 'Administración', 'Asistente administrativa', 'dia', 600, 28], ['EH16', 'Héctor K.', 'Ventas', 'Analista de ventas', 'dia', 640, 17]
   ];
-  EMP.forEach(([id, n, area, cargo, pago, tarifa, antig], i) => put('empleados', id, {n, area, antig, orden: i, cedula: 'V-' + String(10000100 + i * 37), cargo, ingreso: sd(addDays(SEED_HOY, -antig * 30)), tel: '0412-' + String(9100100 + i * 13), pago, tarifa, estado: 'activo'}));
+  EMP.forEach(([id, n, area0, cargo, pago, tarifa, antig], i) => { const [puesto, area] = seedPuestoArea(area0, cargo); put('empleados', id, {n, puesto, area, antig, orden: i, cedula: 'V-' + String(10000100 + i * 37), cargo, ingreso: sd(addDays(SEED_HOY, -antig * 30)), tel: '0412-' + String(9100100 + i * 13), pago, tarifa: Math.round(tarifa / SEED_SRC.tasaInicial * 100) / 100, estado: 'activo'}); });
   const cur = qKey(hoy), dayN = Math.min(+hoy.slice(8, 10), 15) || 1;
   for (let k = 7; k >= 0; k--) {
     const q = qMove(cur, -k), fin = qRange(q)[1];
@@ -1746,7 +1760,7 @@ function buildPersonalHist(out, sd) {
       if (addDays(sd(addDays(SEED_HOY, -antig * 30)), 0) > fin) return;
       const v = (i * 7 + k * 3) % 5, extra = k === 0 ? [0, 2, 0, 3, 1][v] : [0, 4, 2, 6, 3][v];
       const dias = k === 0 ? Math.max(1, Math.round(dayN * 5 / 7)) : 10 + v % 3, horas = dias * 8;
-      put('asistencia', `AS-${q}-${id}`, {q, emp: id, dias: pago === 'hora' ? 0 : dias, horas: pago === 'hora' ? horas : 0, extra, bonos: (i + k) % 7 === 0 ? 1500 + 500 * (i % 3) : 0});
+      put('asistencia', `AS-${q}-${id}`, {q, emp: id, dias: pago === 'hora' ? 0 : dias, horas: pago === 'hora' ? horas : 0, extra, bonos: (i + k) % 7 === 0 ? Math.round((1500 + 500 * (i % 3)) / SEED_SRC.tasaInicial * 100) / 100 : 0});
     });
   }
 }
@@ -1899,16 +1913,6 @@ function colChart(data, fmt, label) {
     <div class="cc-scale"><span>Escala de 0 a ${fmt(top)}</span><span>Líneas cada ${fmt(top / 4)}</span></div></div>`;
 }
 const emptyState = (t, s, act = '') => `<div class="empty">${ic('box', 30)}<p class="empty-t">${t}</p><p>${s}</p>${act}</div>`;
-const ESTADOS = ['recibido', 'validado', 'compra', 'almacen'];
-const EST_LBL = {recibido:'Recibido', validado:'Validado por Adm.', compra:'Compra efectiva', almacen:'En almacén'};
-function flow(est, big = false) {
-  const i = ESTADOS.indexOf(est);
-  return `<ol class="flow ${big ? 'big' : ''}" aria-label="Estado: ${EST_LBL[est] || est}">${ESTADOS.map((e, k) => {
-    const done = k < i || (est === 'almacen' && k === i);
-    const cls = done ? 'done' : k === i ? 'cur' : '';
-    return `<li class="${cls}"><span class="dot">${done ? ic('check', big ? 14 : 12) : k + 1}</span>${EST_LBL[e]}</li>`;
-  }).join('')}</ol>`;
-}
 const calChip = c => ({A:chip('A · Óptima','ok'), B:chip('B · Aceptable','info'), C:chip('C · Con defectos','warn'), R:chip('Rechazo parcial','crit')})[c] || chip(c);
 
 /* ---------- Reglas de negocio ---------- */
@@ -2000,12 +2004,12 @@ const PM_ADM = [
   {k:'ventas', ic:'users', t:'Ventas y pedidos', b:['15 vendedores, 200 clientes', 'Ventas por día, semana y mes'], chips:[['Precio B: paga en 21 días o menos', 'ok'], ['Precio FULL: después de 21 días', 'warn']]},
   {k:'ventas', ic:'receipt', t:'Cobranza y cuentas por cobrar', b:['Notas de entrega abiertas y días de atraso', 'Alertas de vencidas', 'Clientes inactivos']},
   {k:'cxp', ic:'calendar', t:'Cuentas por pagar', b:['Calendario de vencimientos', 'Papa en abonos semanales', 'Alarmas y antigüedad de la deuda']},
-  {k:'nomina', ic:'coins', t:'Nómina y gastos', b:['Nómina solo en bolívares', 'Préstamos descontados', 'Gastos fijos y variables']}
+  {k:'nomina', ic:'coins', t:'Nómina y gastos', b:['Nómina en dólares (se paga en Bs a la tasa del día)', 'Préstamos descontados', 'Gastos fijos y variables']}
 ];
 const PM_NEW = [
   {ks:['compras-gen', 'compras-mp', 'analisis'], ic:'cart', t:'Compras MP y generales', b:['Partidas contables', 'Análisis y ranking de proveedores']},
   {ks:['caja', 'prestamos', 'politicas'], ic:'wallet', t:'Caja chica y préstamos', b:['Fondo y umbral editables', 'Arqueo y préstamos a empleados']},
-  {ks:['alm-mp', 'alm-pt', 'alm-logistica', 'alm-proceso'], ic:'warehouse', t:'Almacenes', b:['Materia prima, en proceso y terminado', 'Logística por bultos pesados']}
+  {ks:['alm-mp', 'alm-pt', 'alm-proceso'], ic:'warehouse', t:'Almacenes', b:['Materia prima, en proceso y terminado', 'Existencias de empaque y logística']}
 ];
 const LV = ['Sin acceso', 'Ver', 'Registrar', 'Aprobar'];
 const LV_TONE = ['n', 'info', 'ok', 'warn'];
@@ -2042,142 +2046,6 @@ function scrMapa() {
     <div class="pm-bb"><div class="pm-grid">${PM_NEW.map(c => pmCard(c, `<span class="pm-i">${ic(c.ic, 18)}</span>`)).join('')}</div></div></section>
   ${ctrlL ? `<a class="pm-ctrl" href="#gestion">${ic('chart', 30)}<div><h2>Control de gestión y reportes consolidados</h2><p>Ventas, inventario, deudas, gastos y nómina en una sola vista.</p></div><span class="pm-go" style="color:#FFFFFF">Abrir ${ic('arrow', 15)}</span></a>`
     : ''}`;
-}
-
-/* ---------- Pantallas: PRODUCCIÓN ---------- */
-function scrPlanta() {
-  const cerr = S.lotes.filter(l => l.granel), proc = S.lotes.find(l => l.estado === 'En proceso');
-  const rend = sum(cerr, l => l.granel) / sum(cerr, l => l.cruda) * 100;
-  const ace = sum(cerr, l => l.aceite) / sum(cerr, l => l.granel) * 100;
-  const papa = S.stock.find(s => s.k === 'Papa cruda') || {q:0, min:0};
-  const pend = S.compras.filter(c => ['recibido', 'validado'].includes(c.estado));
-  const bajo = S.pres.filter(p => p.stock < p.min);
-  const hoyRec = S.compras.filter(c => c.rec && c.fecha >= addDays(HOY_ISO, -1)).sort((a, b) => b.rec.localeCompare(a.rec));
-  return `${ph('Producción · turno diurno', 'Resumen de planta', fdFull(HOY_ISO) + '. Lo que entró, lo que se está procesando y lo que salió hoy.')}
-  <div class="quick">
-    <a class="main" href="#recepcion"><span class="qi">${ic('clip', 22)}</span>Nueva recepción</a>
-    <a href="#produccion"><span class="qi">${ic('flame', 22)}</span>Cerrar lote del turno</a>
-    <a href="#empaque"><span class="qi">${ic('pack', 22)}</span>Registrar empaque</a>
-    <a href="#despachos"><span class="qi">${ic('truck', 22)}</span>Notas de entrega</a>
-  </div>
-  <div class="tiles">
-    ${stat('Papa cruda en almacén', kg(papa.q), `Mínimo ${kg(papa.min)}`, papa.q < papa.min ? 'crit' : '')}
-    ${stat('Lote en proceso', proc ? `<span class="mono">${proc.id}</span>` : '—', proc ? `${kg(proc.cruda)} de papa cruda · etapa: ${proc.etapa}` : 'Sin lotes abiertos')}
-    ${stat('Rendimiento (' + cerr.length + ' lotes cerrados)', pct(rend), 'kg papa frita ÷ kg papa cruda')}
-    ${stat('Aceite consumido', pct(ace), 'Sobre kg de papa frita · rango normal 40–45 %', ace > 45 ? 'warn' : '')}
-    ${stat('Por validar en Administración', String(pend.length), pend.length ? 'Recepciones esperando validación' : 'Bandeja al día', pend.length ? 'warn' : 'ok')}
-    ${stat('Presentaciones bajo mínimo', String(bajo.length), bajo.map(b => b.n).join(', ') || 'Todo sobre el mínimo', bajo.length ? 'crit' : 'ok')}
-  </div>
-  <div class="cols c2">
-    ${card('Recepciones de ayer y hoy', hoyRec.length ? `<ul class="list">${hoyRec.map(c => `<li><div class="l-main"><p class="l-t"><span class="mono">${c.rec}</span> · ${c.item}</p><p class="l-s">${prov(c.prov).nombre} · ${c.kgRec != null ? kg(c.kgRec) : N0.format(c.qf) + ' ' + c.unidad} · recibió ${c.recibe}</p></div>${flow(c.estado)}</li>`).join('')}</ul>` : emptyState('Sin recepciones hoy', 'Cuando llegue un proveedor, regístralo en Recepción.'), {act:'<a class="btn sm" href="#recepcion">Ir a Recepción</a>'})}
-    ${card('Avisos del turno', `<ul class="alerts">
-      ${bajo.map(b => `<li class="crit">${ic('alert')}<div><b>${b.n}</b> está bajo el mínimo: ${N0.format(b.stock)} de ${N0.format(b.min)}. Programar empaque.</div></li>`).join('')}
-      ${pend.map(c => `<li class="warn">${ic('alert')}<div><b>${c.rec}</b> (${c.item}) espera validación de Administración.</div></li>`).join('')}
-      ${ace > 44 || isNaN(ace) ? '' : `<li class="ok">${ic('check')}<div>Consumo de aceite dentro del rango esperado (40–45 %).</div></li>`}
-      ${(() => { const t = S.notas.filter(n => n.tipo === 'Interno')[0]; return t ? `<li>${ic('info')}<div>Última transferencia a la línea salsera: ${t.id} (${fdl(t.fecha)}). Ver <a class="lnk" href="#despachos">Despachos</a>.</div></li>` : ''; })()}
-    </ul>`)}
-  </div>`;
-}
-
-function scrRecepcion() {
-  const f = S.recForm;
-  const provIds = provIdsOf(f.tipo);
-  const prods = f.tipo === 'papa' ? DATA.productosPapa : DATA.insumos;
-  const recientes = S.compras.filter(c => c.rec).sort((a, b) => b.rec.localeCompare(a.rec)).slice(0, 7);
-  const esAdm = can('compras-mp');
-  const head = ph('Producción · entrada', 'Recepción', 'Producción no compra: recepciona. Lo que registras aquí llega a Administración, se valida y se convierte en compra efectiva y en entrada al almacén de materia prima.');
-  if (!prods.length || !provIds.length) return `${head}<div class="card"><div class="card-b"><div class="btnrow" style="margin-bottom:12px"><button type="button" class="btn ${f.tipo === 'papa' ? 'pri' : ''}" data-act="recTipo" data-v="papa">Materia prima</button><button type="button" class="btn ${f.tipo === 'insumo' ? 'pri' : ''}" data-act="recTipo" data-v="insumo">Insumo</button></div>${emptyState('Falta el catálogo para recibir', 'Hace falta al menos un producto y un proveedor de este tipo. Los proveedores se agregan en Administración, en Proveedores y personal.')}</div></div>`;
-  return `${head}
-  <div class="cols c32">
-    <section class="card">
-      <div class="card-h"><div><h2>Nueva recepción</h2><p class="sub">El número se asigna al guardar</p></div></div>
-      <div class="card-b form cp-c3"><div>
-        <fieldset><legend>¿Qué llegó?</legend>
-          <div class="opts">
-            <button type="button" class="opt" aria-pressed="${f.tipo === 'papa'}" data-act="recTipo" data-v="papa">${ic('potato', 22)}Materia prima<small>Papa cruda o seca</small></button>
-            <button type="button" class="opt" aria-pressed="${f.tipo === 'insumo'}" data-act="recTipo" data-v="insumo">${ic('drop', 22)}Insumo<small>Aceite, sal, químicos, azúcar…</small></button>
-          </div>
-        </fieldset>
-        <label class="fld">Producto
-          <select id="rf-prod" data-k="recForm.prod" data-rerender="1" data-act-change="recProd">${prods.map(p => `<option ${p.n === f.prod ? 'selected' : ''}>${p.n}</option>`).join('')}</select></label>
-        <div class="row2">
-          <label class="fld">Proveedor
-            <select id="rf-prov" data-k="recForm.prov">${provIds.map(id => `<option value="${id}" ${id === f.prov ? 'selected' : ''}>${prov(id).nombre}</option>`).join('')}</select></label>
-          <label class="fld">Quién recibe
-            <select id="rf-rec" data-k="recForm.recibe">${DATA.recibidores.length ? DATA.recibidores.map(n => `<option ${n === f.recibe ? 'selected' : ''}>${n}</option>`).join('') : '<option value="">Sin personal: agrégalo en Equipo y flota</option>'}</select></label>
-        </div>
-        <fieldset><legend>Calidad</legend>
-          <div class="opts o4">${[['A', 'Óptima'], ['B', 'Aceptable'], ['C', 'Con defectos'], ['R', 'Rechazo parcial']].map(([v, t]) => `<button type="button" class="opt q-${v}" aria-pressed="${f.calidad === v}" data-act="recCal" data-v="${v}">${v === 'R' ? 'Rechazo' : v}<small>${t}</small></button>`).join('')}</div>
-        </fieldset>
-        </div><div>
-        <div class="row2">
-          <div class="fld"><span class="lbl">Sacos o bultos</span>
-            <div class="stepper"><button type="button" data-act="step" data-k="recForm.sacos" data-d="-1" aria-label="Restar un saco">−</button>
-            <input id="rf-sacos" type="number" inputmode="numeric" min="0" data-k="recForm.sacos" value="${f.sacos}" aria-label="Sacos o bultos">
-            <button type="button" data-act="step" data-k="recForm.sacos" data-d="1" aria-label="Sumar un saco">+</button></div></div>
-          <label class="fld">Kg por saco (nominal)<input id="rf-kgs" type="number" value="${f.kgSaco}" readonly tabindex="-1" data-nodraft="1" style="background:#F1EFEA"><small>Promedio de las pesadas</small></label>
-        </div>
-        ${`<fieldset><legend>Pesaje por muestra (media poblacional)</legend>
-              
-              <div class="samples">${f.muestras.map((m, i) => `<label class="fld"><span>Saco ${i + 1}</span><input id="rf-m${i}" type="number" inputmode="decimal" step="0.01" data-k="recForm.muestras.${i}" value="${m}"></label>`).join('')}</div>
-              <div class="btnrow"><button type="button" class="btn sm" data-act="addMuestra">${ic('plus', 16)}Agregar pesada</button>${f.muestras.length > 3 ? `<button type="button" class="btn sm ghost" data-act="delMuestra">Quitar la última</button>` : ''}</div>
-            </fieldset>`}
-        <label class="fld">Observaciones<textarea id="rf-obs" data-k="recForm.obs" rows="2" placeholder="Ej.: 4 sacos con tierra húmeda">${esc(f.obs)}</textarea></label>
-        </div><div>
-        <div id="rec-calc">${recCalcHTML()}</div>
-        ${S.recErr ? `<p class="err" role="alert">${ic('alert')}${S.recErr}</p>` : ''}
-        <button type="button" class="btn pri xl" data-act="guardarRec">${ic('check')}Guardar y enviar a Administración</button>
-      </div></div>
-    </section>
-    <div class="stack">
-      ${card('Recorrido de cada recepción', `${flow('validado', true)}
-        <ol class="hint" style="margin:14px 0 0;padding-left:18px;display:flex;flex-direction:column;gap:6px">
-          <li><b>Recibido:</b> lo registra quien recibe, aquí.</li>
-          <li><b>Validado por Adm.:</b> Administración confirma precio y condición con la factura de compra del proveedor.</li>
-          <li><b>Compra efectiva:</b> se crea sola al validar. Si es a crédito, entra a Cuentas por pagar.</li>
-          <li><b>En almacén:</b> los kg recibidos suman al almacén de materia prima.</li></ol>`)}
-      ${card('Recepciones recientes', `<ul class="list">${recientes.map(c => `<li><div class="l-main"><p class="l-t"><span class="mono">${c.rec}</span> · ${c.item}</p><p class="l-s">${fd(c.fecha)} · ${prov(c.prov).nombre} · ${c.kgRec != null ? kg(c.kgRec) : N0.format(c.qf) + ' ' + c.unidad}</p></div>${flow(c.estado)}</li>`).join('')}</ul>`, {act: esAdm ? '<a class="btn sm" href="#compras-mp">Validar en Administración</a>' : ''})}
-    </div>
-  </div>`;
-}
-function recCalcHTML() {
-  const f = S.recForm, r = recCalc(), tol = S.pol.tolRec;
-  const a = Math.abs(r.diffPct), tone = a <= tol ? 'ok' : a <= tol * 2 ? 'warn' : 'crit';
-  const msg = !f.kgFact ? '' : a <= tol ? chip('Dentro de la tolerancia (' + tol + ' %)', 'ok') : chip('Diferencia mayor a ' + tol + ' %: se informa a Administración', tone);
-  return `<dl class="kv">
-    <div><dt>Kg según sacos</dt><dd>${kg(r.nom)}<small>${N0.format(f.sacos || 0)} × ${N2.format(f.kgSaco || 0)} kg</small></dd></div>
-    ${`
-      <div><dt>Promedio por saco</dt><dd>${kg(r.prom, 2)}<small>${r.n} sacos pesados</small></dd></div>
-      <div><dt>Desviación estándar</dt><dd>± ${N2.format(r.desv)} kg<small>Variación ${pct(r.cv)}</small></dd></div>
-      <div><dt>Diferencia por saco</dt><dd>${(r.dSaco >= 0 ? '+' : '') + N2.format(r.dSaco)} kg<small>vs ${N2.format(f.kgSaco || 0)} kg nominal</small></dd></div>
-      <div class="hl"><dt>Kg estimados (promedio × sacos)</dt><dd>${kg(r.rec, 1)}</dd></div>`}
-    <div><dt>Kg facturados</dt><dd>${kg(+f.kgFact || 0)}</dd></div>
-    <div class="hl"><dt>Diferencia vs facturado</dt><dd>${(r.diff >= 0 ? '+' : '') + N1.format(r.diff)} kg<small>${(r.diffPct >= 0 ? '+' : '') + pct(r.diffPct)}</small></dd></div>
-  </dl><p style="margin-top:10px">${msg}</p>`;
-}
-
-function scrAlmMP() {
-  const entradas = S.compras.filter(c => c.fam === 'MP' && c.estado === 'almacen').sort((a, b) => b.rec.localeCompare(a.rec)).slice(0, 8);
-  const st = s => s.q < s.min ? chip('Bajo mínimo', 'crit') : s.q < s.min * 1.2 ? chip('Cerca del mínimo', 'warn') : chip('Suficiente', 'ok');
-  return `${ph('Producción · almacenes', 'Almacén de materia prima', 'Existencias que entraron por compra efectiva. Papa y papa seca (materia prima propia) e insumos complementarios.')}
-  <div class="tiles">
-    ${stat('Papa cruda', kg(S.stock[0].q), 'Alcanza para ~' + N1.format(S.stock[0].q / 3000) + ' turnos (3.000 kg/turno)')}
-    ${stat('Aceite de fritura', kg(S.stock[2].q), 'Marca única')}
-    ${stat('Ítems bajo mínimo', String(S.stock.filter(s => s.q < s.min).length), '', S.stock.some(s => s.q < s.min) ? 'crit' : 'ok')}
-    ${stat('Entradas esta semana', String(S.compras.filter(c => c.fam === 'MP' && c.estado === 'almacen' && c.fecha >= lunes()).length), 'Desde el lunes ' + fd(lunes()))}
-  </div>
-  <div class="cols c2">
-    ${card('Existencias', table([
-      {h:'Material', f:s => `<b>${s.k}</b><br><span class="muted">${s.fam === 'Propia' ? 'Materia prima propia' : 'Insumo complementario'}</span>`},
-      {h:'Existencia', r:1, f:s => `<b>${N0.format(s.q)}</b> ${s.u}`},
-      {h:'Mínimo', r:1, f:s => `${N0.format(s.min)} ${s.u}`},
-      {h:'Estado', f:st}], S.stock))}
-    ${card('Entradas recientes', table([
-      {h:'Recepción → compra', f:c => `<span class="mono">${c.rec}</span><br><span class="mono muted">${c.id}</span>`},
-      {h:'Material', f:c => `${c.item}<br><span class="muted">${prov(c.prov).nombre}</span>`},
-      {h:'Cantidad', r:1, f:c => c.kgRec != null ? kg(c.kgRec) : N0.format(c.qf) + ' ' + c.unidad},
-      {h:'Calidad', f:c => calChip(c.calidad)}], entradas), {sub:'Cada entrada nace de una recepción validada'})}
-  </div>`;
 }
 
 function scrAlmProceso() {
@@ -2329,7 +2197,7 @@ function scrGestion() {
     ${stat('Por cobrar a clientes', money(cxcTot), DATA.cxc.length + ' notas de entrega abiertas')}
     ${stat('Por pagar vencido', money(b.venc), b.nVenc + ' facturas de compra', b.venc ? 'crit' : 'ok')}
     ${stat('Papa cruda en almacén', kg(S.stock[0].q), 'Mínimo ' + kg(S.stock[0].min))}
-    ${stat('Nómina 1ª quincena nov', `<span class="money"><span class="usd">${bs(nomTot)}</span><span class="bs">Solo en bolívares</span></span>`, sum(DATA.nomina, n => n.n) + ' trabajadores')}
+    ${stat('Nómina 1ª quincena nov', money(nomTot), sum(DATA.nomina, n => n.n) + ' trabajadores')}
     ${stat('Caja chica disponible', money(cj.esperado), pct(cj.pctDisp, 0) + ' del fondo', cj.pctDisp < S.pol.repPct ? 'warn' : '')}
     ${mrGestionTile()}
   </div>
@@ -2346,64 +2214,12 @@ function scrGestion() {
     ${card('Próximos vencimientos a proveedores', table([{h:'Proveedor', f:c => `${prov(c.prov).nombre}<br><span class="mono muted">${c.id}</span>`}, {h:'Vence', f:c => fd(c.vence) + '<br>' + cxpTone(c)}, {h:'Monto', r:1, f:c => money(c.due)}], cxpList().slice(0, 6)), {act:'<a class="btn sm" href="#cxp">Calendario</a>'})}
   </div>
   ${card('Gastos y nómina del mes', `<div class="tiles">
-      ${stat('Nómina (2 quincenas, estimado)', bs(nomTot * 2), 'Pagada solo en Bs')}
+      ${stat('Nómina (2 quincenas, estimado)', money(nomTot * 2), 'Se calcula en $ y se paga en Bs a la tasa del día de pago')}
       ${stat('Gastos fijos', money(sum(DATA.gastosFijos, g => g[1])), 'Gasoil, gasolina, alquiler, servicios')}
       ${stat('Gastos variables', money(sum(DATA.gastosVar, g => g[1])), 'Repuestos y mantenimiento')}
       ${stat('Gastos de caja chica', money(cj.gastos), S.gastos.filter(g => !g.repuesto).length + ' comprobantes')}</div>`, {act:'<a class="btn sm" href="#nomina">Detalle</a>'})}`;
 }
 function cxpTone(c) { const d = c.d ?? dias(c.vence); return d < 0 ? chip('Vencida ' + -d + ' d', 'crit') : d === 0 ? chip('Vence hoy', 'warn') : d <= 6 ? chip('En ' + d + ' d', 'warn') : chip('En ' + d + ' d', 'n'); }
-
-const D_CMP = [{tipo: 'Compra', valores: c => [c.id, c.rec], detalle: c => prov(c.prov).nombre}, {tipo: 'Proveedor', valores: c => prov(c.prov).nombre, detalle: c => c.item}, {tipo: 'Material', valores: c => [c.item, c.cat], detalle: c => prov(c.prov).nombre}, {tipo: 'Factura de compra', valores: c => c.fact, detalle: c => prov(c.prov).nombre}];
-function scrComprasMP() {
-  const pend = S.compras.filter(c => ['recibido', 'validado', 'compra'].includes(c.estado) && c.fam === 'MP');
-  const efect = S.compras.filter(c => c.fam === 'MP' && c.sub === S.cmTab && c.estado === 'almacen' && (S.cmCond === 'Todas' || c.cond === S.cmCond)).sort((a, b) => b.fecha.localeCompare(a.fecha));
-  const all = S.compras.filter(c => c.fam === 'MP' && c.estado === 'almacen');
-  const cats = [...new Set(all.filter(c => c.sub === S.cmTab).map(c => c.cat))];
-  return `${ph('Administración · compras', 'Compras de materia prima', 'Toda compra de materia prima nace de una recepción. Dos grupos: materia prima propia (papa) e insumos complementarios; cada uno a contado o a crédito.')}
-  ${card('Recepciones por validar', pend.length ? `<div class="stack cp-gr2">${pend.map(valCard).join('')}</div>` : emptyState('Bandeja al día', 'No hay recepciones esperando validación. Las nuevas aparecen aquí apenas Producción las guarda.', '<a class="btn sm" href="#recepcion">Ver Recepción</a>'), {})}
-  <div class="tiles">
-    ${stat('Materia prima propia', money(sum(all.filter(c => c.sub === 'Propia'), total)), 'Papa cruda y papa seca')}
-    ${stat('Insumos complementarios', money(sum(all.filter(c => c.sub === 'Insumo'), total)), 'Aceite, sal, químicos, azúcar, empaques')}
-    ${stat('A crédito', money(sum(all.filter(c => c.cond === 'Crédito'), total)), pct(sum(all.filter(c => c.cond === 'Crédito'), total) / sum(all, total) * 100, 0) + ' del total')}
-    ${stat('De contado', money(sum(all.filter(c => c.cond === 'Contado'), total)))}
-  </div>
-  ${card('Compras efectivas', `<div class="btnrow" style="margin-bottom:12px">
-      <div class="seg" role="group" aria-label="Grupo">${[['Propia', 'Materia prima propia'], ['Insumo', 'Insumos complementarios']].map(([k, t]) => `<button type="button" aria-pressed="${S.cmTab === k}" data-act="cmTab" data-v="${k}">${t}</button>`).join('')}</div>
-      <div class="seg" role="group" aria-label="Condición">${['Todas', 'Contado', 'Crédito'].map(k => `<button type="button" aria-pressed="${S.cmCond === k}" data-act="cmCond" data-v="${k}">${k}</button>`).join('')}</div></div>
-    <p class="hint" style="margin-bottom:8px">Categorías: ${cats.map(c => chip(c, 'n')).join(' ')}</p>
-    ${barra('cmp', 'Compra, recepción, proveedor, material o factura', efect, D_CMP)}
-    ${table([
-      {h:'Compra', f:c => `<span class="mono">${c.id}</span><br><span class="mono muted">${c.rec}</span>`},
-      {h:'Fecha', f:c => fd(c.fecha)},
-      {h:'Proveedor', f:c => prov(c.prov).nombre},
-      {h:'Material', f:c => `${c.item}<br><span class="muted">${c.cat}</span>`},
-      {h:'Cantidad', r:1, f:c => c.kgRec != null ? `${kg(c.kgRec)}<br><span class="muted">fact. ${kg(c.qf)}</span>` : N0.format(c.qf) + ' ' + c.unidad},
-      {h:'Precio', r:1, f:c => usd(c.pu) + (c.unidad === 'kg' ? '/kg' : '/und')},
-      {h:'Total', r:1, f:c => money(total(c))},
-      {h:'Condición', f:c => c.cond === 'Crédito' ? `${chip('Crédito', 'info')}<br><span class="muted">${c.plazo}</span>` : chip('Contado', 'n')}], barraFiltrar('cmp', efect, D_CMP), {empty: 'Ninguna compra coincide con la búsqueda.'})}`)}`;
-}
-function valCard(c) {
-  const p = prov(c.prov), v = S.val[c.rec] || (S.val[c.rec] = {pu: (S.compras.filter(x => x.prov === c.prov && x.pu).slice(-1)[0] || {}).pu || p.hist, cond: p.cond});
-  const dif = c.kgRec != null ? (c.kgRec - c.qf) / c.qf * 100 : null;
-  const base = c.kgRec != null && Math.abs(dif) > S.pol.tolRec ? c.kgRec : c.qf;
-  const puede = lvl('compras-mp') >= 3;
-  return `<div class="card flat"><div class="card-b">
-    <div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px;align-items:center;margin-bottom:12px"><div><p><b class="mono">${c.rec}</b> · ${c.item} · ${p.nombre}</p><p class="hint">${fdl(c.fecha)} · recibió ${c.recibe} · ${c.fact ? 'factura de compra ' + c.fact : 'sin número de factura de compra'}${c.obs ? ' · ' + c.obs : ''}</p></div>${flow(c.estado)}</div>
-    <dl class="kv" style="margin-bottom:12px">
-      <div><dt>Kg facturados</dt><dd>${kg(c.qf)}</dd></div>
-      <div><dt>Kg recibidos</dt><dd>${kg(c.kgRec, 1)}${c.muestra ? `<small>Muestra de ${c.muestra.n}: ${N2.format(c.muestra.prom)} ± ${N2.format(c.muestra.desv)} kg/saco</small>` : '<small>Balanza</small>'}</dd></div>
-      <div class="${Math.abs(dif) > S.pol.tolRec ? 'hl' : ''}"><dt>Diferencia</dt><dd>${pct(dif)}<small>${Math.abs(dif) > S.pol.tolRec ? 'Supera la tolerancia: se paga sobre lo recibido' : 'Dentro de la tolerancia'}</small></dd></div>
-      <div><dt>Calidad</dt><dd>${calChip(c.calidad)}</dd></div>
-    </dl>
-    ${c.estado === 'recibido' ? (puede ? `<div class="row3">
-      <label class="fld">Precio unitario ($/kg)<input id="v-pu-${c.rec}" type="number" step="0.01" inputmode="decimal" data-k="val.${c.rec}.pu" value="${v.pu ?? ''}"><small>Precio histórico: ${p.hist != null ? usd(p.hist) : 'sin dato'}</small></label>
-      <label class="fld">Condición<select id="v-cond-${c.rec}" data-k="val.${c.rec}.cond"><option ${v.cond === 'Crédito' ? 'selected' : ''}>Crédito</option><option ${v.cond === 'Contado' ? 'selected' : ''}>Contado</option></select><small>Plazo pactado: ${p.plazo || '—'}</small></label>
-      <div class="fld"><span class="lbl">Total a pagar</span><p style="font-size:18px;font-weight:600;min-height:46px;display:flex;align-items:center">${money((+v.pu || 0) * base)}</p><small>Sobre ${kg(base)}</small></div></div>
-      <div class="btnrow" style="margin-top:12px"><button type="button" class="btn pri" data-act="validar" data-rec="${c.rec}">${ic('check')}Validar y generar compra efectiva</button></div>`
-      : `<p class="note">${ic('lock', 16)} Validar es aprobar: lo hacen Administración o el Gerente.</p>`)
-      : `<p class="okmsg">${ic('check')}Procesando: ${EST_LBL[c.estado]}…</p>${puede && c.vts && Date.now() - c.vts > 30000 ? `<div class="btnrow" style="margin-top:8px"><button type="button" class="btn" data-act="validar" data-rec="${c.rec}">Continuar el proceso</button><span class="hint" style="align-self:center">Se interrumpió; continúa desde donde quedó.</span></div>` : ''}`}
-  </div></div>`;
-}
 
 const D_CGN = [{tipo: 'Compra', valores: c => c.id, detalle: c => c.item}, {tipo: 'Qué se compró', valores: c => [c.item, c.motivo], detalle: c => prov(c.prov).nombre}, {tipo: 'Proveedor', valores: c => prov(c.prov).nombre, detalle: c => c.item}, {tipo: 'Partida', valores: c => { const t = partida(c.partida); return [c.partida, t && t.n]; }, detalle: c => c.item}];
 function scrComprasGen() {
@@ -2688,7 +2504,7 @@ function nomEmp(e, a, q) {
   const P = S.pol, jor = +P.nomJornada || 8, t = +e.tarifa || 0, hr = e.pago === 'hora' ? t : t / jor, A = a || {};
   const base = e.pago === 'hora' ? (+A.horas || 0) * t : (+A.dias || 0) * t;
   const extra = (+A.extra || 0) * hr * (1 + (+P.nomRecargo || 0) / 100), bonos = +A.bonos || 0, ley = (base + extra) * (+P.nomLey || 0) / 100;
-  const desc = q === qActual() ? sum(S.prestamos.filter(p => p.emp === e.id && p.pagadas < p.cuotas), p => p.monto / p.cuotas * p.tasa) : (+A.desc || 0);
+  const desc = q === qActual() ? sum(S.prestamos.filter(p => p.emp === e.id && p.pagadas < p.cuotas), p => p.monto / p.cuotas) : (+A.desc || 0);
   return {base, extra, bonos, ley, desc, neto: base + extra + bonos - ley - desc};
 }
 function nomRows(q) {
@@ -2704,12 +2520,12 @@ function nomHydrate() {
   DATA.nomina = nomPorArea(qActual());
 }
 const antigMeses = e => e.ingreso ? Math.max(0, Math.round((D(HOY_ISO) - D(e.ingreso)) / 2629800000)) : (e.antig || 0);
-const pagoTxt = e => e.pago === 'hora' ? `${bs(+e.tarifa || 0)} por hora` : `${bs(+e.tarifa || 0)} por día`;
+const pagoTxt = e => e.pago === 'hora' ? `${usd(+e.tarifa || 0)} por hora` : `${usd(+e.tarifa || 0)} por día`;
 
 /* ---------- Servicios de escritura ---------- */
 Object.assign(Svc, {
   async saveEmp(f) {
-    const d = {n: f.n.trim(), cedula: f.cedula.trim(), cargo: f.cargo.trim(), area: f.area, ingreso: f.ingreso, tel: f.tel.trim(), pago: f.pago, tarifa: +f.tarifa, estado: 'activo', es_chofer: !!f.es_chofer, turno: f.turno === 'Mañana' || f.turno === 'Tarde' ? f.turno : ''};
+    const d = {n: f.n.trim(), cedula: f.cedula.trim(), cargo: f.cargo.trim(), puesto: f.puesto, area: f.area, ingreso: f.ingreso, tel: f.tel.trim(), pago: f.pago, tarifa: +f.tarifa, estado: 'activo', es_chofer: !!f.es_chofer, turno: PUESTOS_PLANTA.includes(f.puesto) && (f.turno === 'Diurno' || f.turno === 'Nocturno') ? f.turno : '', codigo_lector: String(f.codigo_lector || '').trim().replace(/^'+/, '')};
     if (f.id) { await W.update('empleados', f.id, d); return f.id; }
     const id = await nextId('E', 2, 'E', ''); await W.set('empleados', id, {...d, antig: 0, orden: Date.now()}); return id;
   },
@@ -2733,7 +2549,7 @@ Object.assign(Svc, {
 });
 
 /* ---------- Personal ---------- */
-const pfNew = () => ({id: '', n: '', cedula: '', cargo: '', area: AREAS[0], ingreso: '', tel: '', pago: 'dia', tarifa: '', es_chofer: false, turno: ''});
+const pfNew = () => ({id: '', n: '', cedula: '', cargo: '', puesto: PUESTOS[0], area: PUESTOS_AREAS[PUESTOS[0]][0], ingreso: '', tel: '', pago: 'dia', tarifa: '', es_chofer: false, turno: '', codigo_lector: ''});
 const D_PER = [{tipo: 'Persona', valores: e => e.n, detalle: e => e.cargo || e.area}, {tipo: 'Cédula', valores: e => e.cedula, detalle: e => e.n}, {tipo: 'Cargo', valores: e => e.cargo, detalle: e => e.n}, {tipo: 'Teléfono', valores: e => e.tel, detalle: e => e.n}];
 function scrPersonal() {
   S.pf ||= pfNew(); S.pfErr ||= '';
@@ -2742,20 +2558,24 @@ function scrPersonal() {
   const acts = e => !ed ? '' : e.retiro === 'pend' ? (own ? `<button type="button" class="btn sm" data-act="retiroOk" data-id="${e.id}">Aprobar retiro</button> <button type="button" class="btn sm ghost" data-act="retiroNo" data-id="${e.id}">Rechazar</button>` : chip('Retiro pendiente', 'warn'))
     : `<button type="button" class="btn sm" data-act="empEditar" data-id="${e.id}">Editar</button> <button type="button" class="btn sm ghost" data-act="${own ? 'empArch' : 'retiroPedir'}" data-id="${e.id}">${own ? 'Archivar (retiro)' : 'Pedir retiro'}</button>`;
   return `${ph('Administración · personal', 'Personal', 'Altas, datos y retiros del personal. Un retiro se archiva (no se borra) para conservar el historial de asistencia, nómina y préstamos; lo aprueba el Gerente.')}
+  ${window.EM_areasAviso ? window.EM_areasAviso() : ''}
   ${pend.length ? `<ul class="alerts"><li class="warn">${ic('alert')}<div><b>${pend.length} retiro(s) esperan aprobación del Gerente:</b> ${pend.map(e => e.n).join(', ')}.</div></li></ul>` : ''}
   <div class="tiles">${stat('Personal activo', String(DATA.empleados.length), 'Pago por hora: ' + DATA.empleados.filter(e => e.pago === 'hora').length + ' · por día: ' + DATA.empleados.filter(e => e.pago !== 'hora').length)}${stat('Archivados', String(arch.length), own ? 'Los ves y restauras tú' : 'Los ve el Gerente')}</div>
   <div class="cols c32">
-    ${card('Personal activo', `<label class="fld" style="max-width:260px;margin-bottom:10px">Área<select data-act-change="pFiltro" data-k="pFiltro">${['Todas', ...AREAS].map(a => `<option ${a === fa ? 'selected' : ''}>${a}</option>`).join('')}</select></label>` + barra('per', 'Nombre, cédula, cargo o teléfono', act, D_PER) + table([
-      {h: 'Persona', f: e => `<b>${e.n}</b><br><span class="muted">${e.cargo || '—'} · ${e.cedula || 'sin cédula'}</span>`}, {h: 'Área', f: e => e.area},
+    ${card('Personal activo', `<label class="fld" style="max-width:260px;margin-bottom:10px">Área<select data-act-change="pFiltro" data-k="pFiltro">${['Todas', ...AREAS, AREA_SIN_DEFINIR].map(a => `<option ${a === fa ? 'selected' : ''}>${a}</option>`).join('')}</select></label>` + barra('per', 'Nombre, cédula, cargo o teléfono', act, D_PER) + table([
+      {h: 'Persona', f: e => `<b>${e.n}</b><br><span class="muted">${e.cargo || '—'} · ${e.cedula || 'sin cédula'}</span>`}, {h: 'Puesto y área', f: e => e.puesto === e.area ? esc(e.area) : esc(e.puesto) + '<br><span class="muted">' + esc(e.area) + '</span>'},
       {h: 'Ingreso', f: e => (e.ingreso ? fdl(e.ingreso) + '<br>' : '') + `<span class="muted">${antigMeses(e)} meses</span>`},
       {h: 'Pago', f: e => e.tarifa ? pagoTxt(e) : '<span class="muted">Sin tarifa</span>'}, {h: 'Teléfono', f: e => e.tel || '—'}, {h: '', f: acts}], barraFiltrar('per', act, D_PER), {empty: 'No hay personal con este filtro.'}))}
     ${card(f.id ? 'Editar persona' : 'Agregar persona', ed ? `<div class="form">
       <label class="fld">Nombre y apellido<input type="text" id="pf-n" data-k="pf.n" value="${esc(f.n)}"></label>
-      <div class="row2"><label class="fld">Cédula<input type="text" id="pf-ced" data-k="pf.cedula" value="${esc(f.cedula)}" placeholder="V-00000000"></label><label class="fld">Cargo<input type="text" id="pf-car" data-k="pf.cargo" value="${esc(f.cargo)}"></label></div>
-      <div class="row2"><label class="fld">Área<select id="pf-area" data-k="pf.area">${AREAS.map(a => `<option ${a === f.area ? 'selected' : ''}>${a}</option>`).join('')}</select></label><label class="fld">Fecha de ingreso<input type="date" id="pf-ing" data-k="pf.ingreso" value="${esc(f.ingreso)}"></label></div>
+      <div class="row2"><label class="fld">Cédula<input type="text" id="pf-ced" data-k="pf.cedula" value="${esc(f.cedula)}" placeholder="V-00000000"></label><label class="fld">Cargo<select id="pf-car" data-k="pf.cargo"><option value="">Elige el cargo…</option>${CARGOS.map(c => `<option ${c === f.cargo ? 'selected' : ''}>${esc(c)}</option>`).join('')}${f.cargo && !CARGOS.includes(f.cargo) ? `<option selected>${esc(f.cargo)}</option>` : ''}</select></label></div>
+      <div class="row2"><label class="fld">Puesto<select id="pf-puesto" data-k="pf.puesto" data-act-change="pfPuesto">${PUESTOS.map(a => `<option ${a === f.puesto ? 'selected' : ''}>${a}</option>`).join('')}</select></label><label class="fld">Área<select id="pf-area" data-k="pf.area" data-rerender="1">${f.area === AREA_SIN_DEFINIR ? '<option value="" selected disabled>Elige el área…</option>' : ''}${(PUESTOS_AREAS[f.puesto] || []).map(a => `<option ${a === f.area ? 'selected' : ''}>${a}</option>`).join('')}</select></label></div>
+      <div class="row2"><label class="fld">Fecha de ingreso<input type="date" id="pf-ing" data-k="pf.ingreso" value="${esc(f.ingreso)}"></label></div>
       <div class="row2"><label class="fld">Teléfono<input type="tel" id="pf-tel" data-k="pf.tel" value="${esc(f.tel)}"></label><label class="fld" ${f.id && S.rol !== 'dueno' ? 'hidden' : ''}>Se le paga por<select id="pf-pago" data-k="pf.pago" data-rerender="1" ${f.id && S.rol !== 'dueno' ? 'disabled' : ''}><option value="dia" ${f.pago === 'dia' ? 'selected' : ''}>Día</option><option value="hora" ${f.pago === 'hora' ? 'selected' : ''}>Hora</option></select></label></div>
-      <label class="fld" ${f.id && S.rol !== 'dueno' ? 'hidden' : ''}>Tarifa en Bs por ${f.pago === 'hora' ? 'hora' : 'día'}<input type="number" id="pf-tar" ${f.id && S.rol !== 'dueno' ? 'disabled' : ''} inputmode="decimal" min="0" step="0.01" data-k="pf.tarifa" value="${esc(f.tarifa)}"></label>
-      <label class="fld">Turno de trabajo<select id="pf-turno" data-k="pf.turno"><option value="" ${f.turno ? '' : 'selected'}>Sin turno</option><option value="Mañana" ${f.turno === 'Mañana' ? 'selected' : ''}>Mañana</option><option value="Tarde" ${f.turno === 'Tarde' ? 'selected' : ''}>Tarde</option></select></label>
+      <label class="fld" ${f.id && S.rol !== 'dueno' ? 'hidden' : ''}>Tarifa en $ por ${f.pago === 'hora' ? 'hora' : 'día'}<input type="number" id="pf-tar" ${f.id && S.rol !== 'dueno' ? 'disabled' : ''} inputmode="decimal" min="0" step="0.01" data-k="pf.tarifa" value="${esc(f.tarifa)}"></label>
+      ${PUESTOS_PLANTA.includes(f.puesto) ? '' : '<p class="hint">Los turnos, grupos y bonos son solo para el personal de planta (puestos Producción y Logística).</p>'}
+      <label class="fld" ${PUESTOS_PLANTA.includes(f.puesto) ? '' : 'hidden'}>Turno de trabajo<select id="pf-turno" data-k="pf.turno"><option value="" ${f.turno ? '' : 'selected'}>Sin turno</option><option value="Diurno" ${f.turno === 'Diurno' ? 'selected' : ''}>${esc(window.hrTurnoEtiqueta ? window.hrTurnoEtiqueta('Diurno') : 'Diurno')}</option><option value="Nocturno" ${f.turno === 'Nocturno' ? 'selected' : ''}>${esc(window.hrTurnoEtiqueta ? window.hrTurnoEtiqueta('Nocturno') : 'Nocturno')}</option></select></label>
+      <label class="fld">Código del lector (huella)<input type="text" id="pf-cod" data-k="pf.codigo_lector" value="${esc(f.codigo_lector)}" inputmode="numeric" autocomplete="off" placeholder="Es el «Person ID» del lector"><small>Sirve para que las marcas del lector lleguen a esta persona. También puedes asociarlo al importar el archivo.</small></label>
       <label class="toggle"><input id="pf-cho" type="checkbox" data-k="pf.es_chofer" ${f.es_chofer ? 'checked' : ''}>Es chofer (sale en la lista de despacho)</label>
       ${S.pfErr ? `<p class="err" role="alert">${ic('alert')}${S.pfErr}</p>` : ''}
       <div class="btnrow"><button type="button" class="btn pri" data-act="empGuardar">${ic('check', 16)}${f.id ? 'Guardar cambios' : 'Agregar persona'}</button>${f.id ? '<button type="button" class="btn" data-act="empCancelar">Cancelar</button>' : ''}</div></div>` : '<p class="hint">Tu rol puede ver el personal pero no editarlo.</p>')}
@@ -2772,9 +2592,9 @@ function scrAsistencia() {
   const list = DATA.empleados.filter(e => fa === 'Todas' || e.area === fa), ro = (lbl, v) => `<div class="as-c"><p class="as-l">${lbl}</p><div class="as-b"><output class="as-v">${N1.format(v)}</output></div></div>`;
   return `${ph('Administración · personal', 'Asistencia por quincena', `La asistencia se llena sola con las marcas de entrada y salida. Periodo: ${qLabel(q)}.`,
     `<div class="btnrow"><button type="button" class="btn" data-act="nomQ" data-d="-1"><span style="display:inline-flex;transform:scaleX(-1)">${ic('arrow', 16)}</span>Anterior</button><button type="button" class="btn" data-act="nomQ" data-d="1">Siguiente</button><button type="button" class="btn" data-act="nomQ" data-d="0">Esta quincena</button></div>`)}
-  <label class="fld" style="max-width:280px;margin-bottom:12px">Área<select data-act-change="aFiltro" data-k="aFiltro">${['Todas', ...AREAS].map(a => `<option ${a === fa ? 'selected' : ''}>${a}</option>`).join('')}</select></label>
+  <label class="fld" style="max-width:280px;margin-bottom:12px">Área<select data-act-change="aFiltro" data-k="aFiltro">${['Todas', ...AREAS, AREA_SIN_DEFINIR].map(a => `<option ${a === fa ? 'selected' : ''}>${a}</option>`).join('')}</select></label>
   <div class="as-grid">${list.map(e => { const a = asisOf(q, e.id) || {}; return `<section class="card as-card"><div class="card-b"><h3>${e.n}</h3><p class="muted">${e.area} · ${e.pago === 'hora' ? 'paga por hora' : 'paga por día'}${e.tarifa ? '' : ' · <b>sin tarifa</b>'}${a.auto ? '' : (a.dias || a.horas || a.extra ? ' · anotada a mano' : '')}</p>
-    ${ro('Días trabajados', a.dias || 0)}${ro('Horas trabajadas', a.horas || 0)}${ro('Horas extra', a.extra || 0)}${a.bonos ? ro('Bonos (Bs)', a.bonos) : ''}</div></section>`; }).join('') || '<p class="hint">No hay personal activo con este filtro.</p>'}</div>`;
+    ${ro('Días trabajados', a.dias || 0)}${ro('Horas trabajadas', a.horas || 0)}${ro('Horas extra', a.extra || 0)}${a.bonos ? ro('Bonos ($)', a.bonos) : ''}</div></section>`; }).join('') || '<p class="hint">No hay personal activo con este filtro.</p>'}</div>`;
 }
 
 /* ---------- Nómina calculada ---------- */
@@ -2788,20 +2608,20 @@ function nomPolCard() {
 function scrNomina() {
   const q = S.nomQ || (S.nomQ = qActual()), R = nomRows(q), N = nomPorArea(q), T = k => sum(N, a => a[k]), rd = qRange(q);
   return `${ph('Administración · personal', 'Nómina y gastos', `La nómina se calcula con la asistencia anotada y los préstamos. Se paga solo en bolívares. Periodo: ${qLabel(q)} (${fdl(rd[0])} al ${fdl(rd[1])}).`,
-    `<div class="btnrow"><button type="button" class="btn" data-act="nomQ" data-d="-1"><span style="display:inline-flex;transform:scaleX(-1)">${ic('arrow', 16)}</span>Anterior</button><button type="button" class="btn" data-act="nomQ" data-d="1">Siguiente</button><button type="button" class="btn" data-act="nomQ" data-d="0">Esta quincena</button>${S.rol !== 'dueno' ? solBtn('Una regla de pago de nómina') : ''}</div>`)}
+    `<div class="btnrow"><button type="button" class="btn" data-act="nomQ" data-d="-1"><span style="display:inline-flex;transform:scaleX(-1)">${ic('arrow', 16)}</span>Anterior</button><button type="button" class="btn" data-act="nomQ" data-d="1">Siguiente</button><button type="button" class="btn" data-act="nomQ" data-d="0">Esta quincena</button>${S.rol !== 'dueno' && typeof solBtn === 'function' ? solBtn('Una regla de pago de nómina') : ''}</div>`)}
   <div class="tiles">
     ${stat('Trabajadores', String(T('n')), 'Con asistencia en la quincena')}
-    ${stat('Neto a pagar', bs(T('neto')), 'Solo en Bs')}
-    ${stat('Horas extra', bs(T('extras')), S.pol.nomRecargo ? `Con recargo de ${S.pol.nomRecargo} %` : 'Sin recargo (por confirmar)')}
-    ${stat('Préstamos descontados', bs(T('desc')), q === qActual() ? S.prestamos.filter(p => p.pagadas < p.cuotas).length + ' préstamos activos' : 'Tal como se pagó')}
+    ${stat('Neto a pagar', usd(T('neto')), 'Solo en Bs')}
+    ${stat('Horas extra', usd(T('extras')), S.pol.nomRecargo ? `Con recargo de ${S.pol.nomRecargo} %` : 'Sin recargo (por confirmar)')}
+    ${stat('Préstamos descontados', usd(T('desc')), q === qActual() ? S.prestamos.filter(p => p.pagadas < p.cuotas).length + ' préstamos activos' : 'Tal como se pagó')}
   </div>
   ${card('Nómina por área · ' + qLabel(q), table([
-    {h: 'Área', f: a => `<b>${a.area}</b>`}, {h: 'Personas', r: 1, f: a => a.n}, {h: 'Base', r: 1, f: a => bs(a.base)}, {h: 'Horas extra', r: 1, f: a => bs(a.extras)},
-    {h: 'Bonos', r: 1, f: a => bs(a.bonos)}, {h: 'Ley', r: 1, f: a => a.ley ? '−' + bs(a.ley) : '—'}, {h: 'Préstamos', r: 1, f: a => a.desc ? '−' + bs(a.desc) : '—'}, {h: 'Neto', r: 1, f: a => `<b>${bs(a.neto)}</b>`}], N,
-    {empty: 'Todavía no hay asistencia anotada en esta quincena.', foot: N.length ? `<tr class="tsum"><td>Total</td><td class="r">${T('n')}</td><td class="r">${bs(T('base'))}</td><td class="r">${bs(T('extras'))}</td><td class="r">${bs(T('bonos'))}</td><td class="r">${T('ley') ? '−' + bs(T('ley')) : '—'}</td><td class="r">−${bs(T('desc'))}</td><td class="r">${bs(T('neto'))}</td></tr>` : ''}),
+    {h: 'Área', f: a => `<b>${a.area}</b>`}, {h: 'Personas', r: 1, f: a => a.n}, {h: 'Base', r: 1, f: a => usd(a.base)}, {h: 'Horas extra', r: 1, f: a => usd(a.extras)},
+    {h: 'Bonos', r: 1, f: a => usd(a.bonos)}, {h: 'Ley', r: 1, f: a => a.ley ? '−' + usd(a.ley) : '—'}, {h: 'Préstamos', r: 1, f: a => a.desc ? '−' + usd(a.desc) : '—'}, {h: 'Neto', r: 1, f: a => `<b>${usd(a.neto)}</b>`}], N,
+    {empty: 'Todavía no hay asistencia anotada en esta quincena.', foot: N.length ? `<tr class="tsum"><td>Total</td><td class="r">${T('n')}</td><td class="r">${usd(T('base'))}</td><td class="r">${usd(T('extras'))}</td><td class="r">${usd(T('bonos'))}</td><td class="r">${T('ley') ? '−' + usd(T('ley')) : '—'}</td><td class="r">−${usd(T('desc'))}</td><td class="r">${usd(T('neto'))}</td></tr>` : ''}),
     {})}
   ${card('Recibos de pago', table([{h: 'Persona', f: r => `<b>${r.e.n}</b><br><span class="muted">${r.e.area}</span>`}, {h: 'Trabajó', r: 1, f: r => r.e.pago === 'hora' ? N1.format((r.a || {}).horas || 0) + ' h' : N1.format((r.a || {}).dias || 0) + ' días'},
-    {h: 'Extra', r: 1, f: r => N1.format((r.a || {}).extra || 0) + ' h'}, {h: 'Neto', r: 1, f: r => bs(r.neto)}, {h: '', f: r => `<button type="button" class="btn sm" data-act="reciboPago" data-emp="${r.e.id}">${ic('file', 16)}Recibo</button>`}], R, {empty: 'Sin asistencia en esta quincena.'}))}
+    {h: 'Extra', r: 1, f: r => N1.format((r.a || {}).extra || 0) + ' h'}, {h: 'Neto', r: 1, f: r => usd(r.neto)}, {h: '', f: r => `<button type="button" class="btn sm" data-act="reciboPago" data-emp="${r.e.id}">${ic('file', 16)}Recibo</button>`}], R, {empty: 'Sin asistencia en esta quincena.'}))}
   ${nomPolCard()}
   <div class="cols c2">
     ${card('Gastos fijos del mes', table([{h: 'Concepto', f: g => g[0]}, {h: 'Monto', r: 1, f: g => money(g[1])}], DATA.gastosFijos, {foot: `<tr class="tsum"><td>Total</td><td class="r">${money(sum(DATA.gastosFijos, g => g[1]))}</td></tr>`}))}
@@ -2811,17 +2631,18 @@ function scrNomina() {
 function reciboPagoModal(empId) {
   const q = S.nomQ || qActual(), r = nomRows(q).find(x => x.e.id === empId); if (!r) return toast('No hay asistencia de esa persona en esta quincena.', 'warn');
   const e = r.e, a = r.a || {}, rd = qRange(q), P = S.pol, t = +e.tarifa || 0;
-  const rowsT = [[e.pago === 'hora' ? `Horas trabajadas (${N1.format(a.horas || 0)} h × ${bs(t)})` : `Días trabajados (${N1.format(a.dias || 0)} × ${bs(t)})`, r.base], [`Horas extra (${N1.format(a.extra || 0)} h${P.nomRecargo ? ', recargo ' + P.nomRecargo + ' %' : ', sin recargo'})`, r.extra], ['Bonos', r.bonos], ['Deducciones de ley', -r.ley], ['Préstamos (cuota de la quincena)', -r.desc]].filter(x => x[1]);
+  const rowsT = [[e.pago === 'hora' ? `Horas trabajadas (${N1.format(a.horas || 0)} h × ${usd(t)})` : `Días trabajados (${N1.format(a.dias || 0)} × ${usd(t)})`, r.base], [`Horas extra (${N1.format(a.extra || 0)} h${P.nomRecargo ? ', recargo ' + P.nomRecargo + ' %' : ', sin recargo'})`, r.extra], ['Bonos', r.bonos], ['Deducciones de ley', -r.ley], ['Préstamos (cuota de la quincena)', -r.desc]].filter(x => x[1]);
   modal('Recibo de pago · ' + e.n, `<div class="doc" id="doc-print"><div class="dh"><div class="dh-id">${logoImg('doc-logo')}<div><h3>El Maná JL</h3><p>Recibo de pago de nómina</p></div></div><div style="text-align:right"><p class="mono">${e.id}-${q}</p><p>${qLabel(q)}</p></div></div>
     <div class="meta"><div><b>Empleado</b>${e.n}</div><div><b>Cédula</b>${e.cedula || '________________'}</div><div><b>Cargo</b>${e.cargo || '—'}</div><div><b>Área</b>${e.area}</div></div>
-    ${table([{h: 'Concepto', f: x => x[0]}, {h: 'Monto', r: 1, f: x => (x[1] < 0 ? '−' : '') + bs(Math.abs(x[1]))}], rowsT, {foot: `<tr class="tsum"><td>Neto a pagar</td><td class="r">${bs(r.neto)}</td></tr>`})}
-    <p style="margin-top:8px">Periodo del ${fdl(rd[0])} al ${fdl(rd[1])}. Pagado en bolívares.</p><div class="firmas"><div>Firma del empleado</div><div>Firma de Administración</div></div></div>${typeof docBar === 'function' ? docBar('Recibo de pago ' + e.n) : ''}`);
+    ${table([{h: 'Concepto', f: x => x[0]}, {h: 'Monto', r: 1, f: x => (x[1] < 0 ? '−' : '') + usd(Math.abs(x[1])) + '<br><span class="muted">' + bsOf(Math.abs(x[1])) + '</span>'}], rowsT, {foot: `<tr class="tsum"><td>Neto a pagar</td><td class="r">${usd(r.neto)}<br><span class="muted">${bsOf(r.neto)}</span></td></tr>`})}
+    <p style="margin-top:8px">Periodo del ${fdl(rd[0])} al ${fdl(rd[1])}. Calculado en dólares; se paga en bolívares a la tasa BCV del día de pago (tasa de hoy: ${N2.format(S.tasa)}).</p><div class="firmas"><div>Firma del empleado</div><div>Firma de Administración</div></div></div>${typeof docBar === 'function' ? docBar('Recibo de pago ' + e.n) : ''}`);
 }
 const PERS_ACT = {
   pFiltro: () => render(), aFiltro: () => render(),
-  empEditar: el => { const e = one('empleados', el.dataset.id); if (!e) return; S.pf = {id: e.id, n: e.n || '', cedula: e.cedula || '', cargo: e.cargo || '', area: AREA_MAP[e.area] || e.area || AREAS[0], ingreso: e.ingreso || '', tel: e.tel || '', pago: e.pago || 'dia', tarifa: e.tarifa ?? '', es_chofer: !!e.es_chofer, turno: e.turno || ''}; render(); window.scrollTo(0, 0); },
+  pfPuesto: el => { const a = PUESTOS_AREAS[el.value] || []; S.pf.puesto = el.value; S.pf.area = a.length === 1 ? a[0] : AREA_SIN_DEFINIR; if (!PUESTOS_PLANTA.includes(el.value)) S.pf.turno = ''; render(); },
+  empEditar: el => { const e = one('empleados', el.dataset.id); if (!e) return; S.pf = {id: e.id, n: e.n || '', cedula: e.cedula || '', cargo: e.cargo || '', puesto: puestoAreaDe(e).puesto || PUESTOS[0], area: puestoAreaDe(e).area || PUESTOS_AREAS[PUESTOS[0]][0], ingreso: e.ingreso || '', tel: e.tel || '', pago: e.pago || 'dia', tarifa: e.tarifa ?? '', es_chofer: !!e.es_chofer, turno: e.turno || '', codigo_lector: e.codigo_lector || ''}; render(); window.scrollTo(0, 0); },
   empCancelar: () => { S.pf = pfNew(); render(); },
-  empGuardar: () => { const f = S.pf; S.pfErr = ''; if (!f.n.trim()) S.pfErr = 'Escribe el nombre y apellido.'; else if (!(+f.tarifa > 0)) S.pfErr = 'Escribe la tarifa en Bs (mayor que 0).'; if (S.pfErr) return render(); run('emp', () => Svc.saveEmp(f), id => { S.pf = pfNew(); return `Persona ${id} guardada.`; }); },
+  empGuardar: () => { const f = S.pf; S.pfErr = ''; if (!f.n.trim()) S.pfErr = 'Escribe el nombre y apellido.'; else if (!(PUESTOS_AREAS[f.puesto] || []).includes(f.area)) S.pfErr = 'Elige el área de ' + (f.puesto || 'la persona') + '.'; else if (!(+f.tarifa > 0)) S.pfErr = 'Escribe la tarifa en $ (mayor que 0).'; else if (String(f.codigo_lector || '').trim() && rows('empleados').some(e => e.id !== f.id && String(e.codigo_lector || '').trim().replace(/^'+/, '') === String(f.codigo_lector).trim().replace(/^'+/, ''))) S.pfErr = 'Ese código del lector ya es de otra persona.'; if (S.pfErr) return render(); run('emp', () => Svc.saveEmp(f), id => { S.pf = pfNew(); return `Persona ${id} guardada.`; }); },
   empArch: el => { if (S.prestamos.some(p => p.emp === el.dataset.id && p.pagadas < p.cuotas)) return toast('Esa persona tiene un préstamo activo: no se puede retirar todavía.', 'warn'); run('arch', () => Svc.archivar('empleados', el.dataset.id, true), 'Persona archivada. Su historial se conserva.'); },
   retiroPedir: el => run('rp', () => Svc.retiroPedir(el.dataset.id), 'Pediste el retiro. El Gerente debe aprobarlo.'),
   retiroOk: el => { if (S.prestamos.some(p => p.emp === el.dataset.id && p.pagadas < p.cuotas)) return toast('Tiene un préstamo activo: se debe liquidar antes del retiro.', 'warn'); run('arch', () => Svc.archivar('empleados', el.dataset.id, true), 'Retiro aprobado y persona archivada.'); },
@@ -2872,21 +2693,21 @@ function expRange(x) {
 }
 function expState() { return S.exp || (S.exp = {per: 'mes', ref: HOY_ISO, desde: addDays(HOY_ISO, -30), hasta: HOY_ISO, area: 'Todas'}); }
 const quincenasEn = (d, h) => { const out = []; let k = qKey(d); const fin = qKey(h); for (let i = 0; i < 80 && k <= fin; i++) { out.push(k); k = qMove(k, 1); } return out; };
-const asisCols = ['Quincena', 'Empleado', 'Área', 'Cargo', 'Forma de pago', 'Días', 'Horas', 'Horas extra', 'Bonos (Bs)'];
+const asisCols = ['Quincena', 'Empleado', 'Área', 'Cargo', 'Forma de pago', 'Días', 'Horas', 'Horas extra', 'Bonos ($)'];
 /* Cada conjunto declara: pantalla que le da permiso, área, columnas y filas del periodo. Una fila = {a: área, v: [valores]} */
 const EXP_SETS = {
   recep: {t: 'Recepciones de materia prima', scr: 'recepcion', area: 'Almacén', per: true,
     cols: ['Fecha', 'Recepción', 'Proveedor', 'Producto', 'Kg recibidos', 'Kg a pagar', 'Calidad', 'Estado'],
     rows: (d, h) => S.compras.filter(c => c.rec && c.fecha >= d && c.fecha <= h).map(c => ({a: 'Almacén', v: [c.fecha, c.rec, un(c.prov), un(c.item), c.kgRec, c.qf, c.calidad || '', c.estado || '']}))},
-  cmpmp: {t: 'Compras de materia prima', scr: 'compras-mp', area: 'Administración y ventas', per: true,
+  cmpmp: {t: 'Compras de materia prima', scr: 'compras-mp', area: 'Administración', per: true,
     cols: ['Fecha', 'Compra', 'Proveedor', 'Producto', 'Cantidad a pagar', 'Unidad', 'Precio unitario $', 'Condición', 'Saldo $', 'Saldo Bs'],
-    rows: (d, h) => S.compras.filter(c => c.fam === 'MP' && c.id && c.fecha >= d && c.fecha <= h).map(c => ({a: 'Administración y ventas', v: [c.fecha, c.id, un(c.prov), un(c.item), c.qf, c.unidad || '', c.pu, c.cond || '', c.saldo, round2(c.saldo * S.tasa)]}))},
-  cmpgen: {t: 'Compras generales', scr: 'compras-gen', area: 'Administración y ventas', per: true,
+    rows: (d, h) => S.compras.filter(c => c.fam === 'MP' && c.id && c.fecha >= d && c.fecha <= h).map(c => ({a: 'Administración', v: [c.fecha, c.id, un(c.prov), un(c.item), c.qf, c.unidad || '', c.pu, c.cond || '', c.saldo, round2(c.saldo * S.tasa)]}))},
+  cmpgen: {t: 'Compras generales', scr: 'compras-gen', area: 'Administración', per: true,
     cols: ['Fecha', 'Compra', 'Proveedor', 'Concepto', 'Cantidad', 'Unidad', 'Precio unitario $', 'Saldo $', 'Saldo Bs'],
-    rows: (d, h) => S.compras.filter(c => c.fam === 'GEN' && c.fecha >= d && c.fecha <= h).map(c => ({a: 'Administración y ventas', v: [c.fecha, c.id, un(c.prov), un(c.item), c.qf, c.unidad || '', c.pu, c.saldo, round2(c.saldo * S.tasa)]}))},
-  cxp: {t: 'Cuentas por pagar', scr: 'cxp', area: 'Administración y ventas', per: true,
+    rows: (d, h) => S.compras.filter(c => c.fam === 'GEN' && c.fecha >= d && c.fecha <= h).map(c => ({a: 'Administración', v: [c.fecha, c.id, un(c.prov), un(c.item), c.qf, c.unidad || '', c.pu, c.saldo, round2(c.saldo * S.tasa)]}))},
+  cxp: {t: 'Cuentas por pagar', scr: 'cxp', area: 'Administración', per: true,
     cols: ['Fecha', 'Cuenta', 'Proveedor', 'Total $', 'Vence', 'Saldo $', 'Saldo Bs'],
-    rows: (d, h) => rows('cxp').filter(x => x.fecha >= d && x.fecha <= h).map(x => { const c = S.compras.find(k => k.id === x.compraId); const sd = c ? c.saldo : 0; return {a: 'Administración y ventas', v: [x.fecha, x.id, un(x.prov), x.total, x.vence || '', sd, round2(sd * S.tasa)]}; })},
+    rows: (d, h) => rows('cxp').filter(x => x.fecha >= d && x.fecha <= h).map(x => { const c = S.compras.find(k => k.id === x.compraId); const sd = c ? c.saldo : 0; return {a: 'Administración', v: [x.fecha, x.id, un(x.prov), x.total, x.vence || '', sd, round2(sd * S.tasa)]}; })},
   lotes: {t: 'Producción: lotes de papa frita', scr: 'produccion', area: 'Producción', per: true,
     cols: ['Fecha', 'Lote', 'Proveedor', 'Kg de papa cruda', 'Kg fritos (granel)', 'Rendimiento %', 'Estado'],
     rows: (d, h) => S.lotes.filter(l => l.fecha >= d && l.fecha <= h).map(l => ({a: 'Producción', v: [l.fecha, l.id, un(l.prov || ''), l.cruda, l.granel, l.cruda ? round2(l.granel / l.cruda * 100) : '', l.estado || '']}))},
@@ -2902,26 +2723,26 @@ const EXP_SETS = {
   mermas: {t: 'Mermas por proceso', scr: 'mermas', area: 'Producción', per: true,
     cols: ['Fecha', 'Etapa', 'Lote', 'Producto', 'Cantidad', 'Unidad', 'Causa', 'Costo $', 'Estado', 'Registró'],
     rows: (d, h) => S.mermas.filter(m => m.fecha >= d && m.fecha <= h).map(m => ({a: /empaque/i.test(m.etapa) ? 'Empaque' : /salsa/i.test(m.etapa) ? 'Línea salsera' : /almac|recep|mp/i.test(m.etapa) ? 'Almacén' : 'Producción', v: [m.fecha, m.etapa, m.lote || '', un(m.prod || ''), m.cant, m.un, un(m.causa || ''), m.usd || 0, m.estado || '', un(m.quien || '')]}))},
-  caja: {t: 'Caja chica: gastos con nota de entrega', scr: 'caja', area: 'Administración y ventas', per: true,
+  caja: {t: 'Caja chica: gastos con nota de entrega', scr: 'caja', area: 'Administración', per: true,
     cols: ['Fecha', 'Gasto', 'Nota de entrega', 'Proveedor', 'Categoría', 'Monto $', 'Monto Bs', 'Justificación'],
-    rows: (d, h) => S.gastos.filter(g => g.fecha >= d && g.fecha <= h).map(g => ({a: 'Administración y ventas', v: [g.fecha, g.id, un(g.num || ''), un(g.prov || ''), un(g.cat || ''), g.monto, round2(g.monto * S.tasa), un(g.just || '')]}))},
-  prestamos: {t: 'Préstamos a empleados', scr: 'prestamos', area: 'Administración y ventas', per: true,
+    rows: (d, h) => S.gastos.filter(g => g.fecha >= d && g.fecha <= h).map(g => ({a: 'Administración', v: [g.fecha, g.id, un(g.num || ''), un(g.prov || ''), un(g.cat || ''), g.monto, round2(g.monto * S.tasa), un(g.just || '')]}))},
+  prestamos: {t: 'Préstamos a empleados', scr: 'prestamos', area: 'Administración', per: true,
     cols: ['Fecha', 'Préstamo', 'Empleado', 'Monto $', 'Cuotas', 'Pagadas', 'Tasa de la entrega', 'Motivo'],
-    rows: (d, h) => S.prestamos.filter(p => p.fecha >= d && p.fecha <= h).map(p => { const e = (DATA.empleadosAll || []).find(x => x.id === p.emp); return {a: e ? e.area : 'Administración y ventas', v: [p.fecha, p.id, un(e ? e.n : p.emp), p.monto, p.cuotas, p.pagadas, p.tasa, un(p.motivo || '')]}; })},
-  nomina: {t: 'Nómina por quincena (Bs)', scr: 'nomina', area: 'Administración y ventas', per: true,
-    cols: ['Quincena', 'Empleado', 'Área', 'Cargo', 'Base Bs', 'Horas extra Bs', 'Bonos Bs', 'Deducción de ley Bs', 'Préstamos Bs', 'Neto Bs'],
+    rows: (d, h) => S.prestamos.filter(p => p.fecha >= d && p.fecha <= h).map(p => { const e = (DATA.empleadosAll || []).find(x => x.id === p.emp); return {a: e ? e.area : 'Administración', v: [p.fecha, p.id, un(e ? e.n : p.emp), p.monto, p.cuotas, p.pagadas, p.tasa, un(p.motivo || '')]}; })},
+  nomina: {t: 'Nómina por quincena ($)', scr: 'nomina', area: 'Administración', per: true,
+    cols: ['Quincena', 'Empleado', 'Área', 'Cargo', 'Base $', 'Horas extra $', 'Bonos $', 'Deducción de ley $', 'Préstamos $', 'Neto $'],
     rows: (d, h) => { const o = []; quincenasEn(d, h).forEach(q => nomRows(q).forEach(r => o.push({a: r.e.area, v: [qLabel(q), un(r.e.n), r.e.area, un(r.e.cargo || ''), round2(r.base), round2(r.extra), round2(r.bonos), round2(r.ley), round2(r.desc), round2(r.neto)]}))); return o; }},
-  asistencia: {t: 'Asistencia por quincena', scr: 'asistencia', area: 'Administración y ventas', per: true, cols: asisCols,
+  asistencia: {t: 'Asistencia por quincena', scr: 'asistencia', area: 'Administración', per: true, cols: asisCols,
     rows: (d, h) => { const o = []; quincenasEn(d, h).forEach(q => (DATA.empleadosAll || []).forEach(e => { const a = asisOf(q, e.id); if (a) o.push({a: e.area, v: [qLabel(q), un(e.n), e.area, un(e.cargo || ''), e.pago === 'hora' ? 'Por hora' : 'Por día', a.dias || 0, a.horas || 0, a.extra || 0, a.bonos || 0]}); })); return o; }},
-  calcxp: {t: 'Calendario de cuentas por pagar', scr: 'cxp', area: 'Administración y ventas', per: true,
+  calcxp: {t: 'Calendario de cuentas por pagar', scr: 'cxp', area: 'Administración', per: true,
     cols: ['Fecha', 'Tipo', 'Proveedor', 'Documento', 'Monto $', 'Monto Bs', 'Estado'],
-    rows: (d, h) => cxpEvents().filter(e => e.date >= d && e.date <= h).sort((a, b) => a.date.localeCompare(b.date)).map(e => ({a: 'Administración y ventas', v: [e.date, CAL_TIPO[e.tipo], un(e.who), e.doc, round2(e.usd), round2(e.usd * S.tasa), CAL_EST[e.estado].t]}))},
-  calcxc: {t: 'Calendario de cuentas por cobrar', scr: 'ventas', area: 'Administración y ventas', per: true,
+    rows: (d, h) => cxpEvents().filter(e => e.date >= d && e.date <= h).sort((a, b) => a.date.localeCompare(b.date)).map(e => ({a: 'Administración', v: [e.date, CAL_TIPO[e.tipo], un(e.who), e.doc, round2(e.usd), round2(e.usd * S.tasa), CAL_EST[e.estado].t]}))},
+  calcxc: {t: 'Calendario de cuentas por cobrar', scr: 'ventas', area: 'Ventas', per: true,
     cols: ['Fecha', 'Tipo', 'Cliente', 'Vendedor', 'Nota de entrega', 'Monto $', 'Monto Bs', 'Estado'],
-    rows: (d, h) => cxcEvents().filter(e => e.date >= d && e.date <= h).sort((a, b) => a.date.localeCompare(b.date)).map(e => ({a: 'Administración y ventas', v: [e.date, CAL_TIPO[e.tipo], un(e.who), un(e.vend || ''), e.doc, round2(e.usd), round2(e.usd * S.tasa), CAL_EST[e.estado].t]}))},
-  cxc: {t: 'Cuentas por cobrar (al día de hoy)', scr: 'ventas', area: 'Administración y ventas', per: false, nota: 'Es una foto de la cartera de hoy: no se filtra por periodo.',
+    rows: (d, h) => cxcEvents().filter(e => e.date >= d && e.date <= h).sort((a, b) => a.date.localeCompare(b.date)).map(e => ({a: 'Ventas', v: [e.date, CAL_TIPO[e.tipo], un(e.who), un(e.vend || ''), e.doc, round2(e.usd), round2(e.usd * S.tasa), CAL_EST[e.estado].t]}))},
+  cxc: {t: 'Cuentas por cobrar (al día de hoy)', scr: 'ventas', area: 'Administración', per: false, nota: 'Es una foto de la cartera de hoy: no se filtra por periodo.',
     cols: ['Cliente', 'Nota de entrega', 'Fecha', 'Monto $', 'Monto Bs'],
-    rows: () => (DATA.cxc || []).map(c => ({a: 'Administración y ventas', v: [un(c.cli || ''), c.fact || '', c.fecha || '', c.monto || 0, round2((c.monto || 0) * S.tasa)]}))}
+    rows: () => (DATA.cxc || []).map(c => ({a: 'Administración', v: [un(c.cli || ''), c.fact || '', c.fecha || '', c.monto || 0, round2((c.monto || 0) * S.tasa)]}))}
 };
 /* Qué conjuntos ofrece cada pantalla. 'todo' = el reporte general con todo lo que el rol puede ver */
 const EXP_SCR = {recepcion: ['recep'], 'compras-mp': ['cmpmp'], 'compras-gen': ['cmpgen'], cxp: ['cxp', 'calcxp'], produccion: ['lotes', 'salsas'], empaque: ['empaque'], despachos: ['despachos'], mermas: ['mermas'], caja: ['caja'], prestamos: ['prestamos'], nomina: ['nomina'], asistencia: ['asistencia'], ventas: ['cxc', 'calcxc'], gestion: 'todo', planta: 'todo'};
@@ -2929,7 +2750,7 @@ const expVisibles = () => Object.keys(EXP_SETS).filter(k => can(EXP_SETS[k].scr)
 function expKeys(scr) { const m = EXP_SCR[scr]; return (m === 'todo' ? expVisibles() : (m || []).filter(k => can(EXP_SETS[k].scr))); }
 function expBuild(keys) {
   const x = expState(), [d, h] = expRange(x), fa = x.area || 'Todas';
-  return keys.map(k => { const s = EXP_SETS[k]; let r = s.rows(d, h); if (fa !== 'Todas') r = r.filter(f => f.a === fa); return {k, t: s.t, cols: s.cols, nota: s.nota || '', rows: r.map(f => f.v)}; });
+  return keys.map(k => { const s = EXP_SETS[k]; let r = s.rows(d, h); if (fa !== 'Todas') r = r.filter(f => f.a === fa || puestoAreaDe({area: f.a}).puesto === fa); return {k, t: s.t, cols: s.cols, nota: s.nota || '', rows: r.map(f => f.v)}; });
 }
 function expCabecera() {
   const x = expState(), [d, h] = expRange(x);
@@ -2973,7 +2794,7 @@ function expBar(scr) {
   const x = expState(), [d, h] = expRange(x), sets = keys.map(k => EXP_SETS[k]);
   const campos = x.per === 'rango' ? `<label class="fld">Desde<input type="date" data-k="exp.desde" data-act-change="expSet" value="${x.desde}"></label><label class="fld">Hasta<input type="date" data-k="exp.hasta" data-act-change="expSet" value="${x.hasta}"></label>` : `<label class="fld">${x.per === 'mes' ? 'Un día del mes' : x.per === 'sem' ? 'Un día de la semana' : 'Día'}<input type="date" data-k="exp.ref" data-act-change="expSet" value="${x.ref}"></label>`;
   return card('Exportar este reporte', `<div class="form"><div class="row3"><label class="fld">Periodo<select data-k="exp.per" data-act-change="expSet">${Object.entries(EXP_TIPOS).map(([k, t]) => `<option value="${k}" ${k === x.per ? 'selected' : ''}>${t}</option>`).join('')}</select></label>${campos}
-    <label class="fld">Área<select data-k="exp.area" data-act-change="expSet">${['Todas', ...AREAS].map(a => `<option ${a === x.area ? 'selected' : ''}>${a}</option>`).join('')}</select></label></div>
+    <label class="fld">Área<select data-k="exp.area" data-act-change="expSet">${['Todas', ...new Set([...PUESTOS, ...AREAS])].map(a => `<option ${a === x.area ? 'selected' : ''}>${a}</option>`).join('')}</select></label></div>
     <p class="hint">Del ${fdl(d)} al ${fdl(h)} · tasa Bs ${N2.format(S.tasa)} por $ 1 · solo lo que tu rol puede ver (${sets.map(s => s.t).join(', ')}).${sets.some(s => s.nota) ? ' ' + sets.filter(s => s.nota).map(s => s.nota).join(' ') : ''}</p>
     <div class="btnrow"><button type="button" class="btn pri" data-act="expCSV" data-scr="${scr}">${ic('download', 16)}Descargar CSV (Excel)</button><button type="button" class="btn" data-act="expPrint" data-scr="${scr}">${ic('print', 16)}Imprimir o guardar PDF</button></div></div>`, {cls: 'exp-card', sub: 'CSV con tildes y columnas separadas por punto y coma, listo para Excel'});
 }
@@ -3205,7 +3026,7 @@ function scrCatalogos(m) {
 /* ---------- Roles, módulos visibles y matriz (solo el Gerente edita) ---------- */
 function scrRoles() {
   const rs = Object.keys(ROLES).filter(r => r !== 'dueno');
-  const rows = Object.keys(SCREENS).filter(k => !['mapa', 'roles', 'datos'].includes(k) && !SCREENS[k].libre);
+  const rows = Object.keys(SCREENS).filter(k => !['mapa', 'roles', 'datos', 'alm-logistica'].includes(k) && !SCREENS[k].libre);
   const cell = (k, r) => {
     if (k !== 'manual' && !modsOf(r).includes(SCREENS[k].mod)) return '<span class="muted" style="font-size:12.5px">sin módulo</span>';
     const l = (S.perm[k] || {})[r] || 0;
@@ -3264,9 +3085,9 @@ function applyPerms() {
 /* ---------- Registro de pantallas ---------- */
 const SCREENS = {
   'mapa':         {mod:'home', g:'Inicio', t:'Mapa de procesos', s:'Inicio', ic:'map', r:scrMapa},
-  'planta':      {mod:'prod', g:'Resumen', t:'Resumen de planta', s:'Resumen', ic:'gauge', r:scrPlanta},
-  'recepcion':    {mod:'prod', g:'Entrada', t:'Recepción', s:'Recepción', ic:'clip', r:scrRecepcion, live:() => { const e = $('#rec-calc'); e && (e.innerHTML = recCalcHTML()); const k = $('#rf-kgs'); k && k.readOnly && (k.value = S.recForm.kgSaco); }},
-  'alm-mp':       {mod:'prod', g:'Almacenes', t:'Materia prima', s:'Materia prima', ic:'warehouse', r:scrAlmMP},
+  'planta':      {mod:'prod', g:'Resumen', t:'Resumen de planta', s:'Resumen', ic:'gauge', r:() => SCREENS['pr-turno'].r()},
+  'recepcion':    {mod:'prod', g:'Entrada', t:'Recepción', s:'Recepción', ic:'clip', r:() => SCREENS['c-recibir'].r()},
+  'alm-mp':       {mod:'prod', g:'Almacenes', t:'Materia prima', s:'Materia prima', ic:'warehouse', r:() => SCREENS['inv-general'].r()},
   'alm-proceso':  {mod:'prod', g:'Almacenes', t:'En proceso', s:'En proceso', ic:'layers', r:scrAlmProceso},
   'alm-pt':       {mod:'prod', g:'Almacenes', t:'Producto terminado', s:'Terminado', ic:'box', r:scrAlmPT},
   'alm-logistica':{mod:'prod', g:'Almacenes', t:'Logística', s:'Logística', ic:'tag', r:scrAlmLog},
@@ -3277,7 +3098,7 @@ const SCREENS = {
   'cotejo':       {mod:'prod', g:'Planta', t:'Cotejo compra vs producción', s:'Cotejo', ic:'compare', r:scrCotejo},
   'catprod':      {mod:'prod', g:'Referencia', t:'Equipo y flota', s:'Equipo', ic:'users', r:() => scrCatalogos('prod')},
   'gestion':      {mod:'adm', g:'Tablero', t:'Control de gestión', s:'Tablero', ic:'chart', r:scrGestion},
-  'compras-mp':   {mod:'adm', g:'Compras', t:'Compras de materia prima', s:'Compras MP', ic:'cart', r:scrComprasMP},
+  'compras-mp':   {mod:'adm', g:'Compras', t:'Compras de materia prima', s:'Compras MP', ic:'cart', r:() => SCREENS['c-recibir'].r()},
   'compras-gen':  {mod:'adm', g:'Compras', t:'Compras generales', s:'Generales', ic:'tree', r:scrComprasGen},
   'analisis':     {mod:'adm', g:'Compras', t:'Análisis de compras', s:'Análisis', ic:'search', r:scrAnalisis},
   'cxp':          {mod:'adm', g:'Pagos y caja', t:'Cuentas por pagar', s:'Por pagar', ic:'calendar', r:scrCxP},
@@ -3293,8 +3114,8 @@ const SCREENS = {
   'roles':        {mod:'adm', g:'Referencia', t:'Roles y permisos', s:'Roles', ic:'shield', r:scrRoles},
   'datos':        {mod:'adm', g:'Referencia', t:'Datos del sistema', s:'Datos', ic:'drop', r:scrDatos, live:() => { const b = $('#dat-go'); if (b) b.disabled = S.datosConf.trim().toUpperCase() !== 'BORRAR'; }}
 };
-const BOTTOM = {prod:['recepcion', 'alm-mp', 'produccion', 'despachos'], adm:['gestion', 'cxp', 'caja', 'analisis']};
-const HOME = {prod:['planta'], adm:['gestion']};
+const BOTTOM = {prod:['c-recibir', 'pr-turno', 'inv-general'], adm:['gestion', 'cxp', 'caja', 'analisis']};
+const HOME = {prod:['pr-turno'], adm:['gestion']};
 /* ---------- Roles, módulos visibles y permisos (0 sin acceso · 1 ver · 2 registrar · 3 aprobar) ---------- */
 const ROLES = {dueno:'Gerencia', adm:'Administración', produccion:'Producción', empaque:'Logística', ventas:'Ventas', rrhh:'Recursos humanos'};
 const ROLE_DESC = {
@@ -3346,7 +3167,7 @@ const ACT_REQ = {guardarRec:['recepcion', 2], validar:['compras-mp', 3], pagar:[
   regGen:['compras-gen', 2], regGasto:['caja', 2], reponer:['caja', 2], guardarArqueo:['caja', 2], regPrestamo:['prestamos', 2], guardarPol:['politicas', 2], resetPol:['politicas', 2],
   addProv:['catalogos', 2], archProv:['catalogos', 2], restProv:['catalogos', 2], empGuardar:['personal', 2], empArch:['personal', 3], retiroPedir:['personal', 2], retiroOk:['personal', 3], retiroNo:['personal', 3], asisInc:['asistencia', 2], asisBonos:['asistencia', 2], nomPolGuardar:['nomina', 3], addInsumo:['catprod', 2], addPres:['catprod', 2], addSalsa:['catprod', 2], archivar:['catprod', 2], restaurar:['catprod', 3], addRec:['catprod', 2], delRec:['catprod', 2], addVeh:['catprod', 2], delVeh:['catprod', 2],
   regMerma:['mermas', 2], setTel:['ventas', 2], cxcCobro:['ventas', 2], aprobarMerma:['mermas', 3], guardarTolMerma:['mermas', 3], addCausa:['mermas', 3], delCausa:['mermas', 3]};
-const ACT_LBL = {guardarRec:'guardar recepciones', validar:'validar compras', pagar:'registrar pagos', abrirLote:'abrir lotes', avanzarEtapa:'avanzar etapas', cerrarLote:'cerrar lotes', pedirRepo:'pedir reposiciones', aprobarRepo:'aprobar reposiciones',
+const ACT_LBL = {guardarRec:'guardar recepciones', validar:'registrar compras', pagar:'registrar pagos', abrirLote:'abrir lotes', avanzarEtapa:'avanzar etapas', cerrarLote:'cerrar lotes', pedirRepo:'pedir reposiciones', aprobarRepo:'aprobar reposiciones',
   regEmpaque:'registrar empaque', addBulto:'pesar bultos', regNota:'crear notas de entrega', notaEstado:'cambiar el estado de despachos', regGen:'registrar compras', regGasto:'registrar gastos', reponer:'pedir reposición de caja',
   guardarArqueo:'guardar el arqueo', regPrestamo:'entregar préstamos', guardarPol:'guardar políticas', resetPol:'restaurar políticas', archProv:'archivar proveedores', restProv:'restaurar proveedores', empGuardar:'guardar personal', empArch:'archivar personal', retiroPedir:'pedir retiros', retiroOk:'aprobar retiros', retiroNo:'rechazar retiros', asisInc:'anotar asistencia', asisBonos:'anotar bonos', nomPolGuardar:'cambiar las reglas de pago', addInsumo:'agregar insumos', addPres:'agregar presentaciones', addSalsa:'agregar salsas', archivar:'archivar elementos', restaurar:'restaurar elementos', addProv:'agregar proveedores', delEmp:'quitar personal',
   addRec:'agregar quien recibe', delRec:'quitar a quien recibe', addVeh:'agregar vehículos', delVeh:'quitar vehículos',
@@ -3507,7 +3328,7 @@ function mrGestionAlert() {
 function mrLink(keys) {
   if (!can('mermas')) return '';
   const w = mr30(), st = mrStages(w.a, w.z).filter(x => keys.includes(x.k));
-  const li = x => `<li><div class="l-main"><p class="l-t">${x.t}</p><p class="l-s">${x.ent > 0 ? pct(x.pct) + ' de lo que entró · tolerancia ' + pct(x.tol) : x.n ? kg(x.kg) + ' perdidos' : 'Sin pérdidas registradas en 30 días'}${x.usd ? ' · ' + usd(x.usd) : ''}</p></div>${chip(x.sem.l, x.sem.t)}${mrPuede(x.k) ? `<button type="button" class="btn sm" data-act="mrIr" data-v="${x.k}">${ic('plus', 16)}Registrar</button>` : ''}</li>`;
+  const li = x => `<li><div class="l-main"><p class="l-t">${x.t}</p><p class="l-s">${x.ent > 0 ? pct(x.pct) + ' de lo que entró · tolerancia ' + pct(x.tol) : x.n ? kg(x.kg) + ' perdidos' : 'Sin pérdidas registradas en 30 días'}${x.usd && (S.rol === 'dueno' || S.rol === 'adm') ? ' · ' + usd(x.usd) : ''}</p></div>${chip(x.sem.l, x.sem.t)}${mrPuede(x.k) ? `<button type="button" class="btn sm" data-act="mrIr" data-v="${x.k}">${ic('plus', 16)}Registrar</button>` : ''}</li>`;
   return card('Mermas de esta etapa', `<ul class="list">${st.map(li).join('')}</ul><p style="margin-top:10px"><a class="lnk" href="#mermas">Ver el reporte de mermas por proceso</a></p>`, {});
 }
 [['recepcion', ['recepcion']], ['alm-mp', ['almmp']], ['produccion', ['pelado', 'corte', 'freido', 'sazonado', 'quebrado', 'salsa_mezcla', 'salsa_env']], ['empaque', ['empaque']], ['alm-pt', ['almpt']], ['alm-logistica', ['almpt']], ['despachos', ['despacho']]]
@@ -3517,7 +3338,7 @@ function mrLink(keys) {
 function mrOrigenes(e) {
   const k = e.og.kind, nm = id => prov(id).nombre.replace(' (ejemplo)', '');
   let opts = [];
-  if (k === 'rec') opts = S.compras.filter(c => c.rec && c.kgRec != null).slice(-40).reverse().map(c => ({v: c.rec, t: `${c.rec} · ${c.item} · ${nm(c.prov)} · ${fd(c.fecha)}`}));
+  if (k === 'rec') opts = S.compras.filter(c => c.rec && c.kgRec != null).slice(-40).reverse().map(c => ({v: c.rec, t: `${c.item} · ${nm(c.prov)} · ${fd(c.fecha)}`}));
   else if (k === 'lote') opts = S.lotes.filter(l => MR_PRE.includes(e.k) || l.granel).slice().reverse().map(l => ({v: l.id, t: `${l.id} · ${fd(l.fecha)} · ${nm(l.prov)}${l.estado === 'En proceso' ? ' · en proceso' : ''}`}));
   else if (k === 'salsa') opts = DATA.salsas.map(s => ({v: s.lote, t: `${s.lote} · ${s.n} · ${s.etapa}`}));
   else opts = S.notas.slice(0, 40).map(n => ({v: n.id, t: `${n.id} · ${n.dest} · ${fd(n.fecha)}`}));
@@ -3557,11 +3378,12 @@ function mrParse() {
   const p = ent > 0 && kgv > 0 ? kgv / ent * 100 : null;
   return {e, cant, kgv, usd: kgv * cost, cost, lote, rec, ref, ent, pct: p, sem: mrSem(p, e.k)};
 }
+const mrSinCosto = () => S.rol === 'produccion' || S.rol === 'empaque';
 function mrCalcHTML() {
   const p = mrParse(); if (!p) return '';
   if (!(p.cant > 0)) return `<p class="hint">Escribe cuánto se perdió y aquí verás cuánto cuesta y qué parte de la etapa representa.</p>`;
-  return `<dl class="kv"><div><dt>Equivale a</dt><dd>${kg(p.kgv, 1)}</dd></div><div class="hl"><dt>Costo de la merma</dt><dd>${money(p.usd)}</dd></div><div><dt>De lo que entró a la etapa</dt><dd>${p.pct == null ? '—' : pct(p.pct)}</dd></div></dl>
-    <p style="margin-top:8px">${p.pct == null ? chip('Sin base para comparar con la tolerancia', 'n') : chip(p.sem.l + ' (tolerancia ' + pct(mrTol(p.e.k)) + ')', p.sem.t)}${p.cost ? '' : ' ' + chip('Costo por definir', 'warn')}</p>`;
+  return `<dl class="kv"><div><dt>Equivale a</dt><dd>${kg(p.kgv, 1)}</dd></div>${mrSinCosto() ? '' : `<div class="hl"><dt>Costo de la merma</dt><dd>${money(p.usd)}</dd></div>`}<div><dt>De lo que entró a la etapa</dt><dd>${p.pct == null ? '—' : pct(p.pct)}</dd></div></dl>
+    <p style="margin-top:8px">${p.pct == null ? chip('Sin base para comparar con la tolerancia', 'n') : chip(p.sem.l + ' (tolerancia ' + pct(mrTol(p.e.k)) + ')', p.sem.t)}${p.cost || mrSinCosto() ? '' : ' ' + chip('Costo por definir', 'warn')}</p>`;
 }
 function mrFormCard() {
   const fx = mrFix();
@@ -3603,17 +3425,18 @@ function mrCausasCard() {
 
 /* ---------- Pantalla ---------- */
 function scrMermas() {
+  const cs = S.rol === 'dueno' || S.rol === 'adm'; /* el costo en dinero solo lo ven Gerencia y Administración */
   const w = mr30(), st = mrStages(w.a, w.z), usdT = sum(st, x => x.usd), kgT = sum(st, x => x.kg), al = st.filter(x => x.n > 0 && (x.sem.t === 'warn' || x.sem.t === 'crit'));
   const pend = mrPend(), lotes = S.lotes.filter(l => l.fecha >= w.a).map(mrLote).filter(m => m.done && (m.n || m.rNet != null)).sort((a, b) => b.acum - a.acum).slice(0, 8);
   const pv = Object.entries(mrProv(w.a, w.z)).filter(([, o]) => o.kg > 0).sort((a, b) => b[1].usd - a[1].usd || b[1].kg - a[1].kg).slice(0, 8);
-  const ca = mrCausasRep(w.a, w.z), caT = sum(ca, c => c.usd) || sum(ca, c => c.kg);
+  const ca = mrCausasRep(w.a, w.z), caT = (cs && sum(ca, c => c.usd)) || sum(ca, c => c.kg);
   let cum = 0;
-  const par = ca.slice(0, 7).map(c => { cum += (sum(ca, x => x.usd) ? c.usd : c.kg); return {l: esc(c.c), v: sum(ca, x => x.usd) ? c.usd : c.kg, tip: `${c.c}: ${usd(c.usd)} · ${kg(c.kg)} · acumulado ${pct(caT ? cum / caT * 100 : 0, 0)}`}; });
+  const par = ca.slice(0, 7).map(c => { cum += (cs && sum(ca, x => x.usd) ? c.usd : c.kg); return {l: esc(c.c), v: cs && sum(ca, x => x.usd) ? c.usd : c.kg, tip: `${c.c}: ${cs ? usd(c.usd) + ' · ' : ''}${kg(c.kg)} · acumulado ${pct(caT ? cum / caT * 100 : 0, 0)}`}; });
   const est = m => chip(m.auto ? 'Automática' : 'Registrada', 'ok');
   const recientes = (S.mermas || []).slice(0, 12);
   return `${ph('Producción · control', 'Mermas por proceso', 'Lo que se pierde en cada etapa, desde que llega la papa hasta que se entrega al cliente: cuánto, por qué, cuánto cuesta y si pasa la tolerancia.')}
   <div class="tiles">
-    ${stat('Costo de mermas (30 días)', money(usdT), 'Peso perdido: ' + kg(kgT))}
+    ${cs ? stat('Costo de mermas (30 días)', money(usdT), 'Peso perdido: ' + kg(kgT)) : stat('Peso perdido (30 días)', kg(kgT), 'En todas las etapas')}
     ${stat('Etapas fuera de tolerancia', String(st.filter(x => x.n > 0 && x.sem.t === 'crit').length), al.length ? 'En alerta o fuera: ' + al.map(x => x.t).slice(0, 3).join(', ') : 'Todas dentro', al.length ? 'warn' : 'ok')}
     ${stat('Mermas de las últimas 24 h', String(mrNuevas().length), 'Gerencia y Administración reciben el aviso', mrNuevas().length ? 'warn' : '')}
     ${stat('Registros guardados', String((S.mermas || []).length), 'Más la diferencia de peso de Recepción')}
@@ -3621,7 +3444,7 @@ function scrMermas() {
   ${al.length ? card('Alertas de merma', `<ul class="alerts">${al.map(x => `<li class="${x.sem.t}">${ic('alert')}<div><b>${x.t}:</b> ${pct(x.pct)} de lo que entró, con tolerancia de ${pct(x.tol)}. ${x.sem.t === 'crit' ? 'Fuera de tolerancia: revisar la causa.' : 'En alerta.'}</div></li>`).join('')}</ul>`) : ''}
   <div class="cols c2">
     ${mrFormCard()}
-    ${(S.rol === 'dueno' || S.rol === 'adm') && mrNuevas().length ? card('Mermas nuevas (últimas 24 h)', `<ul class="list">${mrNuevas().map(m => `<li><div class="l-main"><p class="l-t"><span class="mono">${m.id}</span> · ${(mrEt(m.etapa) || {t: m.etapa}).t}</p><p class="l-s">${N1.format(m.cant)} ${m.un === 'und' ? 'und' : 'kg'} · ${esc(m.causa)} · ${esc(m.quien)} · ${usd(m.usd)}${m.obs ? ' · ' + esc(m.obs) : ''}</p></div></li>`).join('')}</ul>`, {sub: 'Aviso: lo que pasó, sin necesidad de aprobar'}) : card('Cómo se mide', `<ul class="list"><li><div class="l-main"><p class="l-t">Merma % de una etapa</p><p class="l-s">Perdido ÷ lo que entró a esa etapa.</p></div></li><li><div class="l-main"><p class="l-t">Merma acumulada del lote</p><p class="l-s">Qué parte de la papa se perdió en total, de Recepción a Despacho.</p></div></li><li><div class="l-main"><p class="l-t">Rendimiento neto</p><p class="l-s">Rendimiento medido al cerrar el lote, menos lo perdido después de pesar la papa frita (sazonado, quebrado, empaque, almacén y despacho).</p></div></li><li><div class="l-main"><p class="l-t">Costo</p><p class="l-s">Kg perdidos × costo promedio de ese kg (papa: lo pagado por el lote).</p></div></li></ul>`)}
+    ${(S.rol === 'dueno' || S.rol === 'adm') && mrNuevas().length ? card('Mermas nuevas (últimas 24 h)', `<ul class="list">${mrNuevas().map(m => `<li><div class="l-main"><p class="l-t"><span class="mono">${m.id}</span> · ${(mrEt(m.etapa) || {t: m.etapa}).t}</p><p class="l-s">${N1.format(m.cant)} ${m.un === 'und' ? 'und' : 'kg'} · ${esc(m.causa)} · ${esc(m.quien)} · ${usd(m.usd)}${m.obs ? ' · ' + esc(m.obs) : ''}</p></div></li>`).join('')}</ul>`, {sub: 'Aviso: lo que pasó, sin necesidad de aprobar'}) : card('Cómo se mide', `<ul class="list"><li><div class="l-main"><p class="l-t">Merma % de una etapa</p><p class="l-s">Perdido ÷ lo que entró a esa etapa.</p></div></li><li><div class="l-main"><p class="l-t">Merma acumulada del lote</p><p class="l-s">Qué parte de la papa se perdió en total, de Recepción a Despacho.</p></div></li><li><div class="l-main"><p class="l-t">Rendimiento neto</p><p class="l-s">Rendimiento medido al cerrar el lote, menos lo perdido después de pesar la papa frita (sazonado, quebrado, empaque, almacén y despacho).</p></div></li>${cs ? '<li><div class="l-main"><p class="l-t">Costo</p><p class="l-s">Kg perdidos × costo promedio de ese kg (papa: lo pagado por el lote).</p></div></li>' : ''}</ul>`)}
   </div>
   ${card('Merma por etapa', table([
     {h:'Etapa', f:x => `<b>${x.t}</b>`},
@@ -3631,29 +3454,29 @@ function scrMermas() {
     {h:'Merma', r:1, f:x => x.pct == null ? '—' : `<b>${pct(x.pct)}</b>`},
     {h:'Tolerancia', r:1, f:x => pct(x.tol)},
     {h:'Estado', f:x => chip(x.sem.l, x.sem.t)},
-    {h:'Costo', r:1, f:x => x.usd ? money(x.usd) : '—'}], st, {foot: `<tr class="tsum"><td colspan="7">Costo total de mermas</td><td class="r">${money(usdT)}</td></tr>`, rowCls: x => x.sem.t === 'crit' ? 'hl' : ''}), {})}
+    ...(cs ? [{h:'Costo', r:1, f:x => x.usd ? money(x.usd) : '—'}] : [])], st, {foot: cs ? `<tr class="tsum"><td colspan="7">Costo total de mermas</td><td class="r">${money(usdT)}</td></tr>` : '', rowCls: x => x.sem.t === 'crit' ? 'hl' : ''}), {})}
   <div class="cols c2">
-    ${card('Causas principales (Pareto)', par.length ? `${hbars(par, v => sum(ca, x => x.usd) ? usd(v) : kg(v))}<p class="hint" style="margin-top:8px">Las ${Math.min(3, par.length)} primeras causas explican ${pct(caT ? sum(ca.slice(0, 3), c => sum(ca, x => x.usd) ? c.usd : c.kg) / caT * 100 : 0, 0)} del costo.</p>` : emptyState('Sin mermas en 30 días', 'Cuando se registren, aquí se ve por qué se pierde más.'), {sub: 'Ordenadas por costo en $'})}
+    ${card('Causas principales (Pareto)', par.length ? `${hbars(par, v => cs && sum(ca, x => x.usd) ? usd(v) : kg(v))}<p class="hint" style="margin-top:8px">Las ${Math.min(3, par.length)} primeras causas explican ${pct(caT ? sum(ca.slice(0, 3), c => cs && sum(ca, x => x.usd) ? c.usd : c.kg) / caT * 100 : 0, 0)} ${cs ? 'del costo' : 'del peso perdido'}.</p>` : emptyState('Sin mermas en 30 días', 'Cuando se registren, aquí se ve por qué se pierde más.'), {sub: 'Ordenadas por costo en $'})}
     ${card('Lotes con más merma acumulada', table([
       {h:'Lote', f:m => `<span class="mono">${m.l.id}</span><br><span class="muted">${prov(m.l.prov).nombre.replace(' (ejemplo)', '')}</span>`},
       {h:'Merma acum.', r:1, f:m => `<b>${pct(m.acum)}</b>`},
       {h:'Rend. medido', r:1, f:m => pct(m.rMed)},
       {h:'Rend. neto', r:1, f:m => pct(m.rNet)},
       {h:'Rend. perdido', r:1, f:m => N1.format(m.rPot - m.rNet) + ' pts'},
-      {h:'Costo', r:1, f:m => money(m.usd)}], lotes, {empty: 'Todavía no hay lotes cerrados con mermas.'}), {})}
+      ...(cs ? [{h:'Costo', r:1, f:m => money(m.usd)}] : [])], lotes, {empty: 'Todavía no hay lotes cerrados con mermas.'}), {})}
   </div>
   <div class="cols c2">
     ${card('Mermas por proveedor', table([
       {h:'Proveedor', f:r => prov(r[0]).nombre.replace(' (ejemplo)', '')},
       {h:'Perdido', r:1, f:r => kg(r[1].kg, 0)},
       {h:'De lo facturado', r:1, f:r => r[1].pct == null ? '—' : `<b>${pct(r[1].pct)}</b>`},
-      {h:'Costo', r:1, f:r => money(r[1].usd)}], pv, {empty: 'Sin mermas de materia prima en 30 días.'}), {})}
+      ...(cs ? [{h:'Costo', r:1, f:r => money(r[1].usd)}] : [])], pv, {empty: 'Sin mermas de materia prima en 30 días.'}), {})}
     ${card('Registros recientes', table([
       {h:'Cuándo', f:m => fd(m.fecha) + `<br><span class="mono muted">${m.id}</span>`},
-      {h:'Etapa', f:m => `${(mrEt(m.etapa) || {t: m.etapa}).t}<br><span class="muted">${m.lote || m.rec || m.ref || '—'}</span>`},
+      {h:'Etapa', f:m => `${(mrEt(m.etapa) || {t: m.etapa}).t}<br><span class="muted">${m.lote || (m.rec ? 'Recepción' : m.ref) || '—'}</span>`},
       {h:'Cantidad', r:1, f:m => N1.format(m.cant) + (m.un === 'und' ? ' und' : ' kg')},
       {h:'Causa', f:m => `${m.causa}<br><span class="muted">${m.quien}</span>`},
-      {h:'Costo', r:1, f:m => money(m.usd)},
+      ...(cs ? [{h:'Costo', r:1, f:m => money(m.usd)}] : []),
       {h:'Estado', f:est}], recientes, {empty: 'Todavía no hay mermas registradas.'}), {})}
   </div>
   <div class="cols c2">${mrTolCard(false)}${mrCausasCard()}</div>`;
@@ -3679,8 +3502,8 @@ const MR_ACT = {
     let mov = null;
     if (f.etapa === 'almmp' && r && r.sk) mov = {almacen: 'MP', item: r.sk, cant: p.kgv};
     if (f.etapa === 'almpt' && f.un === 'und' && f.pres) mov = {almacen: 'PT', item: f.pres, cant: p.cant};
-    const body = {etapa: f.etapa, lote: p.lote, rec: p.rec, ref: p.ref, prod: r ? r.item : (p.e.item || ''), pres: f.un === 'und' ? f.pres : '', cant: p.cant, un: f.un, causa: f.causa, obs: f.obs, usd: p.usd, ent: p.e.decl ? +f.ent : 0, apr: lvl('mermas') >= 3, mov};
-    run('mr', () => Svc.regMerma(body), id => { const t = p.e.t; mrReset(); if (typeof lmTrasMerma === 'function' && S.lm) lmTrasMerma(id); return `Merma ${id} registrada en ${t}: ${N1.format(p.kgv)} kg, ${usd(p.usd)}.${' Se avisó a Gerencia y Administración.'}`; });
+    const body = {etapa: f.etapa, lote: p.lote, rec: p.rec, ref: p.ref, prod: r ? r.item : (p.e.item || ''), pres: f.un === 'und' ? f.pres : '', cant: p.cant, kg: p.kgv, un: f.un, causa: f.causa, obs: f.obs, usd: p.usd, ent: p.e.decl ? +f.ent : 0, apr: lvl('mermas') >= 3, mov};
+    run('mr', () => Svc.regMerma(body), id => { const t = p.e.t; mrReset(); if (typeof lmTrasMerma === 'function' && S.lm) lmTrasMerma(id); return `Merma ${id} registrada en ${t}: ${N1.format(p.kgv)} kg${mrSinCosto() ? '' : ', ' + usd(p.usd)}.${' Se avisó a Gerencia y Administración.'}`; });
   },
   aprobarMerma: el => run('mra:' + el.dataset.id, () => Svc.aprobarMerma(el.dataset.id), 'Merma aprobada.'),
   guardarTolMerma: () => run('pol', async () => { await Svc.guardarPol(S.pol); S.polDirty = false; }, 'Tolerancias de merma guardadas. Ya se aplican en los semáforos y alertas.'),
@@ -3800,7 +3623,7 @@ const CH = {
   arq: {t: 'Arqueos de caja chica', sub: 'Efectivo y comprobantes contados frente a lo esperado, en $', scr: 'caja', mode: 'snap', build: () => { const A = S.arqueos.slice().sort((a, b) => a.fecha.localeCompare(b.fecha)).slice(-8); return {u: 'usd', vert: 1, labels: A.map(a => fd(a.fecha)), ds: [{k: 'Contado', v: A.map(a => a.contado), tone: 'cur'}, {k: 'Esperado', v: A.map(a => a.esperado), tone: 'prev'}], x: A.map(a => 'Diferencia ' + usd(a.contado - a.esperado))}; }},
   prest_saldo: {t: 'Saldo de préstamos por empleado', sub: '$ que falta descontar por nómina', scr: 'prestamos', mode: 'snap', build: () => { const m = {}; S.prestamos.forEach(p => { const e = DATA.empleados.find(x => x.id === p.emp); const k = e ? e.n : p.emp; m[k] = (m[k] || 0) + p.monto / p.cuotas * (p.cuotas - p.pagadas); }); return cpTop('usd', m, 8, 'Saldo por cobrar'); }},
   prest_recup: {t: 'Prestado frente a recuperado', sub: 'Por cada préstamo, lo entregado y lo ya descontado, en $', scr: 'prestamos', mode: 'snap', build: () => ({u: 'usd', vert: 1, labels: S.prestamos.map(p => p.id), ds: [{k: 'Entregado', v: S.prestamos.map(p => p.monto), tone: 'cur'}, {k: 'Descontado', v: S.prestamos.map(p => p.monto / p.cuotas * p.pagadas), tone: 'b'}]})},
-  nom_area: {t: 'Nómina de la quincena por área', sub: 'Bs: sueldo base, horas extra y bonos', scr: 'nomina', ex: 1, mode: 'snap', build: () => ({u: 'bs', stacked: 1, labels: DATA.nomina.map(n => n.area), ds: [{k: 'Base', v: DATA.nomina.map(n => n.base), tone: 'cur'}, {k: 'Extras', v: DATA.nomina.map(n => n.extras), tone: 'b'}, {k: 'Bonos', v: DATA.nomina.map(n => n.bonos), tone: 'prev'}]})},
+  nom_area: {t: 'Nómina de la quincena por área', sub: '$: sueldo base, horas extra y bonos', scr: 'nomina', ex: 1, mode: 'snap', build: () => ({u: 'usd', stacked: 1, labels: DATA.nomina.map(n => n.area), ds: [{k: 'Base', v: DATA.nomina.map(n => n.base), tone: 'cur'}, {k: 'Extras', v: DATA.nomina.map(n => n.extras), tone: 'b'}, {k: 'Bonos', v: DATA.nomina.map(n => n.bonos), tone: 'prev'}]})},
   gastos_fv: {t: 'Gastos fijos y variables del mes', sub: '$ por concepto', scr: 'nomina', ex: 1, mode: 'snap', build: () => { const F = DATA.gastosFijos, V = DATA.gastosVar, L = [...F, ...V]; return {u: 'usd', stacked: 1, labels: L.map(x => x[0]), ds: [{k: 'Fijos', v: L.map((x, i) => i < F.length ? x[1] : null), tone: 'cur'}, {k: 'Variables', v: L.map((x, i) => i >= F.length ? x[1] : null), tone: 'b'}]}; }}
 };
 function cpLotesProv() {
@@ -3815,9 +3638,9 @@ function cpTop(u, m, lim, k, vert) {
 /* Qué gráficas lleva cada pantalla (las ve quien tenga permiso sobre el área de la gráfica) */
 const CP_SCR = {
   mermas: ['mr_pct', 'mr_flujo', 'mr_causa_kg', 'mr_causa_usd', 'mr_lote', 'mr_prov', 'mr_serie', 'mr_usd', 'mr_lote_acum'],
-  gestion: ['mr_usd', 'ventas_total', 'ventas_vend', 'ventas_prod', 'compras_tipo', 'compras_cond', 'compras_prov', 'prod_kg', 'prod_rend', 'prod_aceite', 'cxp_pagado', 'cxp_aging', 'cobranza_aging', 'caja_cmp', 'gastos_total', 'nomina', 'desp_veh'],
-  planta: ['prod_kg', 'stock_pt'], recepcion: ['recep_kg', 'recep_dif'], 'alm-mp': ['stock_mp'], 'alm-proceso': ['alm_proceso'], 'alm-pt': ['stock_pt', 'stock_sal'], 'alm-logistica': ['alm_log'],
-  produccion: ['prod_kg', 'prod_rend', 'prod_aceite'], empaque: ['emp_hoy', 'emp_repo', 'stock_pt'], despachos: ['desp_veh', 'desp_tipo'], cotejo: ['cotejo_kg', 'cotejo_rend', 'cotejo_costo', 'mr_lote_acum'],
+  gestion: ['mr_usd', 'ventas_total', 'ventas_vend', 'ventas_prod', 'compras_tipo', 'compras_cond', 'compras_prov', 'prod_rend', 'prod_aceite', 'cxp_pagado', 'cxp_aging', 'cobranza_aging', 'caja_cmp', 'gastos_total', 'nomina', 'desp_veh'],
+  'pr-resumen': ['prod_kg', 'stock_pt'], recepcion: ['recep_kg', 'recep_dif'], 'alm-mp': ['stock_mp'], 'alm-proceso': ['alm_proceso'], 'alm-pt': ['stock_sal'], 'alm-logistica': ['alm_log'],
+  produccion: ['prod_kg', 'prod_rend', 'prod_aceite'], empaque: ['emp_hoy', 'emp_repo'], despachos: ['desp_veh', 'desp_tipo'], cotejo: ['cotejo_kg', 'cotejo_rend', 'cotejo_costo', 'mr_lote_acum'],
   'compras-mp': ['compras_serie', 'compras_cond', 'compras_prov'], 'compras-gen': ['gastos_total', 'gen_cat'], analisis: ['compras_tipo', 'compras_cond', 'compras_prov', 'prov_puntaje', 'prov_merma', 'prov_precio', 'prov_plazo', 'mr_prov'],
   cxp: ['cxp_pagado', 'cxp_aging', 'cxp_prov'], caja: ['caja_gastos', 'caja_cmp', 'caja_cat', 'arq'], prestamos: ['prest_saldo', 'prest_recup'],
   ventas: ['ventas_total', 'ventas_vend', 'ventas_prod', 'cobranza_aging', 'cobranza_vend', 'precio_bf'], nomina: ['nomina', 'nom_area', 'gastos_fv', 'gastos_total']
@@ -3879,7 +3702,7 @@ function cpCtl(s, win) {
   {});
 }
 function cpPanel(key) {
-  const ids = (CP_SCR[key] || []).filter(id => lvl(CH[id].scr) >= 1);
+  const ids = (CP_SCR[key] || []).filter(id => lvl(CH[id].scr) >= 1 && !(CH[id].u === 'usd' && (S.rol === 'produccion' || S.rol === 'empaque'))); /* Producción y Logística no ven dinero */
   if (!ids.length) return '';
   Object.keys(CP_SPEC).forEach(k => delete CP_SPEC[k]);
   let s, win;
@@ -3940,7 +3763,7 @@ function lvlOf(r, k) {
   if (k === 'roles' || k === 'datos') return 0;
   const l = ((S.perm || {})[k] || {})[r] || 0;
   if (k === 'manual') return l;                       // el manual lo ve cada rol dentro de su módulo
-  return modsOf(r).includes(s.mod) ? l : 0;           // sin módulo visible, sin pantallas de ese módulo
+  return (s.mods || [s.mod]).some(m => modsOf(r).includes(m)) ? l : 0;   // sin módulo visible, sin pantallas de ese módulo (una pantalla compartida declara `mods`)
 }
 const lvl = k => lvlOf(S.rol, k);
 const can = k => lvl(k) >= 1;
@@ -4036,6 +3859,19 @@ function renderAll() { renderTop(); render(); }
 /* Los cambios que llegan de otras personas no deben quitar el foco a quien está escribiendo */
 let softT = null;
 function softRender() { clearTimeout(softT); softT = setTimeout(doSoft, 120); }
+/* ---------- Vistas vivas: lo que se lee del servidor (condiciones para producir, existencias, barras de Gerencia) se vuelve a pedir solo ----------
+   Se dispara (a) tras cualquier cambio que esta misma pantalla manda al servidor (POST/PUT/PATCH/DELETE a /api/) y (b) cuando el sondeo nota que
+   otro puesto o dispositivo cambió algo. Cada módulo registra con Vivo.reg una función que repide lo suyo en silencio; solo se redibuja si cambió
+   algo, y con softRender (no quita el foco a quien está escribiendo). */
+const Vivo = window.Vivo = {fns: [], t: null,
+  reg(fn) { this.fns.push(fn); },
+  tick() { clearTimeout(this.t); this.t = setTimeout(() => this.ya(), 350); },
+  ya() { this.fns.forEach(f => { try { f(); } catch (e) { /* una vista que falla no frena a las demás */ } }); },
+  /* repide en silencio: get() trae lo nuevo, cur() lo que se ve ahora; set(nuevo) lo guarda. Solo redibuja si es distinto */
+  async sil(get, cur, set) { try { const n = await get(), c = cur(); if (c && !c.error && JSON.stringify(n) !== JSON.stringify(c)) { set(n); softRender(); } } catch (e) { /* sin red: se queda lo que había */ } }
+};
+{ const f0 = window.fetch.bind(window);
+  window.fetch = (u, o) => f0(u, o).then(r => { try { if (r.ok && o && o.method && o.method !== 'GET' && String(u).indexOf('/api/') === 0 && String(u).indexOf('/api/lock') !== 0) Vivo.tick(); } catch (e) { /* nada */ } return r; }); }
 /* Mientras alguien elige un archivo no se redibuja la pantalla: el botón se destruiría y la foto elegida se perdería. */
 document.addEventListener('click', e => { const f = e.target.closest && e.target.closest('input[type=file]'); if (f) { S.filePick = Date.now(); } }, true);
 document.addEventListener('change', e => { if (e.target.type === 'file') setTimeout(() => { S.filePick = 0; }, 400); }, true);
@@ -4051,6 +3887,8 @@ function medirTop() { const t = document.querySelector('.top'); if (t) document.
 window.addEventListener('resize', medirTop); setInterval(medirTop, 2000);
 function go(route) {
   if (S.entry !== 'in' || Boot.state !== 'ready') return;
+  /* Lo viejo de recibir mercancía ya no se usa: un solo camino (Hacer compra, Recibir, inventario general) */
+  const RET = {recepcion: 'c-recibir', 'compras-mp': 'c-recibir', 'alm-mp': 'inv-general', produccion: 'pr-turno', planta: 'pr-turno'}; if (RET[route]) { route = RET[route]; history.replaceState(null, '', '#' + route); }
   if (!SCREENS[route]) route = 'mapa';
   if (!can(route)) { toast(`Sin acceso: el rol «${ROLES[S.rol]}» no ve esa pantalla. Te llevamos al inicio de tu rol.`, 'warn'); route = homeRoute(); history.replaceState(null, '', '#' + route); }
   const m = SCREENS[route].mod; if ((m === 'prod' || m === 'adm') && route !== 'manual' && modsOf(S.rol).includes(m)) S.mod = m;
@@ -4128,7 +3966,7 @@ const ENT = {
   sal: {col: 'productos', scr: 'catprod', t: 'salsa'},
   emp: {col: 'empleados', scr: 'personal', t: 'persona'}
 };
-const ENT_LBL = {nombre: 'Nombre', rif: 'RIF', tel: 'Teléfono', vend: 'Vendedor', precio: 'Tipo de precio', credito: 'Crédito (días)', ubic: 'Estado donde está', estado: 'Situación', rubro: 'Rubro', tipo: 'Qué vende',
+const ENT_LBL = {nombre: 'Nombre', rif: 'RIF', tel: 'Teléfono', vend: 'Vendedor', precio: 'Tipo de precio', credito: 'Crédito (días)', ubic: 'Estado donde está', estado: 'Situación', puesto: 'Puesto', rubro: 'Rubro', tipo: 'Qué vende',
   contacto: 'Contacto', entrega: 'Plazo de entrega (días)', cond: 'Condición', dias: 'Días de plazo', n: 'Nombre', kgSaco: 'Kg por saco', min: 'Mínimo', g: 'Gramos', ventaDia: 'Venta diaria', cedula: 'Cédula', cargo: 'Cargo', area: 'Área', pago: 'Pago', tarifa: 'Tarifa'};
 const entKind = (col, id) => col === 'proveedores' ? 'prov' : col === 'clientes' ? 'cli' : col === 'empleados' ? 'emp' : /^INS-/.test(id) || /^MP-/.test(id) ? 'ins' : /^PRES-/.test(id) ? 'pres' : 'sal';
 const entNom = d => d ? (d.nombre || d.n || d.k || d.cod || '') : '';
@@ -4212,7 +4050,7 @@ Object.assign(Svc, {
     const prev = f.id ? one('empleados', f.id) : null;
     if (prev && S.rol !== 'dueno' && (+prev.tarifa !== +f.tarifa || (prev.pago || 'dia') !== f.pago)) throw fail('Solo el Gerente cambia las tarifas de pago.');
     const id = await se(f), ch = {};
-    if (prev) { [['n', f.n], ['cedula', f.cedula], ['cargo', f.cargo], ['area', f.area], ['tel', f.tel], ['pago', f.pago], ['tarifa', +f.tarifa]].forEach(([k, b]) => { const a = prev[k]; if (String(a ?? '').trim() !== String(b ?? '').trim()) ch[k] = [a ?? '', b]; }); }
+    if (prev) { [['n', f.n], ['cedula', f.cedula], ['cargo', f.cargo], ['puesto', f.puesto], ['area', f.area], ['tel', f.tel], ['pago', f.pago], ['tarifa', +f.tarifa]].forEach(([k, b]) => { const a = prev[k]; if (String(a ?? '').trim() !== String(b ?? '').trim()) ch[k] = [a ?? '', b]; }); }
     await Svc.audit('emp', id, f.n, prev ? 'modificó' : 'agregó', ch); return id;
   };
 })();
@@ -4220,7 +4058,10 @@ Object.assign(Svc, {
 /* Historial visible en cada pantalla */
 function entHist(kinds) {
   const L = rows('auditoria').filter(a => kinds.includes(a.ent)).sort((a, b) => b.ts - a.ts).slice(0, 12);
-  const det = a => Object.entries(a.cambios || {}).map(([k, [x, y]]) => `${ENT_LBL[k] || k}: ${esc(String(x === '' ? '—' : x))} → ${esc(String(y === '' ? '—' : y))}`).join('; ');
+  const vTxt = v => v === '' || v == null ? '—' : typeof v === 'object' ? Object.values(v).filter(z => z !== '' && z != null).join(' · ') || '—' : String(v);
+  /* Cada cambio es [antes, después]; también se aceptan los registros con forma {antes: {...}, despues: {...}} para que una fila distinta nunca rompa la pantalla */
+  const det = a => { const c = a.cambios || {}; if (c.antes && c.despues && typeof c.antes === 'object' && typeof c.despues === 'object' && !Array.isArray(c.antes)) return [...new Set([...Object.keys(c.antes), ...Object.keys(c.despues)])].filter(k => String(c.antes[k] ?? '') !== String(c.despues[k] ?? '')).map(k => `${ENT_LBL[k] || k}: ${esc(vTxt(c.antes[k]))} → ${esc(vTxt(c.despues[k]))}`).join('; ');
+    return Object.entries(c).map(([k, v]) => { const [x, y] = Array.isArray(v) ? v : ['', v]; return `${ENT_LBL[k] || k}: ${esc(vTxt(x))} → ${esc(vTxt(y))}`; }).join('; '); };
   return card('Historial de cambios', table([
     {h: 'Cuándo', f: a => new Date(a.ts).toLocaleString('es-VE', {dateStyle: 'short', timeStyle: 'short'})}, {h: 'Quién', f: a => esc(a.rol || '')},
     {h: 'Qué', f: a => `<b>${esc(a.nom || a.ref || '')}</b> · ${esc(a.accion)}${det(a) ? `<br><span class="muted">${det(a)}</span>` : ''}`}], L, {empty: 'Todavía no hay cambios registrados.'}), {sub: 'Quién cambió qué y cuándo'});
@@ -4399,12 +4240,16 @@ function scrInventario() {
     ${lim.prov ? `<p class="hint">Plazo de entrega de ${esc((one('proveedores', lim.prov) || {}).nombre || 'su proveedor')}: ${lim.ent} día(s). Se edita en Proveedores y alimenta la alerta de cobertura.</p>` : ''}
     ${F.lim.err ? `<p class="err" role="alert">${ic('alert')}${F.lim.err}</p>` : ''}<div class="btnrow"><button type="button" class="btn pri" data-act="invLimGuardar">${ic('check', 16)}Guardar límites</button><button type="button" class="btn" data-act="invLimCancel">Cancelar</button></div></div>`, {id: 'il-card'}) : ''}
   ${hist ? card('Movimientos de ' + esc(hist.nombre), table([{h: 'Fecha', f: m => fd(m.fecha)}, {h: 'Tipo', f: m => ({entrada: 'Entrada', salida: 'Salida', saldo: 'Saldo inicial'})[m.tipo] || m.tipo}, {h: 'Cantidad', r: 1, f: m => (m.tipo === 'salida' ? '−' : '+') + N0.format(m.cant) + ' ' + hist.u}, {h: 'Referencia', f: m => esc(m.ref || '')}],
-    rows('movimientos').filter(m => m.almacen === hist.mov[0] && m.item === hist.mov[1]).sort((a, b) => b.fecha.localeCompare(a.fecha) || b.id.localeCompare(a.id)).slice(0, 25), {empty: 'Sin movimientos.'}), {sub: 'Últimos 25 movimientos'}) : ''}
-  ${card('Solicitudes de compra', table([{h: 'Solicitud', f: s => `<b>${s.id}</b><br><span class="muted">${fd(s.fecha)} · ${esc(s.pide)}</span>`}, {h: 'Ítem', f: s => `${esc(s.nombre)}<br><span class="muted">${esc(s.motivo)}</span>`}, {h: 'Cantidad sugerida', r: 1, f: s => N0.format(s.cant) + ' ' + s.u},
-    {h: 'Estado', f: s => s.estado === 'Pendiente' ? chip('Pendiente', 'warn') : chip('Atendida', 'ok') + `<br><span class="muted">${esc(s.atiende || '')}</span>`},
-    {h: '', f: s => s.estado === 'Pendiente' && (S.rol === 'adm' || S.rol === 'dueno') ? `<button type="button" class="btn sm pri" data-act="invAtender" data-id="${s.id}">Marcar atendida</button>` : ''}], scV, {empty: 'No hay solicitudes de compra.'}), {sub: S.rol === 'adm' || S.rol === 'dueno' ? 'Las atiende Administración' : 'Las que pediste tú'})}
-  ${entHist(['inv'])}`;
+    rows('movimientos').filter(m => m.almacen === hist.mov[0] && m.item === hist.mov[1]).sort((a, b) => b.fecha.localeCompare(a.fecha) || b.id.localeCompare(a.id)).slice(0, 25), {empty: 'Sin movimientos.'}), {sub: 'Últimos 25 movimientos'}) : ''}`;
 }
+/* Solicitudes de compra (las atiende Administración): ya no van en Existencias; se ven en Reportes. */
+function invSolicitudesCard() {
+  const sc = rows('solicitudes_compra').sort((a, b) => b.ts - a.ts), scV = (S.rol === 'dueno' || S.rol === 'adm') ? sc : sc.filter(s => s.pide === (ROLES[S.rol] || S.rol)).slice(0, 6);
+  return card('Solicitudes de compra', table([{h: 'Solicitud', f: s => `<b>${s.id}</b><br><span class="muted">${fd(s.fecha)} · ${esc(s.pide)}</span>`}, {h: 'Ítem', f: s => `${esc(s.nombre)}<br><span class="muted">${esc(s.motivo)}</span>`}, {h: 'Cantidad sugerida', r: 1, f: s => N0.format(s.cant) + ' ' + s.u},
+    {h: 'Estado', f: s => s.estado === 'Pendiente' ? chip('Pendiente', 'warn') : chip('Atendida', 'ok') + `<br><span class="muted">${esc(s.atiende || '')}</span>`},
+    {h: '', f: s => s.estado === 'Pendiente' && (S.rol === 'adm' || S.rol === 'dueno') ? `<button type="button" class="btn sm pri" data-act="invAtender" data-id="${s.id}">Marcar atendida</button>` : ''}], scV, {empty: 'No hay solicitudes de compra.'}), {sub: S.rol === 'adm' || S.rol === 'dueno' ? 'Las atiende Administración' : 'Las que pediste tú'});
+}
+window.invSolicitudesCard = invSolicitudesCard; window.invCambiosCard = () => entHist(['inv']);
 SCREENS.inventario = {mod: 'prod', g: 'Almacenes', t: 'Inventario actual', s: 'Inventario', ic: 'warehouse', r: scrInventario};
 SCREENS['inventario-adm'] = {mod: 'adm', g: 'Compras', t: 'Inventario actual', s: 'Inventario', ic: 'warehouse', r: scrInventario};
 PERM_DEF.inventario = 'produccion:3 empaque:2';
@@ -4426,6 +4271,9 @@ EXP_SETS.inv = {t: 'Inventario actual', scr: 'inventario', area: 'Producción', 
   rows: () => invItems().map(i => ({a: i.aA || 'Producción', v: [i.alm, i.area, un(i.nombre), i.u, i.q == null ? '' : round2(i.q), i.min, i.max, INV_EST[i.est][0], i.cob == null ? '' : round2(i.cob), i.agota, i.valor == null ? '' : round2(i.valor), i.valor == null ? '' : round2(i.valor * S.tasa), i.ult]}))};
 EXP_SETS.inva = {...EXP_SETS.inv, scr: 'inventario-adm'};
 EXP_SCR.inventario = ['inv']; EXP_SCR['inventario-adm'] = ['inva'];
+EXP_SETS.mermaEt = {t: 'Merma del proceso por etapa', scr: 'planta', area: 'Producción', per: true, nota: 'Sale del servidor: kilos perdidos por etapa al cerrar cada turno.',
+  get cols() { return ['Fecha', 'Turno', 'Etapa', 'Kilos', 'Motivo', 'Nota', 'Anotó'].concat(S.rol === 'dueno' || S.rol === 'adm' ? ['Costo $'] : []); },
+  rows: (d, h) => (window.prMerEtCargar ? window.prMerEtCargar() : []).filter(f => f.fecha >= d && f.fecha <= h).map(f => ({a: 'Producción', v: [f.fecha, f.turno, f.etapa, f.kilos, f.motivo, f.nota, f.anoto].concat(S.rol === 'dueno' || S.rol === 'adm' ? [f.costo_usd == null ? 'sin precio' : f.costo_usd] : [])}))};
 /* ---------- Acciones ---------- */
 function setPath(path, val) {
   const p = path.split('.'); let o = S;
@@ -4451,7 +4299,7 @@ async function run(key, fn, ok) {
 }
 const waitFor = async (test, ms = 4000) => { const t0 = Date.now(); while (Date.now() - t0 < ms) { if (test()) return true; await wait(100); } return false; };
 const enter = r => { if (location.hash.slice(1) === r) go(r); else location.hash = r; };
-const ROLE_HOME = {adm:'compras-mp', produccion:'pr-turno', empaque:'em-tablero', ventas:'ventas', rrhh:'nomina'};
+const ROLE_HOME = {adm:'c-pedido', produccion:'pr-turno', empaque:'em-tablero', ventas:'ventas', rrhh:'nomina'};
 function homeRoute() {
   const m = S.mod, last = S.last[m], rh = ROLE_HOME[S.rol];
   if (!last && rh && SCREENS[rh] && SCREENS[rh].mod === m && can(rh)) return rh;

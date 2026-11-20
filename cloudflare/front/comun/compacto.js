@@ -6,18 +6,15 @@
 const G = ['Gráficas', 'Comparar', 'Kg facturados'];
 const CFG = {
   produccion: [['Lotes', ['.pe-wrap']], ['Línea salsera', ['Línea salsera']], ['Mermas', ['Mermas de esta etapa']], ['Gráficas', ['Gráficas', 'Comparar', 'Papa frita producida']], ['Exportar', ['Exportar']]],
-  recepcion: [['Nueva recepción', ['Nueva recepción']], ['Recientes', ['Recorrido', 'Recepciones recientes'], 'g2'], ['Mermas', ['Mermas de esta etapa']], ['Gráficas', G], ['Exportar', ['Exportar']]],
   empaque: [['Empaque de hoy', ['Empaque de hoy', 'Anotar lo empacado', 'Existencias']], ['Mermas', ['Mermas de esta etapa']], ['Gráficas', ['Gráficas', 'Comparar', 'Empacado hoy']], ['Exportar', ['Exportar']]],
   despachos: [['Notas de entrega', ['.fleet', 'Notas de entrega', 'Despachar un pedido']], ['Mermas', ['Mermas de esta etapa']], ['Gráficas', ['Gráficas', 'Comparar', 'Despachos por vehículo']], ['Exportar', ['Exportar']]],
-  'compras-mp': [['Por validar', ['Recepciones por validar']], ['Compras efectivas', ['Compras efectivas']], ['Gráficas', ['Gráficas', 'Comparar', 'Compras por periodo']], ['Exportar', ['Exportar']]],
   gestion: [['Atención hoy', ['Lo que necesita']], ['Ventas', ['Ventas por día', 'Productos más']], ['Deudas y gastos', ['Deudores', 'Gastos y nómina']], ['Gráficas', ['Gráficas', 'Comparar', 'Costo de las mermas']], ['Exportar', ['Exportar']]],
   analisis: [['Proveedores', ['Ranking', 'Concentración']], ['Qué se compró', ['Qué se compró']], ['Lote por lote', ['Lote por lote']], ['Rendimiento', ['Rendimiento', 'Lectura', 'Recomendaciones']], ['Gráficas', ['Gráficas', 'Comparar', 'Materia prima frente']]],
   mermas: [['Alertas', ['Alertas']], ['Registrar merma', ['Registrar merma']], ['Por etapa y causa', ['Merma por etapa', 'Causas principales', 'Mermas por proveedor']], ['Tolerancias', ['Tolerancias']], ['Gráficas', ['Gráficas', 'Comparar', 'Merma % por proceso']], ['Exportar', ['Exportar']]],
   nomina: [['Nómina', ['Nómina por área', 'Reglas de pago']], ['Recibos de pago', ['Recibos de pago']], ['Gastos fijos', ['Gastos fijos']], ['Gráficas', ['Gráficas', 'Comparar', 'Nómina pagada']], ['Exportar', ['Exportar']]],
-  inventario: [['Existencia', ['Existencia frente', 'Inventario']], ['Límites y movimientos', ['Límites de', 'Movimientos de']], ['Solicitudes de compra', ['Solicitudes de compra']]],
-  'inventario-adm': [['Existencia', ['Existencia frente', 'Inventario']], ['Límites y movimientos', ['Límites de', 'Movimientos de']], ['Solicitudes de compra', ['Solicitudes de compra']]],
+  inventario: [['Existencia', ['Existencia frente', 'Inventario']], ['Límites y movimientos', ['Límites de', 'Movimientos de']]],
+  'inventario-adm': [['Existencia', ['Existencia frente', 'Inventario']], ['Límites y movimientos', ['Límites de', 'Movimientos de']]],
   asistencia: [['Asistencia', ['.as-grid']], ['Exportar', ['Exportar']]],
-  planta: [['Hoy', ['.quick', 'Recepciones de ayer']], ['Gráficas', ['Gráficas', 'Comparar', 'Papa frita']], ['Exportar', ['Exportar']]],
   cotejo: [['Lote por lote', ['Lote por lote']], ['Rendimiento', ['Rendimiento', 'Lectura']], ['Gráficas', ['Gráficas']]],
   catprod: [['Quién recibe', ['Quién recibe']], ['Insumos', ['Insumos']], ['Salsas', ['Salsas']], ['Historial', ['Historial de cambios', 'Archivados']]],
   'alm-logistica': [['Almacén', ['Sub-almacén', 'Registrar bulto']], ['Mermas', ['Mermas de esta etapa']], ['Gráficas', ['Gráficas', 'Bultos por estado']]]

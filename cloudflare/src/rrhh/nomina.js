@@ -1,6 +1,6 @@
 /* Pagar nómina · reglas de montos (puras: sin base de datos ni HTTP). Misma fórmula de la nómina por quincena de la pantalla «Nómina»:
    base = días × tarifa (o horas × tarifa); hora extra = horas extra × valor de la hora × (1 + recargo %); ley = (base + extra) × ley %;
-   neto = base + extra + bonos − ley − préstamo. Todo en bolívares. */
+   neto = base + extra + bonos − ley − préstamo. TODO en DÓLARES (tarifas, bonos, deducciones y préstamos); al registrar el pago se pasa a bolívares con la tasa BCV del día de pago (ver pagos.js). */
 import {NOMINA_PAGA} from '../acceso.js';
 export const puedePagar = rol => NOMINA_PAGA.includes(rol);
 export const MSG_SIN_NOMINA = 'Solo Gerencia y Recursos humanos ven y pagan la nómina.';
@@ -50,7 +50,7 @@ export function quincenasDentro(desde, hasta) {
    e: ficha (pago 'dia'|'hora', tarifa) · pol: {nomJornada, nomRecargo, nomLey} · manual: asistencias a mano de las quincenas dentro del período
    dias: {fecha: horas marcadas} (marcas cerradas) · jor: {fecha: horas del turno ese día} (si falta, se usa la jornada de la política) · bonosProd: bonos de producción del período
    prestamos: préstamos de la persona · tipo: semana|quincena|mes */
-export function calcular({e, pol, manual, dias, jor: jorDias, bonosProd, prestamos, tipo}) {
+export function calcular({e, pol, manual, dias, jor: jorDias, bonosProd, bonosNoct, prestamos, tipo}) {
   const jor = +pol.nomJornada || 8, rec = +pol.nomRecargo || 0, ley = +pol.nomLey || 0, t = +e.tarifa || 0, porHora = e.pago === 'hora';
   const jd = f => (jorDias && +jorDias[f] > 0 ? +jorDias[f] : jor), hrDe = d => (porHora ? t : t / d);
   const fechas = Object.keys(dias || {}).filter(f => dias[f] > 0), conMarcas = fechas.length > 0;
@@ -62,12 +62,13 @@ export function calcular({e, pol, manual, dias, jor: jorDias, bonosProd, prestam
   } else if (man.dias || man.horas || man.extra) { nd = man.dias; nh = man.horas; ne = man.extra; origen = 'asistencia'; extraBase = ne * hrDe(jor); sinHorario = true; }
   else { nd = nh = ne = 0; origen = 'ninguno'; }
   const base = r2(porHora ? nh * t : nd * t), extra = r2(extraBase * (1 + rec / 100)), bp = r2(bonosProd), bonos = r2(man.bonos + bp), deley = r2((base + extra) * ley / 100), bruto = r2(base + extra + bonos - deley);
-  const act = (prestamos || []).filter(p => p.pagadas < p.cuotas).sort((a, b) => String(a.id).localeCompare(String(b.id))).map(p => { const cuota = (+p.monto || 0) / (+p.cuotas || 1) * (+p.tasa || 0); return {id: p.id, cuota_bs: r2(cuota), restan: r2(p.cuotas - p.pagadas), cuotas: p.cuotas, pagadas: p.pagadas, saldo_bs: r2((p.cuotas - p.pagadas) * cuota), motivo: p.motivo || ''}; });
-  const saldo = r2(act.reduce((a, p) => a + p.saldo_bs, 0));
+  /* Los préstamos ya se entregan en dólares: la cuota es el monto entre las cuotas, sin tasa */
+  const act = (prestamos || []).filter(p => p.pagadas < p.cuotas).sort((a, b) => String(a.id).localeCompare(String(b.id))).map(p => { const cuota = (+p.monto || 0) / (+p.cuotas || 1); return {id: p.id, cuota_usd: r2(cuota), restan: r2(p.cuotas - p.pagadas), cuotas: p.cuotas, pagadas: p.pagadas, saldo_usd: r2((p.cuotas - p.pagadas) * cuota), motivo: p.motivo || ''}; });
+  const saldo = r2(act.reduce((a, p) => a + p.saldo_usd, 0));
   let porDescontar = CUOTAS_POR_PERIODO[tipo] || 0, sug = 0;
-  for (const p of act) { const k = Math.min(porDescontar, p.restan); sug += k * p.cuota_bs; porDescontar -= k; }
+  for (const p of act) { const k = Math.min(porDescontar, p.restan); sug += k * p.cuota_usd; porDescontar -= k; }
   sug = Math.max(0, Math.min(r2(sug), saldo, bruto));
-  return {origen, dias: r2(nd), horas: r2(nh), horas_extra: r2(ne), sin_horario: sinHorario, base, extra, bonos, bonos_produccion: bp, ley: deley, bruto, prestamos: act, saldo_prestamo: saldo, descuento_sugerido: sug, neto_sugerido: r2(bruto - sug)};
+  return {origen, dias: r2(nd), horas: r2(nh), horas_extra: r2(ne), sin_horario: sinHorario, base, extra, bonos, bonos_produccion: r2(+bp - (+bonosNoct || 0)), bonos_nocturno: r2(bonosNoct), ley: deley, bruto, prestamos: act, saldo_prestamo: saldo, descuento_sugerido: sug, neto_sugerido: r2(bruto - sug)};
 }
 /* Valida el pago pedido y devuelve el descuento final y el reparto entre préstamos, o {error} */
 export function validarPago(c, b, hoy) {
@@ -84,10 +85,10 @@ export function validarPago(c, b, hoy) {
     desc = v === undefined || v === null || v === '' ? c.descuento_sugerido : +v;
     if (!Number.isFinite(desc) || desc < 0) return {error: 'El descuento debe ser un monto igual o mayor que cero.'};
     desc = r2(desc);
-    if (desc > c.saldo_prestamo + 0.005) return {error: 'No se puede descontar más de lo que queda del préstamo (' + c.saldo_prestamo.toFixed(2) + ' Bs).'};
+    if (desc > c.saldo_prestamo + 0.005) return {error: 'No se puede descontar más de lo que queda del préstamo ($ ' + c.saldo_prestamo.toFixed(2) + ').'};
   }
   if (desc > c.bruto + 0.005) return {error: 'El descuento no puede ser mayor que el pago: el neto quedaría en negativo.'};
   let resto = desc; const reparto = [];
-  for (const p of c.prestamos) { if (resto <= 0.004) break; const bs = r2(Math.min(resto, p.saldo_bs)); reparto.push({id: p.id, bs, cuotas: p.cuota_bs > 0 ? Math.round(bs / p.cuota_bs * 100) / 100 : 0}); resto = r2(resto - bs); }
+  for (const p of c.prestamos) { if (resto <= 0.004) break; const usd = r2(Math.min(resto, p.saldo_usd)); reparto.push({id: p.id, usd, cuotas: p.cuota_usd > 0 ? Math.round(usd / p.cuota_usd * 100) / 100 : 0}); resto = r2(resto - usd); }
   return {ok: {fecha, forma, nota, descuento: desc, reparto, neto: r2(c.bruto - desc)}};
 }

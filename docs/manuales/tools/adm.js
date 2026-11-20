@@ -1,0 +1,25 @@
+const {abrir} = require('./cap.js');
+(async () => {
+  const {browser, page, U, errores} = await abrir('Administración', 'administracion-');
+  const ver = async t => { await page.locator('text=' + t).first().scrollIntoViewIfNeeded().catch(()=>{}); await page.waitForTimeout(400); };
+  await U.ir('#adm-resumen'); await U.marcar('Cobranza', 'Nueva compra'); await U.foto('01');
+  await U.ir('#c-pedido'); await page.locator('text=Agrícola Páramo (ejemplo)').first().click(); await page.waitForTimeout(700);
+  await page.locator('button:has-text("+")').first().click(); await page.waitForTimeout(300); await page.locator('button:has-text("+")').first().click(); await page.waitForTimeout(500);
+  await U.borroso(); await U.foto('02');
+  await ver('HACER LA COMPRA'); await U.marcar('"HACER LA COMPRA"'); await U.foto('03');
+  await U.ir('#c-dif'); await U.foto('04');
+  await U.ir('#compras-gen'); await U.borroso(); await U.marcar('Registrar compra'); await U.foto('05');
+  await U.ir('#cxp'); await page.waitForTimeout(800); await ver('Registrar pago'); await U.marcar('"Registrar pago"'); await U.foto('06');
+  await U.ir('#v-cobro'); await page.waitForTimeout(800); await U.foto('07');
+  await U.ir('#v-deuda'); await U.marcar('Registrar cobro'); await U.foto('08');
+  await U.ir('#caja'); await page.waitForTimeout(800); await ver('Registrar gasto'); await page.locator('text=Registrar gasto').first().click().catch(()=>console.log('sin gasto')); await page.waitForTimeout(800); await U.foto('09');
+  await U.ir('#prestamos'); await page.waitForTimeout(800); await U.foto('10');
+  await U.ir('#p-precios'); await page.waitForTimeout(1000); await U.borroso(); await U.foto('11');
+  await U.ir('#adm-resumen'); await ver('Inventario de producción'); await U.marcar('Definir mínimo'); await U.foto('12');
+  await U.ir('#catalogos'); await page.waitForTimeout(800); await U.marcar('Nuevo proveedor'); await U.foto('13');
+  await U.ir('#ventas'); await page.waitForTimeout(1000); await ver('Reportes de ventas'); await U.foto('14');
+  await U.ir('#c-pagos'); await page.waitForTimeout(800); await page.evaluate(() => document.querySelectorAll('#main *').forEach(e => { if (e.children.length === 0 && /^Nota del cliente/.test(e.textContent)) e.style.visibility = 'hidden'; })); await U.foto('15');
+  await U.ir('#adm-resumen'); await page.locator('text=Autorización').first().click(); await page.waitForTimeout(600);
+  await page.locator('text=Pedir autorización').first().click().catch(()=>{}); await page.waitForTimeout(600); await U.foto('16');
+  console.log('errores consola:', errores.length, errores.slice(0,3)); await browser.close();
+})();

@@ -53,7 +53,7 @@ function vPedP1() {
   const P = vPed(), cli = P.cli;
   if (!cli) return `<div class="v-p1-vacio">${vPicker('ped', null, P.q || '')}<button type="button" class="btn sm" data-act="vNuevoCliente">${ic('plus', 16)}Cliente nuevo</button></div>`;
   return `<div class="v-cli"><p class="v-cli-n">${vtxt(cli.razon_social)}</p><p class="mono">${vtxt(cli.rif_id || 'sin RIF')}${cli.ejemplo ? ' <span class="chip c-warn">EJEMPLO</span>' : ''}</p>
-    <dl class="v-dl"><div><dt>Vendedor</dt><dd>${vtxt(cli.vendedor_nombre || '—')}</dd></div><div><dt>Estado · Zona · Lista</dt><dd>${vtxt(VD.estadoReal(cli.zona) || 'falta estado')}${VD.estadoReal(cli.zona) ? ' · ' + vtxt(VD.zonaDeEstado(cli.zona)) : ''} · ${P.lista ? 'Lista ' + vtxt(P.lista) : '<span class="v-alerta-i">sin precios</span>'}</dd></div>
+    <dl class="v-dl"><div><dt>Vendedor</dt><dd>${vtxt(cli.vendedor_nombre || '—')}</dd></div><div><dt>Estado · Zona</dt><dd>${vtxt(VD.estadoReal(cli.zona) || 'falta estado')}${VD.estadoReal(cli.zona) ? ' · ' + vtxt(VD.zonaDeEstado(cli.zona)) : ''}</dd></div><div><dt>Categoría de precio</dt><dd>${P.lista ? vtxt(P.lista) : '<span class="v-alerta-i">sin categoría</span>'}</dd></div>
     <div><dt>Modalidad habitual</dt><dd>${vModTxt(cli.modalidad_despacho_pref)}</dd></div><div><dt>Pronto pago hasta</dt><dd>${vPlazo(cli.dias_pronto_pago)}</dd></div>
     <div><dt>Crédito normal hasta</dt><dd>${vPlazo(cli.dias_credito_normal)}</dd></div><div><dt>Descuento fijo</dt><dd>${cli.descuento_fijo_pct != null ? N2.format(cli.descuento_fijo_pct) + ' %' : '<span class="muted">ninguno</span>'}</dd></div></dl>
     <div id="v-cred">${vPedCredito()}</div><button type="button" class="btn sm ghost" data-act="vCambiarCliente">Cambiar cliente</button></div>`;
@@ -105,7 +105,7 @@ function vPedGrid() {
   const n = V_PAG(0), pags = Math.max(1, Math.ceil(lista.length / n)); P.pag = Math.min(Math.max(0, P.pag || 0), pags - 1);
   const vis = lista.slice(P.pag * n, P.pag * n + n);
   const pager = pags > 1 ? `<div class="v-pager"><button type="button" class="btn sm ghost" data-act="vPag" data-d="-1" ${P.pag <= 0 ? 'aria-disabled="true"' : ''}>← Anterior</button><span>Página ${P.pag + 1} de ${pags} · ${lista.length} productos</span><button type="button" class="btn sm ghost" data-act="vPag" data-d="1" ${P.pag >= pags - 1 ? 'aria-disabled="true"' : ''}>Siguiente →</button></div>` : '';
-  const aviso = P.cli && P.sinLista ? `<p class="v-alerta v-sinlista" role="status">${ic('alert', 16)}<span><b>${esc(P.msgLista || 'Este cliente no tiene lista de precios.')}</b></span></p>` : '';
+  const aviso = P.cli && P.sinLista ? `<p class="v-alerta v-sinlista" role="status">${ic('alert', 16)}<span><b>${esc(P.msgLista || 'Este cliente no tiene categoría de precio.')}</b></span></p>` : '';
   return aviso + `<div class="v-grid ${vVista() === 'lista' ? 'v-lista' : ''}" id="v-grid">${vis.length ? vis.map(vPedTarjeta).join('') : '<p class="hint">Ningún producto coincide con la búsqueda.</p>'}</div>${pager}`;
 }
 function vPedP3() {

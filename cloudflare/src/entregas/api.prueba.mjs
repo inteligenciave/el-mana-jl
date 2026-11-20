@@ -1,5 +1,8 @@
 /* Pruebas por API de Entregas contra un `wrangler dev --local` ya encendido. SOLO LOCAL.
    Uso: node src/entregas/api.prueba.mjs [URL] (o variable URL_PRUEBA; por defecto 8801 y si no responde 8800)     (necesita los datos de ejemplo cargados) */
+/* OJO (dato local, no código): la prueba CONSUME documentos «sin verificar» (les sube foto) y exige al menos 3 al empezar.
+   Si falla con «hay documentos sin verificar», la base local ya los gastó (corridas o pruebas de usuario anteriores):
+   córrela sobre una base local recién sembrada (borrar .wrangler/state y reiniciar `wrangler dev --local`, que vuelve a cargar los datos de ejemplo). */
 import assert from 'node:assert/strict';
 const B = process.argv[2] || process.env.URL_PRUEBA || await (async () => { try { await fetch('http://localhost:8801/', {signal: AbortSignal.timeout(1500)}); return 'http://localhost:8801'; } catch (e) { return 'http://localhost:8800'; } })();
 if (!/^https?:\/\/(localhost|127\.0\.0\.1)/.test(B)) throw new Error('Solo se prueba en local.');
