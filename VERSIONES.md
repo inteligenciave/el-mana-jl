@@ -88,3 +88,9 @@ Notas honestas sobre lo que no se pudo comprobar:
 Lo que hay hecho en local y sin publicar (migraciones 0027 a 0038, Producción rehecha, compras en un solo paso, nómina en USD, bonos, áreas de Personal, etc.) está resumido en `CHANGELOG.md`, sección «Sin publicar». Por su tamaño y por tocar nómina y datos, corresponde **v2.0** (siguiendo la regla de la sección 3, suponiendo que `7acf069e` sea v1.0).
 
 Para publicarla, seguir `PUBLICAR.md`.
+
+## v2.0 · 2026-11-20
+- Publicada en Cloudflare: versión 1e3003f0-594e-4dfe-8a6e-2c4e51caa1ae (anterior para volver atrás: 7acf069e-f8d4-4215-8d56-e3a86fb0a4ca).
+- Migraciones 0027 a 0047 aplicadas en la base real. Commit d145a7e, etiqueta v2.0 (sin subir a GitHub).
+- Marca Time Travel previa: 00000109-00000000-00005129-7d3b499dacd6acc867f5bd00ef002681. Respaldo local: ../respaldo-pre-v2.0.sql.
+- Pendientes anotados: monto del bono nocturno; revisar sueldos en $ uno por uno; verificación completa a medias; acceso por clave fuera.
